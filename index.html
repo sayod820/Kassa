@@ -1186,9 +1186,21 @@ function ExpensesTab({tick}){
             <div style={{fontSize:13,color:C.muted,marginBottom:2}}>{e.reason}</div>
             <div style={{fontSize:11,color:C.dim}}>{fmtD(e.date)} · {fmtT(e.created_at)}</div>
           </div>
-          <button onClick={()=>del(e.id)} style={{background:'none',border:'none',color:C.dim,fontSize:20,cursor:'pointer',padding:4,flexShrink:0}}>✕</button>
+          <button onClick={()=>setDelId(e.id)} style={{background:'none',border:'none',color:C.dim,fontSize:20,cursor:'pointer',padding:4,flexShrink:0}}>🗑</button>
         </div>
       ))}
+      {delId&&(
+        <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,.75)',zIndex:200,display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
+          <div style={{background:C.bg2,border:`1px solid ${C.red}50`,borderRadius:20,padding:24,width:'100%',maxWidth:380}}>
+            <div style={{fontSize:18,fontWeight:800,marginBottom:8}}>Удалить расход?</div>
+            <div style={{fontSize:13,color:C.dim,marginBottom:20}}>Это действие нельзя отменить</div>
+            <div style={{display:'flex',gap:10}}>
+              <Btn outline onClick={()=>setDelId(null)} style={{flex:1,padding:'12px 0'}}>Отмена</Btn>
+              <Btn bg={C.red} onClick={confirmDelete} style={{flex:1,padding:'12px 0'}}>Удалить</Btn>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1235,18 +1247,30 @@ function RevenueTab({tick}){
             <div style={{fontSize:12,color:C.dim}}>Прибыль GBS: <b style={{color:C.blue}}>{fmt(r.profit||0)} SM</b></div>
             <div style={{fontSize:11,color:C.dim,marginTop:2}}>{fmtD(r.date)} · {fmtT(r.created_at)}</div>
           </div>
-          <button onClick={()=>del(r.id)} style={{background:'none',border:'none',color:C.dim,fontSize:20,cursor:'pointer',padding:4,flexShrink:0}}>✕</button>
+          <button onClick={()=>setDelId(r.id)} style={{background:'none',border:'none',color:C.dim,fontSize:20,cursor:'pointer',padding:4,flexShrink:0}}>🗑</button>
         </div>
       ))}
+      {delId&&(
+        <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,.75)',zIndex:200,display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
+          <div style={{background:C.bg2,border:`1px solid ${C.red}50`,borderRadius:20,padding:24,width:'100%',maxWidth:380}}>
+            <div style={{fontSize:18,fontWeight:800,marginBottom:8}}>Удалить запись выручки?</div>
+            <div style={{fontSize:13,color:C.dim,marginBottom:20}}>Это действие нельзя отменить</div>
+            <div style={{display:'flex',gap:10}}>
+              <Btn outline onClick={()=>setDelId(null)} style={{flex:1,padding:'12px 0'}}>Отмена</Btn>
+              <Btn bg={C.red} onClick={confirmDelete} style={{flex:1,padding:'12px 0'}}>Удалить</Btn>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 function CashTab({tick}){
-  const [action,setAction]=useState('revenue');
+  const [action,setAction]=useState('add');
   const [amount,setAmount]=useState('');
-  const [gbsProfit,setGbsProfit]=useState('');
   const [desc,setDesc]=useState('');
+  const [delId,setDelId]=useState(null);
   const movements=dbGet('cash_movements').sort((a,b)=>b.created_at.localeCompare(a.created_at));
   let balance=0; movements.forEach(m=>{ if(m.type==='add'||m.type==='revenue') balance+= +m.amount; else balance-= +m.amount; });
   const todayMov=movements.filter(m=>m.date===tod());
@@ -1258,15 +1282,10 @@ function CashTab({tick}){
   const isPlus=t=>t==='revenue'||t==='add';
   const save=async()=>{
     if(!amount)return;
-    if(action==='revenue'){
-      await dbInsert('revenue',{amount:+amount,profit:gbsProfit?+gbsProfit:null,date:tod(),source:'manual'});
-      await dbInsert('cash_movements',{type:'revenue',amount:+amount,description:'Выручка',date:tod()});
-    } else {
-      await dbInsert('cash_movements',{type:'remove',amount:+amount,description:desc.trim()||'Снятие',date:tod()});
-    }
-    setAmount(''); setGbsProfit(''); setDesc('');
+    await dbInsert('cash_movements',{type:action,amount:+amount,description:desc.trim()||(action==='add'?'Внесено':'Снятие'),date:tod()});
+    setAmount(''); setDesc('');
   };
-  const del=async id=>{ await dbDelete('cash_movements',id); };
+  const confirmDelete=async()=>{ await dbDelete('cash_movements',delId); setDelId(null); };
   return(
     <div style={{padding:14,paddingBottom:30}}>
       <div style={{background:C.bg2,border:`1.5px solid ${balance>=0?C.green+'40':C.red+'40'}`,borderRadius:18,padding:'22px 20px',marginBottom:10,textAlign:'center'}}>
@@ -1280,14 +1299,26 @@ function CashTab({tick}){
       </div>
       <Card>
         <div style={{display:'flex',gap:8,marginBottom:14}}>
-          <button onClick={()=>setAction('revenue')} style={{flex:1,padding:'11px 8px',borderRadius:11,cursor:'pointer',fontFamily:'inherit',fontSize:13,fontWeight:800,border:`1.5px solid ${action==='revenue'?C.green+'60':C.border}`,background:action==='revenue'?C.green+'18':C.bg2,color:action==='revenue'?C.green:C.dim}}>💰 Выручка</button>
+          <button onClick={()=>setAction('add')} style={{flex:1,padding:'11px 8px',borderRadius:11,cursor:'pointer',fontFamily:'inherit',fontSize:13,fontWeight:800,border:`1.5px solid ${action==='add'?C.green+'60':C.border}`,background:action==='add'?C.green+'18':C.bg2,color:action==='add'?C.green:C.dim}}>➕ Добавить</button>
           <button onClick={()=>setAction('remove')} style={{flex:1,padding:'11px 8px',borderRadius:11,cursor:'pointer',fontFamily:'inherit',fontSize:13,fontWeight:800,border:`1.5px solid ${action==='remove'?C.red+'60':C.border}`,background:action==='remove'?C.red+'18':C.bg2,color:action==='remove'?C.red:C.dim}}>➖ Снять</button>
         </div>
         <TI label="СУММА (SM)" type="number" placeholder="0.00" value={amount} onChange={setAmount} autoFocus/>
-        {action==='revenue'&&<TI label="ПРИБЫЛЬ GBS (SM) — необязательно" type="number" placeholder="из GBS.Market" value={gbsProfit} onChange={setGbsProfit}/>}
-        {action==='remove'&&<TI label="ОПИСАНИЕ" placeholder="Куда снял..." value={desc} onChange={setDesc}/>}
-        <Btn bg={action==='revenue'?C.green:C.red} color={action==='revenue'?'#051a0e':'#fff'} onClick={save} disabled={!amount}>{action==='revenue'?'+ Внести выручку в кассу':'− Снять из кассы'}</Btn>
+        <TI label="ОПИСАНИЕ" placeholder={action==='add'?'Откуда...':'Куда снял...'} value={desc} onChange={setDesc}/>
+        <Btn bg={action==='add'?C.green:C.red} color={action==='add'?'#051a0e':'#fff'} onClick={save} disabled={!amount}>{action==='add'?'+ Добавить в кассу':'− Снять из кассы'}</Btn>
       </Card>
+      {/* Подтверждение удаления */}
+      {delId&&(
+        <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,.75)',zIndex:200,display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
+          <div style={{background:C.bg2,border:`1px solid ${C.red}50`,borderRadius:20,padding:24,width:'100%',maxWidth:380}}>
+            <div style={{fontSize:18,fontWeight:800,marginBottom:8}}>Удалить запись?</div>
+            <div style={{fontSize:13,color:C.dim,marginBottom:20}}>Это действие нельзя отменить</div>
+            <div style={{display:'flex',gap:10}}>
+              <Btn outline onClick={()=>setDelId(null)} style={{flex:1,padding:'12px 0'}}>Отмена</Btn>
+              <Btn bg={C.red} onClick={confirmDelete} style={{flex:1,padding:'12px 0'}}>Удалить</Btn>
+            </div>
+          </div>
+        </div>
+      )}
       <SecLabel>История движений · {movements.length}</SecLabel>
       {!movements.length?<Empty icon="🏧" text="Движений нет"/>:
       movements.map(m=>(
@@ -1298,7 +1329,7 @@ function CashTab({tick}){
             <div style={{fontSize:12,color:C.muted}}>{TYPE_LABEL[m.type]||m.type}{m.description?` · ${m.description}`:''}</div>
             <div style={{fontSize:11,color:C.dim,marginTop:2}}>{fmtD(m.date)} · {fmtT(m.created_at)}</div>
           </div>
-          {(m.type==='remove')&&<button onClick={()=>del(m.id)} style={{background:'none',border:'none',color:C.dim,fontSize:20,cursor:'pointer',padding:4,flexShrink:0}}>✕</button>}
+          <button onClick={()=>setDelId(m.id)} style={{background:'none',border:'none',color:C.dim,fontSize:20,cursor:'pointer',padding:4,flexShrink:0}}>🗑</button>
         </div>
       ))}
     </div>

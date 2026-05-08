@@ -102,20 +102,11 @@ const fmt=n=>(+n||0).toLocaleString('ru-RU',{minimumFractionDigits:2,maximumFrac
 const fmtD=d=>{ if(!d)return''; return new Date(d+'T00:00:00').toLocaleDateString('ru-RU',{day:'2-digit',month:'short',year:'numeric'}); };
 const fmtDs=d=>{ if(!d)return{day:'?',mon:'?'}; const dt=new Date(d+'T00:00:00'); return{day:dt.getDate(),mon:dt.toLocaleDateString('ru-RU',{month:'short'}).replace('.','')}; };
 
-// ✅ ИСПРАВЛЕНО: принудительно UTC → +5 часов
 const fmtT=s=>{
   if(!s)return'';
-  try{
-    // Заменяем пробел на T, добавляем Z если нет timezone
-    let ts=String(s).replace(' ','T');
-    if(!/[Z+]/.test(ts.slice(10))) ts+='Z';
-    const ms=new Date(ts).getTime();
-    if(isNaN(ms))return'';
-    const d=new Date(ms+5*3600000); // +5 часов вручную
-    return String(d.getUTCHours()).padStart(2,'0')+':'+String(d.getUTCMinutes()).padStart(2,'0');
-  }catch(e){return'';}
+  const d=new Date(s);
+  return d.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'});
 };
-
 const dLeft=d=>{ if(!d)return 999; return Math.ceil((new Date(d)-new Date(tod()))/86400000); };
 const eColor=n=>n<0?'#f04f5a':n<=3?'#f09040':n<=7?'#e8c040':'#3ecf8e';
 const eText=n=>n<0?`просрочен ${Math.abs(n)}д`:n===0?'сегодня!':n+' дн.';

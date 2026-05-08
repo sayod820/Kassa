@@ -882,7 +882,7 @@ function Revision({tick,toast}){
 
 function NewRevision({onBack,onSaved}){
   const [step,setStep]=useState('setup');
-  const [category,setCategory]=useState('');
+  const [selCats,setSelCats]=useState([]);
   const [date,setDate]=useState(tod());
   const [items,setItems]=useState([]);
   const [showForm,setShowForm]=useState(false);
@@ -893,18 +893,24 @@ function NewRevision({onBack,onSaved}){
   const products=dbGet('products');
   const diItems=dbGet('delivery_items');
   const cats=[...new Set(products.map(p=>p.category).filter(Boolean))].sort();
-  const getProdByCategory=cat=>{
-    // Берём из каталога GBS.Market
-    const filtered=cat==='all'?products:products.filter(p=>p.category===cat);
+
+  const toggleCat=cat=>setSelCats(prev=>prev.includes(cat)?prev.filter(c=>c!==cat):[...prev,cat]);
+
+  const getProdByCats=cList=>{
+    const filtered=cList.length===0?products:products.filter(p=>cList.includes(p.category));
     return filtered.map(p=>({
-      id:p.id, product_name:p.name, barcode:p.barcode||'',
-      unit:p.unit||'шт', category:p.category, price:p.price||0,
-      totalQty:p.stock||0, partCount:1,
+      id:p.id,product_name:p.name,barcode:p.barcode||'',
+      unit:p.unit||'шт',category:p.category,price:p.price||0,
+      totalQty:p.stock||0,partCount:1,
     })).sort((a,b)=>a.product_name.localeCompare(b.product_name));
   };
 
+  const getProdByCategory=cat=>getProdByCats([cat]);
+
+  const catLabel=selCats.length===0?'Все':selCats.length===1?selCats[0]:`${selCats.length} катег.`;
+
   const startRev=()=>{
-    const prods=getProdByCategory(category);
+    const prods=getProdByCats(selCats);
     setItems(prods.map(p=>({id:uid(),product:p,actual:null})));
     setStep('revision');
   };
@@ -925,7 +931,7 @@ function NewRevision({onBack,onSaved}){
   const sumAct=items.filter(i=>i.actual!==null).reduce((s,i)=>s+i.actual*(i.product.price||0),0);
 
   const saveRev=async()=>{
-    const rev=await dbInsert('revisions',{category:category||'Все товары',date});
+    const rev=await dbInsert('revisions',{category:categories.length===1?categories[0]:categories.length>1?categories.join(', '):'Все товары',date});
     const revId=rev.id;
     await dbInsertMany('revision_items',items.map(it=>({id:uid(),revision_id:revId,product_name:it.product.product_name,barcode:it.product.barcode,unit:it.product.unit,expected:it.product.totalQty,actual:it.actual,price:it.product.price||0})));
     setSaved(true); setTimeout(()=>onSaved(),1000);
@@ -949,7 +955,7 @@ function NewRevision({onBack,onSaved}){
   );
 
   return(
-    <><Hdr title={category} sub="РЕВИЗИЯ" onBack={()=>setStep('setup')}>
+    <><Hdr title={categories.length===1?categories[0]:categories.length>1?`${categories.length} категории`:'Все товары'} sub="РЕВИЗИЯ" onBack={()=>setStep('setup')}>
       <div style={{background:C.bg3,borderRadius:10,padding:'5px 12px',textAlign:'center',flexShrink:0}}>
         <div style={{fontSize:9,color:C.dim,fontWeight:700}}>Проверено</div>
         <div style={{fontSize:15,fontWeight:900,color:checked===items.length?C.green:C.blue}}>{checked}/{items.length}</div>

@@ -11,14 +11,6 @@
 <style>*{box-sizing:border-box;margin:0;padding:0}body{background:#09090f}#root{max-width:430px;margin:0 auto}</style>
 </head>
 <body>
-   <script>
-const ALLOWED = [1095510997];
-const tg = window.Telegram?.WebApp?.initDataUnsafe?.user;
-if (tg && !ALLOWED.includes(tg.id)) {
-  document.body.innerHTML = '<div style="background:#09090f;color:#fff;height:100vh;display:flex;align-items:center;justify-content:center;font-family:system-ui;flex-direction:column;text-align:center;padding:20px;position:fixed;top:0;left:0;width:100%;z-index:99999"><div style="font-size:80px">⛔</div><div style="font-size:24px;font-weight:900;color:#f04f5a;margin:15px 0">Доступ запрещён</div><div style="font-size:14px;color:#6868a0">Приложение только для владельца</div><div style="background:#111120;border:1px solid #1e1e38;border-radius:14px;padding:12px 20px;margin-top:25px"><div style="font-size:10px;color:#32324a;margin-bottom:5px">ВАШ ID</div><div style="font-size:18px;font-weight:800;color:#4466ff">'+tg.id+'</div></div></div>';
-  window.stop();
-}
-   </script>
 <div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect, useRef } = React;
@@ -107,13 +99,14 @@ async function dbDelete(table,id){
 // ════════ UTILS ════════
 const uid=()=>'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0;return(c==='x'?r:(r&0x3|0x8)).toString(16);});
 const now=()=>new Date().toISOString();
-const tod=()=>new Date().toISOString().slice(0,10);
-const monStr=()=>new Date().toISOString().slice(0,7);
+const tod=()=>new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Dushanbe'});
+const monStr=()=>new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Dushanbe'}).slice(0,7);
 const daysAgo=n=>{ const d=new Date(); d.setDate(d.getDate()-n); return d.toISOString().slice(0,10); };
 const fmt=n=>(+n||0).toLocaleString('ru-RU',{minimumFractionDigits:2,maximumFractionDigits:2});
-const fmtD=d=>{ if(!d)return''; return new Date(d+'T00:00:00').toLocaleDateString('ru-RU',{day:'2-digit',month:'short',year:'numeric'}); };
+const fmtD=d=>{ if(!d)return''; return new Date(d+'T00:00:00').toLocaleDateString('ru-RU',{day:'2-digit',month:'short',year:'numeric',timeZone:TZ}); };
 const fmtDs=d=>{ if(!d)return{day:'?',mon:'?'}; const dt=new Date(d+'T00:00:00'); return{day:dt.getDate(),mon:dt.toLocaleDateString('ru-RU',{month:'short'}).replace('.','')}; };
-const fmtT=s=>{ if(!s)return''; const d=new Date(s); return d.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}); };
+const fmtT=s=>{ if(!s)return''; const d=new Date(s); return d.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit',timeZone:TZ}); };
+const TZ='Asia/Dushanbe';
 const dLeft=d=>{ if(!d)return 999; return Math.ceil((new Date(d)-new Date(tod()))/86400000); };
 const eColor=n=>n<0?'#f04f5a':n<=3?'#f09040':n<=7?'#e8c040':'#3ecf8e';
 const eText=n=>n<0?`просрочен ${Math.abs(n)}д`:n===0?'сегодня!':n+' дн.';
@@ -188,7 +181,7 @@ function Home({tick}){
   const lrLoss=lrSumExp-lrSumAct;
 
   const now2=new Date();
-  const dateLabel=now2.toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long'});
+  const dateLabel=now2.toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long',timeZone:TZ});
   const hasAlert=(expired.length+critical.length)>0;
 
   return(

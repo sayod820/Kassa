@@ -110,10 +110,10 @@ const fmtD=d=>{ if(!d)return''; return new Date(d+'T00:00:00').toLocaleDateStrin
 const fmtDs=d=>{ if(!d)return{day:'?',mon:'?'}; const dt=new Date(d+'T00:00:00'); return{day:dt.getDate(),mon:dt.toLocaleDateString('ru-RU',{month:'short'}).replace('.','')}; };
 const fmtT=s=>{
   if(!s)return'';
-  const d=new Date(s);
-  const h=String((d.getUTCHours()+5)%24).padStart(2,'0');
-  const m=String(d.getUTCMinutes()).padStart(2,'0');
-  return h+':'+m;
+  return new Date(s).toLocaleTimeString('ru-RU',{
+    hour:'2-digit',minute:'2-digit',
+    timeZone:'Asia/Dushanbe'
+  });
 };
 const dLeft=d=>{ if(!d)return 999; return Math.ceil((new Date(d)-new Date(tod()))/86400000); };
 const eColor=n=>n<0?'#f04f5a':n<=3?'#f09040':n<=7?'#e8c040':'#3ecf8e';

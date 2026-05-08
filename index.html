@@ -97,6 +97,7 @@ async function dbDelete(table,id){
 }
 
 // ════════ UTILS ════════
+const TZ='Asia/Dushanbe';
 const uid=()=>'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0;return(c==='x'?r:(r&0x3|0x8)).toString(16);});
 const now=()=>new Date().toISOString();
 const tod=()=>new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Dushanbe'});
@@ -106,7 +107,6 @@ const fmt=n=>(+n||0).toLocaleString('ru-RU',{minimumFractionDigits:2,maximumFrac
 const fmtD=d=>{ if(!d)return''; return new Date(d+'T00:00:00').toLocaleDateString('ru-RU',{day:'2-digit',month:'short',year:'numeric',timeZone:TZ}); };
 const fmtDs=d=>{ if(!d)return{day:'?',mon:'?'}; const dt=new Date(d+'T00:00:00'); return{day:dt.getDate(),mon:dt.toLocaleDateString('ru-RU',{month:'short'}).replace('.','')}; };
 const fmtT=s=>{ if(!s)return''; const d=new Date(s); return d.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit',timeZone:TZ}); };
-const TZ='Asia/Dushanbe';
 const dLeft=d=>{ if(!d)return 999; return Math.ceil((new Date(d)-new Date(tod()))/86400000); };
 const eColor=n=>n<0?'#f04f5a':n<=3?'#f09040':n<=7?'#e8c040':'#3ecf8e';
 const eText=n=>n<0?`просрочен ${Math.abs(n)}д`:n===0?'сегодня!':n+' дн.';
@@ -911,7 +911,7 @@ function NewRevision({onBack,onSaved}){
   const catLabel=selCats.length===0?'Все':selCats.length===1?selCats[0]:`${selCats.length} катег.`;
 
   const startRev=()=>{
-    const prods=getProdByCats(selCats);
+    const prods=getProdByCats(selCats).slice(0,500);
     setItems(prods.map(p=>({id:uid(),product:p,actual:null})));
     setStep('revision');
   };

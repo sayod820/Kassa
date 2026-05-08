@@ -97,22 +97,24 @@ async function dbDelete(table,id){
 }
 
 // ════════ UTILS ════════
-const TZ='Asia/Dushanbe';
+// UTC+5 Таджикистан
+const OFFSET=5*60*60*1000;
+const localNow=()=>new Date(Date.now()+OFFSET);
 const uid=()=>'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0;return(c==='x'?r:(r&0x3|0x8)).toString(16);});
 const now=()=>new Date().toISOString();
-const tod=()=>new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Dushanbe'});
-const monStr=()=>new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Dushanbe'}).slice(0,7);
-const daysAgo=n=>{ const d=new Date(); d.setDate(d.getDate()-n); return d.toISOString().slice(0,10); };
+const tod=()=>localNow().toISOString().slice(0,10);
+const monStr=()=>localNow().toISOString().slice(0,7);
+const daysAgo=n=>{ const d=localNow(); d.setDate(d.getDate()-n); return d.toISOString().slice(0,10); };
 const fmt=n=>(+n||0).toLocaleString('ru-RU',{minimumFractionDigits:2,maximumFractionDigits:2});
-const fmtD=d=>{ if(!d)return''; return new Date(d+'T00:00:00').toLocaleDateString('ru-RU',{day:'2-digit',month:'short',year:'numeric',timeZone:TZ}); };
+const fmtD=d=>{ if(!d)return''; return new Date(d+'T00:00:00').toLocaleDateString('ru-RU',{day:'2-digit',month:'short',year:'numeric'}); };
 const fmtDs=d=>{ if(!d)return{day:'?',mon:'?'}; const dt=new Date(d+'T00:00:00'); return{day:dt.getDate(),mon:dt.toLocaleDateString('ru-RU',{month:'short'}).replace('.','')}; };
-const fmtT=s=>{ if(!s)return''; const d=new Date(s); return d.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit',timeZone:TZ}); };
+const fmtT=s=>{ if(!s)return''; const d=new Date(new Date(s).getTime()+OFFSET); return d.toISOString().slice(11,16); };
 const dLeft=d=>{ if(!d)return 999; return Math.ceil((new Date(d)-new Date(tod()))/86400000); };
 const eColor=n=>n<0?'#f04f5a':n<=3?'#f09040':n<=7?'#e8c040':'#3ecf8e';
 const eText=n=>n<0?`просрочен ${Math.abs(n)}д`:n===0?'сегодня!':n+' дн.';
 const inits=n=>n.trim().split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase()||'?';
 const getMonths=n=>{ const r=[],d=new Date(); for(let i=0;i<n;i++){ const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'); r.push({val:`${y}-${m}`,label:d.toLocaleDateString('ru-RU',{month:'long',year:'2-digit'})}); d.setMonth(d.getMonth()-1); } return r; };
-const weekStart=()=>{ const d=new Date(),day=d.getDay()||7; d.setDate(d.getDate()-day+1); return d.toISOString().slice(0,10); };
+const weekStart=()=>{ const d=localNow(),day=d.getDay()||7; d.setDate(d.getDate()-day+1); return d.toISOString().slice(0,10); };
 
 // ════════ ТЕМА ════════
 const C={bg:'#09090f',bg2:'#111120',bg3:'#18182e',border:'#1e1e38',text:'#eeeeff',muted:'#6868a0',dim:'#32324a',green:'#3ecf8e',red:'#f04f5a',orange:'#f09040',blue:'#4466ff',yellow:'#e8c040'};

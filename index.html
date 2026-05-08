@@ -11,6 +11,14 @@
 <style>*{box-sizing:border-box;margin:0;padding:0}body{background:#09090f}#root{max-width:430px;margin:0 auto}</style>
 </head>
 <body>
+   <script>
+const ALLOWED = [1095510997];
+const tg = window.Telegram?.WebApp?.initDataUnsafe?.user;
+if (tg && !ALLOWED.includes(tg.id)) {
+  document.body.innerHTML = '<div style="background:#09090f;color:#fff;height:100vh;display:flex;align-items:center;justify-content:center;font-family:system-ui;flex-direction:column;text-align:center;padding:20px;position:fixed;top:0;left:0;width:100%;z-index:99999"><div style="font-size:80px">⛔</div><div style="font-size:24px;font-weight:900;color:#f04f5a;margin:15px 0">Доступ запрещён</div><div style="font-size:14px;color:#6868a0">Приложение только для владельца</div><div style="background:#111120;border:1px solid #1e1e38;border-radius:14px;padding:12px 20px;margin-top:25px"><div style="font-size:10px;color:#32324a;margin-bottom:5px">ВАШ ID</div><div style="font-size:18px;font-weight:800;color:#4466ff">'+tg.id+'</div></div></div>';
+  window.stop();
+}
+   </script>
 <div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect, useRef } = React;

@@ -183,7 +183,7 @@ function Home({tick}){
   const lrLoss=lrSumExp-lrSumAct;
 
   const now2=new Date();
-  const dateLabel=now2.toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long',timeZone:TZ});
+  const dateLabel=localNow().toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long'});
   const hasAlert=(expired.length+critical.length)>0;
 
   return(

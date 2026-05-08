@@ -15,9 +15,6 @@
 <script type="text/babel">
 const { useState, useEffect, useRef } = React;
 
-// ════════════════════════════════════════════
-//  SUPABASE REST API
-// ════════════════════════════════════════════
 const SB='https://lozieoldpkezxonrxwry.supabase.co/rest/v1';
 const KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxvemllb2xkcGtlenhvbnJ4d3J5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwMzY0MjEsImV4cCI6MjA5MzYxMjQyMX0.sS5Z8i1xFdv6YiKrpL9Y2sTWEo6Yk3K9TqQhv4HNwts';
 const H={'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json','Prefer':'return=representation'};
@@ -26,13 +23,10 @@ async function sbGet(table,q=''){ const r=await fetch(`${SB}/${table}?${q}`,{hea
 async function sbPost(table,body){ const r=await fetch(`${SB}/${table}`,{method:'POST',headers:H,body:JSON.stringify(body)}); return r.json(); }
 async function sbDel(table,id){ await fetch(`${SB}/${table}?id=eq.${id}`,{method:'DELETE',headers:H}); }
 
-// ════════ IN-MEMORY DB ════════
 const DB={suppliers:[],deliveries:[],delivery_items:[],products:[],revisions:[],revision_items:[],expenses:[],revenue:[],cash_movements:[]};
 let _ready=false,_subs=[];
 const pub=()=>_subs.forEach(fn=>fn());
 const sub=fn=>{ _subs.push(fn); return ()=>{ _subs=_subs.filter(f=>f!==fn); }; };
-
-// Каталог товаров загружается из Supabase (GBS.Market)
 
 async function fetchAllProducts(){
   const PAGE=1000;
@@ -69,7 +63,6 @@ async function initDB(){
     DB.expenses=Array.isArray(exp)?exp:[];
     DB.revenue=Array.isArray(rvn)?rvn:[];
     DB.cash_movements=Array.isArray(cm)?cm:[];
-    // Каталог товаров загружен из Supabase (GBS.Market sync)
   }catch(e){ console.error('initDB error:',e); }
   _ready=true; pub();
 }
@@ -96,8 +89,8 @@ async function dbDelete(table,id){
   pub();
 }
 
-// ════════ UTILS ════════
 // UTC+5 Таджикистан
+const TZ='Asia/Dushanbe';
 const OFFSET=5*60*60*1000;
 const localNow=()=>new Date(Date.now()+OFFSET);
 const uid=()=>'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0;return(c==='x'?r:(r&0x3|0x8)).toString(16);});
@@ -108,13 +101,16 @@ const daysAgo=n=>{ const d=new Date(Date.now()+OFFSET); d.setDate(d.getDate()-n)
 const fmt=n=>(+n||0).toLocaleString('ru-RU',{minimumFractionDigits:2,maximumFractionDigits:2});
 const fmtD=d=>{ if(!d)return''; return new Date(d+'T00:00:00').toLocaleDateString('ru-RU',{day:'2-digit',month:'short',year:'numeric'}); };
 const fmtDs=d=>{ if(!d)return{day:'?',mon:'?'}; const dt=new Date(d+'T00:00:00'); return{day:dt.getDate(),mon:dt.toLocaleDateString('ru-RU',{month:'short'}).replace('.','')}; };
+
+// ✅ ИСПРАВЛЕНО: время всегда в Asia/Dushanbe (UTC+5)
 const fmtT=s=>{
   if(!s)return'';
   return new Date(s).toLocaleTimeString('ru-RU',{
     hour:'2-digit',minute:'2-digit',
-    timeZone:'Asia/Dushanbe'
+    timeZone:TZ
   });
 };
+
 const dLeft=d=>{ if(!d)return 999; return Math.ceil((new Date(d)-new Date(tod()))/86400000); };
 const eColor=n=>n<0?'#f04f5a':n<=3?'#f09040':n<=7?'#e8c040':'#3ecf8e';
 const eText=n=>n<0?`просрочен ${Math.abs(n)}д`:n===0?'сегодня!':n+' дн.';
@@ -122,11 +118,9 @@ const inits=n=>n.trim().split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperC
 const getMonths=n=>{ const r=[],d=new Date(); for(let i=0;i<n;i++){ const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'); r.push({val:`${y}-${m}`,label:d.toLocaleDateString('ru-RU',{month:'long',year:'2-digit'})}); d.setMonth(d.getMonth()-1); } return r; };
 const weekStart=()=>{ const d=new Date(Date.now()+OFFSET),day=d.getDay()||7; d.setDate(d.getDate()-day+1); return d.toISOString().slice(0,10); };
 
-// ════════ ТЕМА ════════
 const C={bg:'#09090f',bg2:'#111120',bg3:'#18182e',border:'#1e1e38',text:'#eeeeff',muted:'#6868a0',dim:'#32324a',green:'#3ecf8e',red:'#f04f5a',orange:'#f09040',blue:'#4466ff',yellow:'#e8c040'};
 const css=`*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}@keyframes su{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}@keyframes spin{to{transform:rotate(360deg)}}.fu{animation:su .18s ease}input,select,button{font-family:inherit}input::placeholder{color:#32324a}::-webkit-scrollbar{display:none}`;
 
-// ════════ КОМПОНЕНТЫ ════════
 const Card=({children,style,ac})=><div style={{background:C.bg2,border:`1px solid ${ac||C.border}`,borderRadius:18,padding:16,marginBottom:10,...style}}>{children}</div>;
 const FL=({children})=><div style={{fontSize:9,fontWeight:800,letterSpacing:2,textTransform:'uppercase',color:C.dim,marginBottom:6}}>{children}</div>;
 const TI=({label,value,onChange,type,placeholder,autoFocus,style})=>(
@@ -152,9 +146,6 @@ const Hdr=({title,sub,onBack,onAdd,children})=>(
 );
 const Toast=({msg,color})=>msg?<div style={{position:'fixed',bottom:90,left:'50%',transform:'translateX(-50%)',background:C.bg2,border:`1.5px solid ${color||C.green}`,borderRadius:14,padding:'12px 22px',fontSize:14,fontWeight:700,color:C.text,zIndex:999,whiteSpace:'nowrap',boxShadow:'0 8px 40px rgba(0,0,0,.6)',pointerEvents:'none'}}>{msg}</div>:null;
 
-// ════════════════════════════════════════════
-//  1. ГЛАВНАЯ (ДАШБОРД)
-// ════════════════════════════════════════════
 function Home({tick}){
   const [period,setPeriod]=useState('day');
   const t=tod(), ws=weekStart(), ms=monStr();
@@ -177,7 +168,6 @@ function Home({tick}){
   const critical=withExp.filter(i=>{ const d=dLeft(i.expiry_date); return d>=0&&d<=3; });
   const soon=withExp.filter(i=>{ const d=dLeft(i.expiry_date); return d>3&&d<=7; });
 
-  // Ревизии за выбранный период
   const periodRevs=revisions.filter(r=>filterD(r.date));
   const lastRev=[...revisions].sort((a,b)=>b.created_at.localeCompare(a.created_at))[0];
   const activeRevs=periodRevs.length>0?periodRevs:[lastRev].filter(Boolean);
@@ -188,7 +178,6 @@ function Home({tick}){
   const lrSumAct=lrChecked.reduce((s,i)=>s+i.actual*(i.price||0),0);
   const lrLoss=lrSumExp-lrSumAct;
 
-  const now2=new Date();
   const dateLabel=new Date(Date.now()+OFFSET).toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long'});
   const hasAlert=(expired.length+critical.length)>0;
 
@@ -206,14 +195,12 @@ function Home({tick}){
         </div>
       </div>
       <div style={{padding:14,paddingBottom:30}}>
-        {/* Чистая прибыль */}
         <div style={{background:`linear-gradient(135deg,${cleanP>=0?'#0d2d1a':'#2d0d12'},${C.bg2})`,border:`1.5px solid ${cleanP>=0?C.green+'50':C.red+'50'}`,borderRadius:20,padding:'20px',marginBottom:12,textAlign:'center'}}>
           <div style={{fontSize:9,fontWeight:800,letterSpacing:2.5,color:C.dim,marginBottom:8}}>ЧИСТАЯ ПРИБЫЛЬ</div>
           <div style={{fontSize:48,fontWeight:900,color:cleanP>=0?C.green:C.red,letterSpacing:-2,lineHeight:1}}>{cleanP>=0?'+':''}{fmt(cleanP)}</div>
           <div style={{fontSize:13,color:C.dim,marginTop:5}}>SM · {cleanPct}% от выручки</div>
           <div style={{fontSize:11,color:C.dim,marginTop:4}}>Прибыль GBS ({fmt(totalGbs)} SM) − Расходы ({fmt(totalExp)} SM)</div>
         </div>
-        {/* Выручка + расходы */}
         <div style={{display:'flex',gap:8,marginBottom:12}}>
           <div style={{flex:1,background:C.bg2,border:`1px solid ${C.green}30`,borderRadius:16,padding:'14px 12px'}}>
             <div style={{fontSize:9,fontWeight:800,letterSpacing:1.5,color:C.dim,textTransform:'uppercase',marginBottom:6}}>Выручка</div>
@@ -226,12 +213,10 @@ function Home({tick}){
             <div style={{fontSize:10,color:C.dim,marginTop:3}}>SM</div>
           </div>
         </div>
-        {/* Касса */}
         <div style={{background:C.bg2,border:`1.5px solid ${cashBal>=0?C.blue+'40':C.red+'40'}`,borderRadius:16,padding:'14px 16px',marginBottom:12,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
           <div><div style={{fontSize:9,fontWeight:800,letterSpacing:2,color:C.dim,marginBottom:4}}>🏧 НАЛИЧНЫЕ В КАССЕ</div><div style={{fontSize:28,fontWeight:900,color:cashBal>=0?C.blue:C.red}}>{fmt(Math.abs(cashBal))} SM</div></div>
           <div style={{fontSize:40,opacity:.35}}>🏧</div>
         </div>
-        {/* Сроки */}
         <div style={{background:C.bg2,border:`1px solid ${(expired.length+critical.length)>0?C.red+'40':C.border}`,borderRadius:16,overflow:'hidden',marginBottom:12}}>
           <div style={{padding:'10px 16px',background:C.bg3,borderBottom:`1px solid ${C.border}`,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
             <div style={{fontSize:10,fontWeight:800,letterSpacing:2,color:C.dim}}>☠️ СРОКИ ГОДНОСТИ</div>
@@ -253,7 +238,6 @@ function Home({tick}){
             </div>
           ))}
         </div>
-        {/* Ревизия */}
         {activeRevs.length>0&&(
           <div style={{background:C.bg2,border:`1px solid ${lrShort.length>0?C.red+'35':C.border}`,borderRadius:16,overflow:'hidden',marginBottom:12}}>
             <div style={{padding:'10px 16px',background:C.bg3,borderBottom:`1px solid ${C.border}`,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
@@ -270,7 +254,6 @@ function Home({tick}){
             </div>
           </div>
         )}
-        {/* Расходы детали */}
         {exp.filter(e=>filterD(e.date)).length>0&&(()=>{
           const byR={}; exp.filter(e=>filterD(e.date)).forEach(e=>{ byR[e.reason]=(byR[e.reason]||0)+ +e.amount; });
           return(
@@ -285,27 +268,16 @@ function Home({tick}){
             </div>
           );
         })()}
-
-        {/* ── ЛЕНТА СОБЫТИЙ ── */}
         {(()=>{
           const events=[];
-          rev.filter(r=>filterD(r.date)).forEach(r=>events.push({
-            id:'rv'+r.id,time:r.created_at,icon:'💰',color:C.green,
-            title:`+${fmt(r.amount)} SM`,sub:'Выручка'+(r.profit?` · GBS: ${fmt(r.profit)} SM`:''),date:r.date
-          }));
-          exp.filter(e=>filterD(e.date)).forEach(e=>events.push({
-            id:'ex'+e.id,time:e.created_at,icon:'💸',color:C.red,
-            title:`−${fmt(e.amount)} SM`,sub:e.reason,date:e.date
-          }));
-          cash.filter(m=>filterD(m.date)&&(m.type==='add'||m.type==='remove')).forEach(m=>events.push({
-            id:'cs'+m.id,time:m.created_at,icon:m.type==='add'?'➕':'➖',color:m.type==='add'?C.blue:C.orange,
-            title:`${m.type==='add'?'+':'−'}${fmt(m.amount)} SM`,sub:(m.type==='add'?'Внесено':'Снято')+(m.description?` · ${m.description}`:''),date:m.date
-          }));
+          rev.filter(r=>filterD(r.date)).forEach(r=>events.push({id:'rv'+r.id,time:r.created_at,icon:'💰',color:C.green,title:`+${fmt(r.amount)} SM`,sub:'Выручка'+(r.profit?` · GBS: ${fmt(r.profit)} SM`:''),date:r.date}));
+          exp.filter(e=>filterD(e.date)).forEach(e=>events.push({id:'ex'+e.id,time:e.created_at,icon:'💸',color:C.red,title:`−${fmt(e.amount)} SM`,sub:e.reason,date:e.date}));
+          const cash2=dbGet('cash_movements');
+          cash2.filter(m=>filterD(m.date)&&(m.type==='add'||m.type==='remove')).forEach(m=>events.push({id:'cs'+m.id,time:m.created_at,icon:m.type==='add'?'➕':'➖',color:m.type==='add'?C.blue:C.orange,title:`${m.type==='add'?'+':'−'}${fmt(m.amount)} SM`,sub:(m.type==='add'?'Внесено':'Снято')+(m.description?` · ${m.description}`:''),date:m.date}));
           activeRevs.filter(r=>filterD(r.date)).forEach(r=>{
             const its=riItems.filter(i=>i.revision_id===r.id&&i.actual!==null);
             const loss=its.reduce((s,i)=>s+i.expected*(i.price||0),0)-its.reduce((s,i)=>s+i.actual*(i.price||0),0);
-            events.push({id:'re'+r.id,time:r.created_at,icon:'📦',color:loss>0?C.red:C.green,
-              title:`Ревизия · ${r.category||'Все'}`,sub:`${its.length} поз.${loss>0?` · потери −${fmt(loss)} SM`:' · ✓ OK'}`,date:r.date});
+            events.push({id:'re'+r.id,time:r.created_at,icon:'📦',color:loss>0?C.red:C.green,title:`Ревизия · ${r.category||'Все'}`,sub:`${its.length} поз.${loss>0?` · потери −${fmt(loss)} SM`:' · ✓ OK'}`,date:r.date});
           });
           events.sort((a,b)=>b.time.localeCompare(a.time));
           if(!events.length) return null;
@@ -332,9 +304,6 @@ function Home({tick}){
   );
 }
 
-// ════════════════════════════════════════════
-//  2. ПОСТАВКИ
-// ════════════════════════════════════════════
 function Suppliers({tick,toast}){
   const [sc,setSc]=useState('list');
   const [curS,setCurS]=useState(null);
@@ -524,8 +493,6 @@ function DeliveryDetail({delivery,num,onBack,onDeleted}){
         <button onClick={()=>setConfirmDel(true)} style={{width:38,height:38,borderRadius:11,background:'#f04f5a18',border:`1px solid #f04f5a40`,color:C.red,fontSize:16,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>🗑</button>
       </div>
     </Hdr>
-
-    {/* Подтверждение удаления */}
     {confirmDel&&(
       <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,.75)',zIndex:200,display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
         <div style={{background:C.bg2,border:`1px solid ${C.red}50`,borderRadius:20,padding:24,width:'100%',maxWidth:380}}>
@@ -538,7 +505,6 @@ function DeliveryDetail({delivery,num,onBack,onDeleted}){
         </div>
       </div>
     )}
-
     <div style={{padding:14,paddingBottom:editMode?160:30}}>
       <div style={{display:'flex',gap:8,marginBottom:14}}>
         <div style={{flex:1,background:C.bg2,border:`1px solid ${C.border}`,borderRadius:14,padding:'13px 10px',textAlign:'center'}}><div style={{fontSize:9,color:C.dim,fontWeight:800,letterSpacing:1.5,textTransform:'uppercase',marginBottom:4}}>Товаров</div><div style={{fontSize:20,fontWeight:900,color:C.blue}}>{items.length}</div></div>
@@ -585,7 +551,6 @@ function DeliveryDetail({delivery,num,onBack,onDeleted}){
         })}
       </Card>
     </div>
-
     {editMode&&(
       <div style={{position:'fixed',bottom:64,left:'50%',transform:'translateX(-50%)',width:'100%',maxWidth:430,padding:'10px 14px',background:'rgba(9,9,15,.97)',borderTop:`1px solid ${C.border}`,zIndex:150,display:'flex',gap:8}}>
         <Btn outline onClick={()=>setEditMode(false)} style={{width:52,flex:'none',padding:'14px 0'}}>✕</Btn>
@@ -612,28 +577,23 @@ function Posting({supplier,onBack,onSaved}){
     const q=search.trim();
     const ql=q.toLowerCase();
     const isNum=/^\d+$/.test(q);
-
-    const all=catalog.filter(p=>
-      p.name.toLowerCase().includes(ql)||
-      (p.barcode&&p.barcode.includes(q))
-    );
-
+    const all=catalog.filter(p=>p.name.toLowerCase().includes(ql)||(p.barcode&&p.barcode.includes(q)));
     all.sort((a,b)=>{
       const score=(p)=>{
         const bar=p.barcode||'';
         const nm=p.name.toLowerCase();
         if(isNum){
-          if(bar===q)            return 0; // точный штрихкод
-          if(bar.endsWith(q))    return 1; // конец штрихкода
-          if(bar.startsWith(q))  return 2; // начало штрихкода
-          if(bar.includes(q))    return 3; // внутри штрихкода
-          if(nm.includes(ql))    return 4; // в названии
+          if(bar===q) return 0;
+          if(bar.endsWith(q)) return 1;
+          if(bar.startsWith(q)) return 2;
+          if(bar.includes(q)) return 3;
+          if(nm.includes(ql)) return 4;
           return 5;
         } else {
-          if(nm===ql)            return 0; // точное название
-          if(nm.startsWith(ql))  return 1; // начало названия
-          if(nm.includes(ql))    return 2; // внутри названия
-          if(bar.includes(q))    return 3; // в штрихкоде
+          if(nm===ql) return 0;
+          if(nm.startsWith(ql)) return 1;
+          if(nm.includes(ql)) return 2;
+          if(bar.includes(q)) return 3;
           return 4;
         }
       };
@@ -737,43 +697,27 @@ function Posting({supplier,onBack,onSaved}){
   );
 }
 
-// ════════════════════════════════════════════
-//  3. СРОКИ ГОДНОСТИ
-// ════════════════════════════════════════════
-
-// FIFO расчёт остатков по партиям
 function calcFifoRemaining(deliveryItems, products) {
-  // Группируем по штрихкоду
   const byBarcode = {};
   deliveryItems.filter(i=>i.expiry_date && i.barcode).forEach(i=>{
     if(!byBarcode[i.barcode]) byBarcode[i.barcode]=[];
     byBarcode[i.barcode].push({...i});
   });
-
   const result = [];
   Object.entries(byBarcode).forEach(([barcode, batches])=>{
-    // Текущий остаток из GBS.Market
     const prod = products.find(p=>p.barcode===barcode);
     const currentStock = prod ? (prod.stock||0) : null;
-
-    // Сортируем по дате поставки (старые первые — FIFO)
     const sorted = [...batches].sort((a,b)=>{
       const da = dbGet('deliveries').find(d=>d.id===a.delivery_id);
       const db2 = dbGet('deliveries').find(d=>d.id===b.delivery_id);
       return (da?.date||'').localeCompare(db2?.date||'');
     });
-
     if(currentStock === null){
-      // Нет данных из GBS — показываем оригинальное количество
       sorted.forEach(b=>result.push({...b, remaining: b.quantity}));
       return;
     }
-
-    // FIFO: списываем проданное с самых старых партий
     const totalReceived = sorted.reduce((s,b)=>s+b.quantity,0);
-    let sold = Math.max(0, totalReceived - currentStock);
-    let leftToSell = sold;
-
+    let leftToSell = Math.max(0, totalReceived - currentStock);
     sorted.forEach(batch=>{
       let remaining = batch.quantity;
       if(leftToSell > 0){
@@ -784,12 +728,9 @@ function calcFifoRemaining(deliveryItems, products) {
       result.push({...batch, remaining, originalQty: batch.quantity});
     });
   });
-
-  // Товары без штрихкода — без FIFO
   deliveryItems.filter(i=>i.expiry_date && !i.barcode).forEach(i=>{
     result.push({...i, remaining: i.quantity});
   });
-
   return result;
 }
 
@@ -799,15 +740,8 @@ function Expiry({tick}){
   const products=dbGet('products');
   const dels=dbGet('deliveries');
   const delMap=Object.fromEntries(dels.map(d=>[d.id,d]));
-
-  // Применяем FIFO
   const itemsWithRemaining = calcFifoRemaining(allItems, products);
-
-  // Только товары где остаток > 0 (или просроченные с остатком)
-  const enriched = itemsWithRemaining
-    .filter(i=>i.remaining > 0)
-    .map(i=>({...i, days:dLeft(i.expiry_date), delivery:delMap[i.delivery_id]||null}));
-
+  const enriched = itemsWithRemaining.filter(i=>i.remaining > 0).map(i=>({...i, days:dLeft(i.expiry_date), delivery:delMap[i.delivery_id]||null}));
   const counts={all:enriched.length,expired:enriched.filter(i=>i.days<0).length,critical:enriched.filter(i=>i.days>=0&&i.days<=3).length,week:enriched.filter(i=>i.days>=0&&i.days<=7).length,month:enriched.filter(i=>i.days>=0&&i.days<=30).length};
   const filtered=enriched.filter(i=>filter==='all'?true:filter==='expired'?i.days<0:filter==='critical'?i.days>=0&&i.days<=3:filter==='week'?i.days>=0&&i.days<=7:i.days>=0&&i.days<=30).sort((a,b)=>a.days-b.days);
   const FILTERS=[{id:'all',l:'Все'},{id:'expired',l:`☠ Просрочено${counts.expired?` (${counts.expired})`:''}`},{id:'critical',l:`⚠ До 3 дней${counts.critical?` (${counts.critical})`:''}`},{id:'week',l:'До 7 дней'},{id:'month',l:'До 30 дней'}];
@@ -833,9 +767,7 @@ function Expiry({tick}){
                 </div>
                 <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:10}}>
                   {item.originalQty && item.remaining < item.originalQty ? (
-                    <span style={{fontSize:12,fontWeight:800,padding:'3px 9px',borderRadius:7,background:C.orange+'18',color:C.orange}}>
-                      {item.remaining} из {item.originalQty} {item.unit}
-                    </span>
+                    <span style={{fontSize:12,fontWeight:800,padding:'3px 9px',borderRadius:7,background:C.orange+'18',color:C.orange}}>{item.remaining} из {item.originalQty} {item.unit}</span>
                   ) : (
                     <Badge color={C.blue}>{item.remaining||item.quantity} {item.unit}</Badge>
                   )}
@@ -855,9 +787,6 @@ function Expiry({tick}){
   );
 }
 
-// ════════════════════════════════════════════
-//  4. РЕВИЗИЯ
-// ════════════════════════════════════════════
 function Revision({tick,toast}){
   const [sc,setSc]=useState('list');
   const [curRev,setCurRev]=useState(null);
@@ -875,7 +804,7 @@ function Revision({tick,toast}){
           const short=items.filter(i=>i.actual!==null&&i.actual<i.expected).length;
           return(
             <div key={rev.id} className="fu" onClick={()=>{setCurRev(rev);setSc('view');}} style={{display:'flex',alignItems:'center',gap:12,padding:'14px 16px',background:C.bg2,border:`1px solid ${short>0?C.red+'35':C.border}`,borderRadius:16,marginBottom:8,cursor:'pointer'}}>
-              <div style={{...{width:46,height:46,borderRadius:13,background:'linear-gradient(135deg,#4466ff,#3ecf8e)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:17,fontWeight:900,color:'#fff',flexShrink:0}}}>{fmtDs(rev.date).day}</div>
+              <div style={{width:46,height:46,borderRadius:13,background:'linear-gradient(135deg,#4466ff,#3ecf8e)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:17,fontWeight:900,color:'#fff',flexShrink:0}}>{fmtDs(rev.date).day}</div>
               <div style={{flex:1}}><div style={{fontSize:15,fontWeight:700,marginBottom:2}}>{fmtD(rev.date)}</div><div style={{fontSize:12,color:C.dim}}>{rev.category||'Все'} · {items.length} поз.</div></div>
               <div style={{display:'flex',gap:6}}>
                 {short>0?<Badge color={C.red}>↓ {short}</Badge>:<Badge color={C.green}>✓ OK</Badge>}
@@ -901,45 +830,24 @@ function NewRevision({onBack,onSaved}){
 
   const products=dbGet('products');
   const cats=[...new Set(products.map(p=>p.category).filter(Boolean))].sort();
-
   const toggleCat=cat=>setSelCats(prev=>prev.includes(cat)?prev.filter(c=>c!==cat):[...prev,cat]);
-
   const getProdByCats=cList=>{
     const filtered=cList.length===0?products:products.filter(p=>cList.includes(p.category));
-    return filtered.map(p=>({
-      id:p.id,product_name:p.name,barcode:p.barcode||'',
-      unit:p.unit||'шт',category:p.category,price:p.price||0,
-      totalQty:p.stock||0,partCount:1,
-    })).sort((a,b)=>a.product_name.localeCompare(b.product_name));
+    return filtered.map(p=>({id:p.id,product_name:p.name,barcode:p.barcode||'',unit:p.unit||'шт',category:p.category,price:p.price||0,totalQty:p.stock||0,partCount:1})).sort((a,b)=>a.product_name.localeCompare(b.product_name));
   };
-
   const catLabel=selCats.length===0?'Все':selCats.length===1?selCats[0]:`${selCats.length} катег.`;
-
-  const startRev=()=>{
-    const prods=getProdByCats(selCats);
-    setItems(prods.map(p=>({id:uid(),product:p,actual:null})));
-    setPage(1);
-    setStep('revision');
-  };
-
+  const startRev=()=>{ const prods=getProdByCats(selCats); setItems(prods.map(p=>({id:uid(),product:p,actual:null}))); setPage(1); setStep('revision'); };
   const updActual=(id,val)=>setItems(prev=>prev.map(i=>i.id===id?{...i,actual:val===''?null:+val}:i));
-
   const checked=items.filter(i=>i.actual!==null).length;
   const sumExp=items.filter(i=>i.actual!==null).reduce((s,i)=>s+i.product.totalQty*(i.product.price||0),0);
   const sumAct=items.filter(i=>i.actual!==null).reduce((s,i)=>s+i.actual*(i.product.price||0),0);
-
   const saveRev=async()=>{
     const rev=await dbInsert('revisions',{category:catLabel,date});
     const revId=rev.id;
     await dbInsertMany('revision_items',items.map(it=>({id:uid(),revision_id:revId,product_name:it.product.product_name,barcode:it.product.barcode,unit:it.product.unit,expected:it.product.totalQty,actual:it.actual,price:it.product.price||0})));
     setSaved(true); setTimeout(()=>onSaved(),1000);
   };
-
-  const searchProds=search.trim().length>=1?products.filter(p=>{
-    const q=search.trim().toLowerCase();
-    return (p.name||'').toLowerCase().includes(q)||(p.barcode&&p.barcode.includes(search.trim()));
-  }).slice(0,6).map(p=>({id:p.id,product_name:p.name,barcode:p.barcode||'',unit:p.unit||'шт',category:p.category,price:p.price||0,totalQty:p.stock||0,partCount:1})):[];
-
+  const searchProds=search.trim().length>=1?products.filter(p=>{ const q=search.trim().toLowerCase(); return (p.name||'').toLowerCase().includes(q)||(p.barcode&&p.barcode.includes(search.trim())); }).slice(0,6).map(p=>({id:p.id,product_name:p.name,barcode:p.barcode||'',unit:p.unit||'шт',category:p.category,price:p.price||0,totalQty:p.stock||0,partCount:1})):[];
   const addFromSearch=p=>{ if(!items.find(i=>i.product.barcode===p.barcode)) setItems(prev=>[...prev,{id:uid(),product:p,actual:null}]); setSearch(''); };
 
   if(step==='setup') return(
@@ -952,14 +860,8 @@ function NewRevision({onBack,onSaved}){
           {selCats.length>0&&<button onClick={()=>setSelCats([])} style={{fontSize:11,color:C.dim,background:'none',border:'none',cursor:'pointer',fontFamily:'inherit'}}>✕ Сбросить</button>}
         </div>
         <div style={{display:'flex',flexWrap:'wrap',gap:7}}>
-          <button onClick={()=>setSelCats(selCats.length===cats.length?[]:cats)} style={{padding:'8px 14px',borderRadius:22,cursor:'pointer',fontFamily:'inherit',fontSize:12,fontWeight:800,border:`1.5px solid ${selCats.length===cats.length?C.orange+'80':C.border}`,background:selCats.length===cats.length?C.orange+'18':C.bg3,color:selCats.length===cats.length?C.orange:C.dim}}>
-            {selCats.length===cats.length?'✓ Все':'Выбрать все'}
-          </button>
-          {cats.map(cat=>(
-            <button key={cat} onClick={()=>toggleCat(cat)} style={{padding:'8px 14px',borderRadius:22,cursor:'pointer',fontFamily:'inherit',fontSize:12,fontWeight:700,border:`1.5px solid ${selCats.includes(cat)?C.blue+'80':C.border}`,background:selCats.includes(cat)?C.blue+'18':C.bg3,color:selCats.includes(cat)?C.blue:C.muted}}>
-              {selCats.includes(cat)?'✓ ':''}{cat}
-            </button>
-          ))}
+          <button onClick={()=>setSelCats(selCats.length===cats.length?[]:cats)} style={{padding:'8px 14px',borderRadius:22,cursor:'pointer',fontFamily:'inherit',fontSize:12,fontWeight:800,border:`1.5px solid ${selCats.length===cats.length?C.orange+'80':C.border}`,background:selCats.length===cats.length?C.orange+'18':C.bg3,color:selCats.length===cats.length?C.orange:C.dim}}>{selCats.length===cats.length?'✓ Все':'Выбрать все'}</button>
+          {cats.map(cat=>(<button key={cat} onClick={()=>toggleCat(cat)} style={{padding:'8px 14px',borderRadius:22,cursor:'pointer',fontFamily:'inherit',fontSize:12,fontWeight:700,border:`1.5px solid ${selCats.includes(cat)?C.blue+'80':C.border}`,background:selCats.includes(cat)?C.blue+'18':C.bg3,color:selCats.includes(cat)?C.blue:C.muted}}>{selCats.includes(cat)?'✓ ':''}{cat}</button>))}
         </div>
         {selCats.length>0&&<div style={{marginTop:12,fontSize:12,color:C.dim}}>Выбрано {selCats.length} катег. · {getProdByCats(selCats).length} товаров</div>}
       </Card>
@@ -1056,13 +958,7 @@ function RevisionView({revision,onBack,onDeleted}){
   const sumAct=items.filter(i=>i.actual!==null).reduce((s,i)=>s+i.actual*(i.price||0),0);
   const loss=sumExp-sumAct;
 
-  const startEdit=()=>{
-    const vals={};
-    items.forEach(i=>{ vals[i.id]=i.actual!==null?String(i.actual):''; });
-    setEditValues(vals);
-    setEditMode(true);
-  };
-
+  const startEdit=()=>{ const vals={}; items.forEach(i=>{ vals[i.id]=i.actual!==null?String(i.actual):''; }); setEditValues(vals); setEditMode(true); };
   const saveEdit=async()=>{
     setSaving(true);
     for(const item of items){
@@ -1072,11 +968,8 @@ function RevisionView({revision,onBack,onDeleted}){
       const idx=DB.revision_items.findIndex(i=>i.id===item.id);
       if(idx>=0) DB.revision_items[idx]={...DB.revision_items[idx],actual};
     }
-    pub();
-    setEditMode(false);
-    setSaving(false);
+    pub(); setEditMode(false); setSaving(false);
   };
-
   const doDelete=async()=>{
     for(const item of items) await sbDel('revision_items',item.id);
     await sbDel('revisions',revision.id);
@@ -1092,7 +985,6 @@ function RevisionView({revision,onBack,onDeleted}){
         <button onClick={()=>setConfirmDel(true)} style={{width:38,height:38,borderRadius:11,background:'#f04f5a18',border:`1px solid #f04f5a40`,color:C.red,fontSize:16,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>🗑</button>
       </div>
     </Hdr>
-
     {confirmDel&&(
       <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,.7)',zIndex:200,display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
         <div style={{background:C.bg2,border:`1px solid ${C.red}50`,borderRadius:20,padding:24,width:'100%',maxWidth:380}}>
@@ -1105,7 +997,6 @@ function RevisionView({revision,onBack,onDeleted}){
         </div>
       </div>
     )}
-
     <div style={{padding:14,paddingBottom:editMode?160:30}}>
       <div style={{display:'flex',gap:8,marginBottom:12}}>
         {[['Позиций',items.length,C.blue],['Недостача',short.length,short.length>0?C.red:C.green]].map(([l,v,c])=>(
@@ -1155,7 +1046,6 @@ function RevisionView({revision,onBack,onDeleted}){
         })}
       </Card>
     </div>
-
     {editMode&&(
       <div style={{position:'fixed',bottom:64,left:'50%',transform:'translateX(-50%)',width:'100%',maxWidth:430,padding:'10px 14px',background:'rgba(9,9,15,.97)',borderTop:`1px solid ${C.border}`,zIndex:150,display:'flex',gap:8}}>
         <Btn outline onClick={()=>setEditMode(false)} style={{width:52,flex:'none',padding:'14px 0'}}>✕</Btn>
@@ -1166,9 +1056,6 @@ function RevisionView({revision,onBack,onDeleted}){
   );
 }
 
-// ════════════════════════════════════════════
-//  5. ФИНАНСЫ
-// ════════════════════════════════════════════
 function Finance({tick}){
   const [tab,setTab]=useState('expenses');
   const exp=dbGet('expenses'), rev=dbGet('revenue'), cash=dbGet('cash_movements');
@@ -1371,10 +1258,6 @@ function CashTab({tick}){
   );
 }
 
-
-// ════════════════════════════════════════════
-//  ГЛАВНЫЙ КОМПОНЕНТ
-// ════════════════════════════════════════════
 function App(){
   const [ready,setReady]=useState(false);
   const [tab,setTab]=useState('home');
@@ -1382,7 +1265,6 @@ function App(){
   const [toastMsg,setToastMsg]=useState(null);
 
   useEffect(()=>{ initDB().then(()=>setReady(true)); return sub(()=>setTick(t=>t+1)); },[]);
-
   const showToast=(msg,color)=>{ setToastMsg({msg,color}); setTimeout(()=>setToastMsg(null),2500); };
 
   if(!ready) return(
@@ -1402,7 +1284,6 @@ function App(){
     {id:'finance',icon:'💰', label:'Финансы'},
   ];
 
-  // Бейдж на сроках
   const diItems=dbGet('delivery_items');
   const alertCount=diItems.filter(i=>i.expiry_date&&dLeft(i.expiry_date)<0).length+diItems.filter(i=>i.expiry_date&&dLeft(i.expiry_date)>=0&&dLeft(i.expiry_date)<=3).length;
 
@@ -1410,14 +1291,11 @@ function App(){
     <div style={{background:C.bg,color:C.text,minHeight:'100vh',fontFamily:'system-ui,-apple-system,sans-serif',maxWidth:430,margin:'0 auto',paddingBottom:80}}>
       <style>{css}</style>
       <Toast msg={toastMsg?.msg} color={toastMsg?.color}/>
-
       {tab==='home'    &&<Home     tick={tick}/>}
       {tab==='supply'  &&<Suppliers tick={tick} toast={showToast}/>}
       {tab==='expiry'  &&<Expiry   tick={tick}/>}
       {tab==='revision'&&<Revision  tick={tick} toast={showToast}/>}
       {tab==='finance' &&<Finance   tick={tick}/>}
-
-      {/* НИЖНЯЯ НАВИГАЦИЯ */}
       <div style={{position:'fixed',bottom:0,left:'50%',transform:'translateX(-50%)',width:'100%',maxWidth:430,background:'rgba(9,9,15,.97)',backdropFilter:'blur(20px)',borderTop:`1px solid ${C.border}`,display:'flex',zIndex:100,paddingBottom:'env(safe-area-inset-bottom,0)'}}>
         {NAV.map(n=>(
           <button key={n.id} onClick={()=>setTab(n.id)} style={{flex:1,padding:'10px 0 13px',background:'none',border:'none',borderTop:`2px solid ${tab===n.id?C.blue:'transparent'}`,cursor:'pointer',color:tab===n.id?C.blue:C.dim,display:'flex',flexDirection:'column',alignItems:'center',gap:2,fontFamily:'inherit',position:'relative'}}>

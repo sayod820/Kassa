@@ -945,12 +945,14 @@ function NewRevision({onBack,onSaved}){
         <FL>ВЫБЕРИ КАТЕГОРИЮ</FL>
         <div style={{display:'flex',flexWrap:'wrap',gap:8,marginTop:6}}>
           {cats.map(cat=>(
-            <button key={cat} onClick={()=>setCategory(cat===category?'':cat)} style={{padding:'9px 16px',borderRadius:22,cursor:'pointer',fontFamily:'inherit',fontSize:13,fontWeight:700,border:`1.5px solid ${category===cat?C.blue+'80':C.border}`,background:category===cat?C.blue+'18':C.bg3,color:category===cat?C.blue:C.muted}}>{cat}</button>
+            <button key={cat} onClick={()=>toggleCat(cat)} style={{padding:'8px 14px',borderRadius:22,cursor:'pointer',fontFamily:'inherit',fontSize:12,fontWeight:700,border:`1.5px solid ${selCats.includes(cat)?C.blue+'80':C.border}`,background:selCats.includes(cat)?C.blue+'18':C.bg3,color:selCats.includes(cat)?C.blue:C.muted}}>
+              {selCats.includes(cat)?'✓ ':''}{cat}
+            </button>
           ))}
         </div>
-        {category&&<div style={{marginTop:12,fontSize:12,color:C.dim}}>В категории «{category}»: {getProdByCategory(category).length} позиций</div>}
+        {selCats.length>0&&<div style={{marginTop:12,fontSize:12,color:C.dim}}>Выбрано {selCats.length} катег. · {getProdByCats(selCats).length} товаров</div>}
       </Card>
-      <Btn bg={C.blue} onClick={startRev} disabled={!category}>{category?`📦 Начать · ${getProdByCategory(category).length} товаров`:'Выбери категорию'}</Btn>
+      <Btn bg={C.blue} onClick={startRev} disabled={selCats.length===0}>{selCats.length>0?`📦 Начать · ${getProdByCats(selCats).length} товаров`:'Выбери хотя бы одну категорию'}</Btn>
     </div></>
   );
 

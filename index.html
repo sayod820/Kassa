@@ -886,13 +886,12 @@ function NewRevision({onBack,onSaved}){
   const [selCats,setSelCats]=useState([]);
   const [date,setDate]=useState(tod());
   const [items,setItems]=useState([]);
-  const [showForm,setShowForm]=useState(false);
-  const [rName,setRName]=useState(''),[ rExp,setRExp]=useState(''),[ err,setErr]=useState('');
   const [search,setSearch]=useState('');
   const [saved,setSaved]=useState(false);
+  const [page,setPage]=useState(1);
+  const PAGE=50;
 
   const products=dbGet('products');
-  const diItems=dbGet('delivery_items');
   const cats=[...new Set(products.map(p=>p.category).filter(Boolean))].sort();
 
   const toggleCat=cat=>setSelCats(prev=>prev.includes(cat)?prev.filter(c=>c!==cat):[...prev,cat]);
@@ -906,45 +905,48 @@ function NewRevision({onBack,onSaved}){
     })).sort((a,b)=>a.product_name.localeCompare(b.product_name));
   };
 
-  const getProdByCategory=cat=>getProdByCats([cat]);
-
   const catLabel=selCats.length===0?'Все':selCats.length===1?selCats[0]:`${selCats.length} катег.`;
 
   const startRev=()=>{
-    const prods=getProdByCats(selCats).slice(0,500);
+    const prods=getProdByCats(selCats);
     setItems(prods.map(p=>({id:uid(),product:p,actual:null})));
+    setPage(1);
     setStep('revision');
   };
 
-  const searchResults=search.trim().length>=1?products.filter(p=>{
-    const q=search.trim().toLowerCase();
-    return (p.name||'').toLowerCase().includes(q)||(p.barcode&&p.barcode.includes(search.trim()));
-  }).slice(0,6).map(p=>({
-    id:p.id, product_name:p.name, barcode:p.barcode||'',
-    unit:p.unit||'шт', category:p.category, price:p.price||0,
-    totalQty:p.stock||0, partCount:1,
-  })):[];
-  const addFromSearch=p=>{ if(!items.find(i=>i.product.barcode===p.barcode)) setItems(prev=>[...prev,{id:uid(),product:p,actual:null}]); setSearch(''); };
   const updActual=(id,val)=>setItems(prev=>prev.map(i=>i.id===id?{...i,actual:val===''?null:+val}:i));
+
   const checked=items.filter(i=>i.actual!==null).length;
-  const short=items.filter(i=>i.actual!==null&&i.actual<i.product.totalQty).length;
   const sumExp=items.filter(i=>i.actual!==null).reduce((s,i)=>s+i.product.totalQty*(i.product.price||0),0);
   const sumAct=items.filter(i=>i.actual!==null).reduce((s,i)=>s+i.actual*(i.product.price||0),0);
 
   const saveRev=async()=>{
-    const rev=await dbInsert('revisions',{category:categories.length===1?categories[0]:categories.length>1?categories.join(', '):'Все товары',date});
+    const rev=await dbInsert('revisions',{category:catLabel,date});
     const revId=rev.id;
     await dbInsertMany('revision_items',items.map(it=>({id:uid(),revision_id:revId,product_name:it.product.product_name,barcode:it.product.barcode,unit:it.product.unit,expected:it.product.totalQty,actual:it.actual,price:it.product.price||0})));
     setSaved(true); setTimeout(()=>onSaved(),1000);
   };
 
+  const searchProds=search.trim().length>=1?products.filter(p=>{
+    const q=search.trim().toLowerCase();
+    return (p.name||'').toLowerCase().includes(q)||(p.barcode&&p.barcode.includes(search.trim()));
+  }).slice(0,6).map(p=>({id:p.id,product_name:p.name,barcode:p.barcode||'',unit:p.unit||'шт',category:p.category,price:p.price||0,totalQty:p.stock||0,partCount:1})):[];
+
+  const addFromSearch=p=>{ if(!items.find(i=>i.product.barcode===p.barcode)) setItems(prev=>[...prev,{id:uid(),product:p,actual:null}]); setSearch(''); };
+
   if(step==='setup') return(
     <><Hdr title="Новая ревизия" onBack={onBack}/>
-    <div style={{padding:14}}>
+    <div style={{padding:14,paddingBottom:30}}>
       <Card><TI label="ДАТА" type="date" value={date} onChange={setDate}/></Card>
       <Card>
-        <FL>ВЫБЕРИ КАТЕГОРИЮ</FL>
-        <div style={{display:'flex',flexWrap:'wrap',gap:8,marginTop:6}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
+          <FL>КАТЕГОРИИ</FL>
+          {selCats.length>0&&<button onClick={()=>setSelCats([])} style={{fontSize:11,color:C.dim,background:'none',border:'none',cursor:'pointer',fontFamily:'inherit'}}>✕ Сбросить</button>}
+        </div>
+        <div style={{display:'flex',flexWrap:'wrap',gap:7}}>
+          <button onClick={()=>setSelCats(selCats.length===cats.length?[]:cats)} style={{padding:'8px 14px',borderRadius:22,cursor:'pointer',fontFamily:'inherit',fontSize:12,fontWeight:800,border:`1.5px solid ${selCats.length===cats.length?C.orange+'80':C.border}`,background:selCats.length===cats.length?C.orange+'18':C.bg3,color:selCats.length===cats.length?C.orange:C.dim}}>
+            {selCats.length===cats.length?'✓ Все':'Выбрать все'}
+          </button>
           {cats.map(cat=>(
             <button key={cat} onClick={()=>toggleCat(cat)} style={{padding:'8px 14px',borderRadius:22,cursor:'pointer',fontFamily:'inherit',fontSize:12,fontWeight:700,border:`1.5px solid ${selCats.includes(cat)?C.blue+'80':C.border}`,background:selCats.includes(cat)?C.blue+'18':C.bg3,color:selCats.includes(cat)?C.blue:C.muted}}>
               {selCats.includes(cat)?'✓ ':''}{cat}
@@ -957,29 +959,22 @@ function NewRevision({onBack,onSaved}){
     </div></>
   );
 
+  const visItems=items.slice(0,page*PAGE);
+  const hasMore=items.length>page*PAGE;
+
   return(
-    <><Hdr title={categories.length===1?categories[0]:categories.length>1?`${categories.length} категории`:'Все товары'} sub="РЕВИЗИЯ" onBack={()=>setStep('setup')}>
+    <><Hdr title={catLabel} sub="РЕВИЗИЯ" onBack={()=>setStep('setup')}>
       <div style={{background:C.bg3,borderRadius:10,padding:'5px 12px',textAlign:'center',flexShrink:0}}>
         <div style={{fontSize:9,color:C.dim,fontWeight:700}}>Проверено</div>
-        <div style={{fontSize:15,fontWeight:900,color:checked===items.length?C.green:C.blue}}>{checked}/{items.length}</div>
+        <div style={{fontSize:15,fontWeight:900,color:checked===items.length&&checked>0?C.green:C.blue}}>{checked}/{items.length}</div>
       </div>
     </Hdr>
     <div style={{padding:14,paddingBottom:160}}>
       {checked>0&&(
         <div style={{background:C.bg2,border:`1px solid ${C.border}`,borderRadius:16,overflow:'hidden',marginBottom:12}}>
-          <div style={{padding:'10px 16px',background:C.bg3,borderBottom:`1px solid ${C.border}`,display:'flex',justifyContent:'space-between'}}>
-            <div style={{fontSize:10,fontWeight:800,letterSpacing:2,color:C.dim}}>СВОДКА</div>
-            <div style={{fontSize:10,color:C.dim}}>проверено {checked}/{items.length}</div>
-          </div>
           <div style={{display:'flex',borderBottom:`1px solid ${C.border}`}}>
-            <div style={{flex:1,padding:'14px 16px',borderRight:`1px solid ${C.border}`,textAlign:'center'}}>
-              <div style={{fontSize:9,fontWeight:800,color:C.dim,marginBottom:4}}>БЫЛО</div>
-              <div style={{fontSize:18,fontWeight:900,color:C.muted}}>{fmt(sumExp)} SM</div>
-            </div>
-            <div style={{flex:1,padding:'14px 16px',textAlign:'center'}}>
-              <div style={{fontSize:9,fontWeight:800,color:C.dim,marginBottom:4}}>ОСТАЛОСЬ</div>
-              <div style={{fontSize:18,fontWeight:900,color:sumExp-sumAct>0?C.red:C.green}}>{fmt(sumAct)} SM</div>
-            </div>
+            <div style={{flex:1,padding:'14px 16px',borderRight:`1px solid ${C.border}`,textAlign:'center'}}><div style={{fontSize:9,fontWeight:800,color:C.dim,marginBottom:4}}>БЫЛО</div><div style={{fontSize:18,fontWeight:900,color:C.muted}}>{fmt(sumExp)} SM</div></div>
+            <div style={{flex:1,padding:'14px 16px',textAlign:'center'}}><div style={{fontSize:9,fontWeight:800,color:C.dim,marginBottom:4}}>ОСТАЛОСЬ</div><div style={{fontSize:18,fontWeight:900,color:sumExp-sumAct>0?C.red:C.green}}>{fmt(sumAct)} SM</div></div>
           </div>
           <div style={{padding:'12px 16px',background:sumExp-sumAct>0?'#f04f5a10':'#3ecf8e10',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
             <div style={{fontSize:10,fontWeight:800,color:C.dim}}>{sumExp-sumAct>0?'ПОТЕРИ':'РЕЗУЛЬТАТ'}</div>
@@ -988,17 +983,17 @@ function NewRevision({onBack,onSaved}){
         </div>
       )}
       <Card style={{background:C.bg3,border:`1px solid #4466ff25`}}>
-        <div style={{fontSize:10,fontWeight:800,letterSpacing:2,color:C.blue,marginBottom:8}}>🔍 ДОБАВИТЬ ПО ШТРИХКОДУ / НАЗВАНИЮ</div>
+        <div style={{fontSize:10,fontWeight:800,letterSpacing:2,color:C.blue,marginBottom:8}}>🔍 ДОБАВИТЬ ПО ШТРИХКОДУ</div>
         <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Введи название или штрихкод..."
           style={{width:'100%',background:C.bg,border:`1.5px solid #4466ff40`,borderRadius:11,padding:'12px 14px',color:C.text,fontSize:14,outline:'none',WebkitAppearance:'none'}}/>
-        {search.trim()&&searchResults.map(p=>(
+        {search.trim()&&searchProds.map(p=>(
           <div key={p.id} onClick={()=>addFromSearch(p)} style={{display:'flex',alignItems:'center',gap:10,padding:'10px 12px',background:C.bg2,borderRadius:10,marginTop:6,cursor:'pointer'}}>
             <div style={{flex:1}}><div style={{fontSize:13,fontWeight:700}}>{p.product_name}</div><div style={{fontSize:11,color:C.dim}}>🏷 {p.barcode} · {p.totalQty} {p.unit}</div></div>
             <div style={{color:C.blue,fontSize:20,fontWeight:300}}>+</div>
           </div>
         ))}
       </Card>
-      {items.map(ri=>{
+      {visItems.map(ri=>{
         const diff=ri.actual!==null?ri.actual-ri.product.totalQty:null;
         const dc=diff===null?C.dim:diff<0?C.red:diff>0?C.orange:C.green;
         return(
@@ -1008,7 +1003,7 @@ function NewRevision({onBack,onSaved}){
               <div style={{display:'flex',alignItems:'flex-start',gap:10}}>
                 <div style={{flex:1,minWidth:0}}>
                   <div style={{fontSize:14,fontWeight:800,marginBottom:3}}>{ri.product.product_name}</div>
-                  <div style={{fontSize:11,color:C.dim,marginBottom:4}}>🏷 {ri.product.barcode} · {ri.product.partCount} партий</div>
+                  <div style={{fontSize:11,color:C.dim,marginBottom:4}}>🏷 {ri.product.barcode}</div>
                   <div style={{fontSize:12,color:C.dim}}>Ожидается: <b style={{color:C.muted}}>{ri.product.totalQty} {ri.product.unit}</b>{ri.product.price>0&&<> · <b style={{color:C.blue}}>{ri.product.price} SM</b></>}</div>
                 </div>
                 <div style={{flexShrink:0,textAlign:'right'}}>
@@ -1021,13 +1016,18 @@ function NewRevision({onBack,onSaved}){
               {diff!==null&&(
                 <div style={{marginTop:8,padding:'7px 10px',borderRadius:9,background:dc+'12',display:'flex',justifyContent:'space-between'}}>
                   <span style={{fontSize:12,fontWeight:800,color:dc}}>{diff<0?`↓ Недостача ${Math.abs(diff)} ${ri.product.unit}`:diff>0?`↑ Излишек ${diff} ${ri.product.unit}`:'✓ Совпадает'}</span>
-                  {ri.product.price>0&&diff!==0&&<span style={{fontSize:13,fontWeight:900,color:dc}}>{diff<0?'-':'+'}{ (Math.abs(diff)*ri.product.price).toFixed(2)} SM</span>}
+                  {ri.product.price>0&&diff!==0&&<span style={{fontSize:13,fontWeight:900,color:dc}}>{diff<0?'-':'+'}{(Math.abs(diff)*ri.product.price).toFixed(2)} SM</span>}
                 </div>
               )}
             </div>
           </div>
         );
       })}
+      {hasMore&&(
+        <button onClick={()=>setPage(p=>p+1)} style={{width:'100%',padding:'14px',borderRadius:14,background:C.bg2,border:`1px solid ${C.blue}40`,color:C.blue,fontSize:14,fontWeight:800,cursor:'pointer',fontFamily:'inherit',marginBottom:8}}>
+          Загрузить ещё {Math.min(PAGE,items.length-page*PAGE)} товаров ({page*PAGE} из {items.length})
+        </button>
+      )}
     </div>
     <div style={{position:'fixed',bottom:64,left:'50%',transform:'translateX(-50%)',width:'100%',maxWidth:430,padding:'10px 14px',background:'rgba(9,9,15,.97)',borderTop:`1px solid ${C.border}`,zIndex:150}}>
       {saved?<div style={{textAlign:'center',padding:14,fontSize:16,fontWeight:800,color:C.green}}>✓ Ревизия сохранена!</div>:

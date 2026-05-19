@@ -110,11 +110,20 @@ const fmt=n=>(+n||0).toLocaleString('ru-RU',{minimumFractionDigits:2,maximumFrac
 const fmtD=d=>{ if(!d)return''; return new Date(d+'T00:00:00').toLocaleDateString('ru-RU',{day:'2-digit',month:'short',year:'numeric'}); };
 const fmtDs=d=>{ if(!d)return{day:'?',mon:'?'}; const dt=new Date(d+'T00:00:00'); return{day:dt.getDate(),mon:dt.toLocaleDateString('ru-RU',{month:'short'}).replace('.','')}; };
 
+// ✅ ИСПРАВЛЕНО: принудительно UTC → +5 часов
 const fmtT=s=>{
   if(!s)return'';
-  const d=new Date(s);
-  return d.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'});
+  try{
+    // Заменяем пробел на T, добавляем Z если нет timezone
+    let ts=String(s).replace(' ','T');
+    if(!/[Z+]/.test(ts.slice(10))) ts+='Z';
+    const ms=new Date(ts).getTime();
+    if(isNaN(ms))return'';
+    const d=new Date(ms+5*3600000); // +5 часов вручную
+    return String(d.getUTCHours()).padStart(2,'0')+':'+String(d.getUTCMinutes()).padStart(2,'0');
+  }catch(e){return'';}
 };
+
 const dLeft=d=>{ if(!d)return 999; return Math.ceil((new Date(d)-new Date(tod()))/86400000); };
 const eColor=n=>n<0?'#f04f5a':n<=3?'#f09040':n<=7?'#e8c040':'#3ecf8e';
 const eText=n=>n<0?`просрочен ${Math.abs(n)}д`:n===0?'сегодня!':n+' дн.';
@@ -782,6 +791,17 @@ function Expiry({tick}){
                   <div><div style={{fontSize:9,fontWeight:800,letterSpacing:1.5,color:C.dim,marginBottom:3}}>ПАРТИЯ</div><div style={{fontSize:13,fontWeight:700,color:C.muted}}>до {fmtD(item.expiry_date)}</div></div>
                   <div style={{fontSize:12,fontWeight:900,padding:'4px 12px',borderRadius:10,background:st.color+'20',color:st.color,border:`1px solid ${st.color}40`}}>{st.label}</div>
                 </div>
+                {item.days<0&&(
+                  <button onClick={async()=>{
+                    if(!window.confirm(`Списать «${item.product_name}»?\nТовар уберётся из списка просроченных.`)) return;
+                    await fetch(`${SB}/delivery_items?id=eq.${item.id}`,{method:'PATCH',headers:H,body:JSON.stringify({quantity:0})});
+                    const idx=DB.delivery_items.findIndex(i=>i.id===item.id);
+                    if(idx>=0) DB.delivery_items[idx]={...DB.delivery_items[idx],quantity:0};
+                    pub();
+                  }} style={{width:'100%',marginTop:10,padding:'11px',borderRadius:11,background:C.red+'15',border:`1px solid ${C.red}40`,color:C.red,fontSize:13,fontWeight:800,cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:6}}>
+                    🗑 Списать — убрать из списка
+                  </button>
+                )}
               </div>
             </div>
           );
@@ -1109,7 +1129,7 @@ function ExpensesTab({tick}){
   const [curMonth,setCurMonth]=useState(monStr());
   const [amount,setAmount]=useState('');
   const [reason,setReason]=useState('');
-  const [delId,setDelId]=useState(null);
+  const [delItem,setDelItem]=useState(null);
   const months=getMonths(4);
   const monthExp=dbGet('expenses').filter(e=>e.month_year===curMonth).sort((a,b)=>b.created_at.localeCompare(a.created_at));
   const total=monthExp.reduce((s,e)=>s+ +e.amount,0);
@@ -1121,7 +1141,7 @@ function ExpensesTab({tick}){
   };
   return(
     <div style={{padding:14,paddingBottom:30}}>
-      {delId&&<DelConfirm text="Расход будет удалён безвозвратно" onConfirm={async()=>{ await dbDelete('expenses',delId); setDelId(null); }} onCancel={()=>setDelId(null)}/>}
+      {delItem&&<DelConfirm text={`Расход «${delItem.reason}» удалится, а ${fmt(delItem.amount)} SM вернётся в кассу ↩`} onConfirm={async()=>{ await dbDelete('expenses',delItem.id); await dbInsert('cash_movements',{type:'add',amount:+delItem.amount,description:'↩ Возврат расхода: '+delItem.reason,date:tod()}); setDelItem(null); }} onCancel={()=>setDelItem(null)}/>}
       <div style={{display:'flex',gap:6,overflowX:'auto',paddingBottom:4,marginBottom:12}}>
         {months.map(m=><button key={m.val} onClick={()=>setCurMonth(m.val)} style={{padding:'7px 14px',borderRadius:20,cursor:'pointer',fontFamily:'inherit',fontSize:11,fontWeight:700,whiteSpace:'nowrap',flexShrink:0,border:`1.5px solid ${curMonth===m.val?C.red+'70':C.border}`,background:curMonth===m.val?C.red+'18':C.bg2,color:curMonth===m.val?C.red:C.dim}}>{m.label}</button>)}
       </div>
@@ -1148,7 +1168,7 @@ function ExpensesTab({tick}){
             <div style={{fontSize:13,color:C.muted,marginBottom:2}}>{e.reason}</div>
             <div style={{fontSize:11,color:C.dim}}>{fmtD(e.date)} · {fmtT(e.created_at)}</div>
           </div>
-          <button onClick={()=>setDelId(e.id)} style={{background:'none',border:'none',color:C.dim,fontSize:20,cursor:'pointer',padding:4,flexShrink:0}}>🗑</button>
+          <button onClick={()=>setDelItem(e)} style={{background:'none',border:'none',color:C.dim,fontSize:20,cursor:'pointer',padding:4,flexShrink:0}}>🗑</button>
         </div>
       ))}
     </div>
@@ -1159,7 +1179,7 @@ function RevenueTab({tick}){
   const [amount,setAmount]=useState('');
   const [gbsProfit,setGbsProfit]=useState('');
   const [date,setDate]=useState(tod());
-  const [delId,setDelId]=useState(null);
+  const [delItem,setDelItem]=useState(null);
   const all=dbGet('revenue').sort((a,b)=>b.created_at.localeCompare(a.created_at));
   const totalRev=all.reduce((s,r)=>s+ +r.amount,0);
   const totalProfit=all.reduce((s,r)=>s+ +(r.profit||0),0);
@@ -1172,7 +1192,7 @@ function RevenueTab({tick}){
   };
   return(
     <div style={{padding:14,paddingBottom:30}}>
-      {delId&&<DelConfirm text="Запись выручки будет удалена" onConfirm={async()=>{ await dbDelete('revenue',delId); setDelId(null); }} onCancel={()=>setDelId(null)}/>}
+      {delItem&&<DelConfirm text={`Выручка ${fmt(delItem.amount)} SM удалится и касса уменьшится на эту сумму ↩`} onConfirm={async()=>{ await dbDelete('revenue',delItem.id); await dbInsert('cash_movements',{type:'remove',amount:+delItem.amount,description:'↩ Удаление выручки',date:tod()}); setDelItem(null); }} onCancel={()=>setDelItem(null)}/> }
       <div style={{background:C.bg2,border:`1px solid ${C.border}`,borderRadius:16,overflow:'hidden',marginBottom:14}}>
         <div style={{padding:'10px 16px',background:C.bg3,borderBottom:`1px solid ${C.border}`}}><div style={{fontSize:9,fontWeight:800,letterSpacing:2,color:C.dim}}>ФИНАНСОВЫЕ ИТОГИ</div></div>
         <div style={{padding:'16px 20px',borderBottom:`1px solid ${C.border}`}}><div style={{fontSize:10,color:C.dim,marginBottom:4}}>ВЫРУЧКА СЕГОДНЯ</div><div style={{fontSize:32,fontWeight:900,color:C.green}}>{fmt(todayRev)} SM</div></div>
@@ -1198,9 +1218,129 @@ function RevenueTab({tick}){
             <div style={{fontSize:12,color:C.dim}}>Прибыль GBS: <b style={{color:C.blue}}>{fmt(r.profit||0)} SM</b></div>
             <div style={{fontSize:11,color:C.dim,marginTop:2}}>{fmtD(r.date)} · {fmtT(r.created_at)}</div>
           </div>
-          <button onClick={()=>setDelId(r.id)} style={{background:'none',border:'none',color:C.dim,fontSize:20,cursor:'pointer',padding:4,flexShrink:0}}>🗑</button>
+          <button onClick={()=>setDelItem(r)} style={{background:'none',border:'none',color:C.dim,fontSize:20,cursor:'pointer',padding:4,flexShrink:0}}>🗑</button>
         </div>
       ))}
+    </div>
+  );
+}
+
+// ════ ПЕРЕСЧЁТ КАССЫ ════
+const DENOMS=[
+  {val:500,label:'500 SM',icon:'💵',type:'bill'},
+  {val:200,label:'200 SM',icon:'💵',type:'bill'},
+  {val:100,label:'100 SM',icon:'💵',type:'bill'},
+  {val:50, label:'50 SM', icon:'💵',type:'bill'},
+  {val:20, label:'20 SM', icon:'💵',type:'bill'},
+  {val:10, label:'10 SM', icon:'💵',type:'bill'},
+  {val:5,  label:'5 SM',  icon:'💵',type:'bill'},
+  {val:1,  label:'1 SM',  icon:'🪙',type:'coin'},
+  {val:0.5,label:'50 д',  icon:'🪙',type:'coin'},
+  {val:0.25,label:'25 д', icon:'🪙',type:'coin'},
+  {val:0.1,label:'10 д',  icon:'🪙',type:'coin'},
+  {val:0.05,label:'5 д',  icon:'🪙',type:'coin'},
+];
+
+function CashCounter({onClose,onSave}){
+  const [counts,setCounts]=useState({});
+  const set=(v,n)=>setCounts(p=>({...p,[v]:n===''?'':+n<0?0:n}));
+  const totalBills=DENOMS.filter(d=>d.type==='bill').reduce((s,d)=>s+(+counts[d.val]||0)*d.val,0);
+  const totalCoins=DENOMS.filter(d=>d.type==='coin').reduce((s,d)=>s+(+counts[d.val]||0)*d.val,0);
+  const total=totalBills+totalCoins;
+  const hasAny=Object.values(counts).some(v=>+v>0);
+
+  return(
+    <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,.85)',zIndex:300,overflowY:'auto',paddingBottom:100}}>
+      <div style={{maxWidth:430,margin:'0 auto'}}>
+        {/* Шапка */}
+        <div style={{padding:'16px 16px 12px',background:C.bg2,borderBottom:`1px solid ${C.border}`,position:'sticky',top:0,zIndex:10,display:'flex',alignItems:'center',gap:10}}>
+          <button onClick={onClose} style={{width:38,height:38,borderRadius:11,background:C.bg3,border:`1px solid ${C.border}`,color:C.muted,fontSize:22,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>←</button>
+          <div style={{flex:1}}>
+            <div style={{fontSize:9,fontWeight:800,letterSpacing:2,color:C.dim}}>КАССА</div>
+            <div style={{fontSize:18,fontWeight:900}}>🪙 Пересчёт наличных</div>
+          </div>
+        </div>
+
+        {/* Итог */}
+        <div style={{margin:'14px 14px 0',background:`linear-gradient(135deg,#0d2d1a,${C.bg2})`,border:`1.5px solid ${C.green}40`,borderRadius:20,padding:'18px 20px',textAlign:'center'}}>
+          <div style={{fontSize:9,fontWeight:800,letterSpacing:2.5,color:C.dim,marginBottom:6}}>ИТОГО В КАССЕ</div>
+          <div style={{fontSize:44,fontWeight:900,color:C.green,letterSpacing:-2}}>{fmt(total)} SM</div>
+          <div style={{display:'flex',justifyContent:'center',gap:20,marginTop:10}}>
+            <div style={{textAlign:'center'}}>
+              <div style={{fontSize:9,color:C.dim,fontWeight:800,marginBottom:2}}>💵 КУПЮРЫ</div>
+              <div style={{fontSize:16,fontWeight:900,color:C.blue}}>{fmt(totalBills)} SM</div>
+            </div>
+            <div style={{width:1,background:C.border}}/>
+            <div style={{textAlign:'center'}}>
+              <div style={{fontSize:9,color:C.dim,fontWeight:800,marginBottom:2}}>🪙 МОНЕТЫ</div>
+              <div style={{fontSize:16,fontWeight:900,color:C.yellow}}>{fmt(totalCoins)} SM</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Купюры */}
+        <div style={{padding:'14px 14px 0'}}>
+          <div style={{fontSize:9,fontWeight:800,letterSpacing:2,color:C.dim,marginBottom:8}}>💵 КУПЮРЫ</div>
+          <div style={{background:C.bg2,border:`1px solid ${C.border}`,borderRadius:16,overflow:'hidden'}}>
+            {DENOMS.filter(d=>d.type==='bill').map((d,i,arr)=>{
+              const cnt=+counts[d.val]||0;
+              const sub=cnt*d.val;
+              return(
+                <div key={d.val} style={{display:'flex',alignItems:'center',gap:10,padding:'12px 14px',borderBottom:i<arr.length-1?`1px solid ${C.border}`:'none',background:cnt>0?C.blue+'08':'transparent'}}>
+                  <div style={{width:52,height:34,borderRadius:8,background:cnt>0?C.blue+'25':C.bg3,border:`1px solid ${cnt>0?C.blue+'50':C.border}`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                    <span style={{fontSize:13,fontWeight:900,color:cnt>0?C.blue:C.muted}}>{d.label}</span>
+                  </div>
+                  <div style={{flex:1}}>
+                    {cnt>0&&<div style={{fontSize:11,color:C.blue,fontWeight:700}}>{cnt} шт = {fmt(sub)} SM</div>}
+                    {cnt===0&&<div style={{fontSize:11,color:C.dim}}>Количество</div>}
+                  </div>
+                  <div style={{display:'flex',alignItems:'center',gap:6}}>
+                    <button onClick={()=>set(d.val,Math.max(0,(+counts[d.val]||0)-1))} style={{width:34,height:34,borderRadius:9,background:C.bg3,border:`1px solid ${C.border}`,color:C.muted,fontSize:20,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'inherit'}}>−</button>
+                    <input type="number" value={counts[d.val]??''} onChange={e=>set(d.val,e.target.value)} placeholder="0"
+                      style={{width:52,padding:'7px 4px',borderRadius:9,textAlign:'center',background:C.bg,border:`1.5px solid ${cnt>0?C.blue:C.border}`,color:cnt>0?C.blue:C.text,fontSize:16,fontWeight:900,fontFamily:'inherit',outline:'none'}}/>
+                    <button onClick={()=>set(d.val,(+counts[d.val]||0)+1)} style={{width:34,height:34,borderRadius:9,background:C.blue+'20',border:`1px solid ${C.blue}40`,color:C.blue,fontSize:20,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'inherit'}}>+</button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Монеты */}
+        <div style={{padding:'14px 14px 0'}}>
+          <div style={{fontSize:9,fontWeight:800,letterSpacing:2,color:C.dim,marginBottom:8}}>🪙 МОНЕТЫ</div>
+          <div style={{background:C.bg2,border:`1px solid ${C.border}`,borderRadius:16,overflow:'hidden'}}>
+            {DENOMS.filter(d=>d.type==='coin').map((d,i,arr)=>{
+              const cnt=+counts[d.val]||0;
+              const sub=cnt*d.val;
+              return(
+                <div key={d.val} style={{display:'flex',alignItems:'center',gap:10,padding:'12px 14px',borderBottom:i<arr.length-1?`1px solid ${C.border}`:'none',background:cnt>0?C.yellow+'08':'transparent'}}>
+                  <div style={{width:52,height:34,borderRadius:8,background:cnt>0?C.yellow+'25':C.bg3,border:`1px solid ${cnt>0?C.yellow+'50':C.border}`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                    <span style={{fontSize:13,fontWeight:900,color:cnt>0?C.yellow:C.muted}}>{d.label}</span>
+                  </div>
+                  <div style={{flex:1}}>
+                    {cnt>0&&<div style={{fontSize:11,color:C.yellow,fontWeight:700}}>{cnt} шт = {fmt(sub)} SM</div>}
+                    {cnt===0&&<div style={{fontSize:11,color:C.dim}}>Количество</div>}
+                  </div>
+                  <div style={{display:'flex',alignItems:'center',gap:6}}>
+                    <button onClick={()=>set(d.val,Math.max(0,(+counts[d.val]||0)-1))} style={{width:34,height:34,borderRadius:9,background:C.bg3,border:`1px solid ${C.border}`,color:C.muted,fontSize:20,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'inherit'}}>−</button>
+                    <input type="number" value={counts[d.val]??''} onChange={e=>set(d.val,e.target.value)} placeholder="0"
+                      style={{width:52,padding:'7px 4px',borderRadius:9,textAlign:'center',background:C.bg,border:`1.5px solid ${cnt>0?C.yellow:C.border}`,color:cnt>0?C.yellow:C.text,fontSize:16,fontWeight:900,fontFamily:'inherit',outline:'none'}}/>
+                    <button onClick={()=>set(d.val,(+counts[d.val]||0)+1)} style={{width:34,height:34,borderRadius:9,background:C.yellow+'20',border:`1px solid ${C.yellow}40`,color:C.yellow,fontSize:20,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'inherit'}}>+</button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Кнопка сохранить */}
+        <div style={{padding:14}}>
+          <Btn bg={hasAny?C.green:C.bg3} color={hasAny?'#051a0e':C.dim} disabled={!hasAny} onClick={()=>onSave(total,totalBills,totalCoins)}>
+            {hasAny?`✓ Записать ${fmt(total)} SM в кассу`:'Введи количество купюр/монет'}
+          </Btn>
+        </div>
+      </div>
     </div>
   );
 }
@@ -1210,6 +1350,7 @@ function CashTab({tick}){
   const [amount,setAmount]=useState('');
   const [desc,setDesc]=useState('');
   const [delId,setDelId]=useState(null);
+  const [showCounter,setShowCounter]=useState(false);
   const movements=dbGet('cash_movements').sort((a,b)=>b.created_at.localeCompare(a.created_at));
   let balance=0; movements.forEach(m=>{ if(m.type==='add'||m.type==='revenue') balance+= +m.amount; else balance-= +m.amount; });
   const todayMov=movements.filter(m=>m.date===tod());
@@ -1224,8 +1365,13 @@ function CashTab({tick}){
     await dbInsert('cash_movements',{type:action,amount:+amount,description:desc.trim()||(action==='add'?'Внесено':'Снятие'),date:tod()});
     setAmount(''); setDesc('');
   };
+  const saveCounter=async(total,bills,coins)=>{
+    await dbInsert('cash_movements',{type:'add',amount:total,description:`Пересчёт: купюры ${fmt(bills)} SM + монеты ${fmt(coins)} SM`,date:tod()});
+    setShowCounter(false);
+  };
   return(
     <div style={{padding:14,paddingBottom:30}}>
+      {showCounter&&<CashCounter onClose={()=>setShowCounter(false)} onSave={saveCounter}/>}
       {delId&&<DelConfirm text="Запись движения кассы будет удалена" onConfirm={async()=>{ await dbDelete('cash_movements',delId); setDelId(null); }} onCancel={()=>setDelId(null)}/>}
       <div style={{background:C.bg2,border:`1.5px solid ${balance>=0?C.green+'40':C.red+'40'}`,borderRadius:18,padding:'22px 20px',marginBottom:10,textAlign:'center'}}>
         <div style={{fontSize:10,fontWeight:800,letterSpacing:2.5,color:C.dim,marginBottom:8}}>НАЛИЧНЫЕ В КАССЕ</div>
@@ -1236,6 +1382,12 @@ function CashTab({tick}){
         <div style={{flex:1,background:C.bg2,border:`1px solid ${C.border}`,borderRadius:14,padding:'12px 14px'}}><div style={{fontSize:9,fontWeight:800,color:C.dim,marginBottom:4}}>ПРИХОД СЕГОДНЯ</div><div style={{fontSize:18,fontWeight:900,color:C.green}}>+{fmt(todayIn)} SM</div></div>
         <div style={{flex:1,background:C.bg2,border:`1px solid ${C.border}`,borderRadius:14,padding:'12px 14px'}}><div style={{fontSize:9,fontWeight:800,color:C.dim,marginBottom:4}}>РАСХОД СЕГОДНЯ</div><div style={{fontSize:18,fontWeight:900,color:C.red}}>−{fmt(todayOut)} SM</div></div>
       </div>
+
+      {/* Кнопка пересчёта */}
+      <button onClick={()=>setShowCounter(true)} style={{width:'100%',padding:15,borderRadius:14,background:'linear-gradient(135deg,#1a2a1a,#111120)',border:`1.5px solid ${C.green}40`,color:C.green,fontSize:15,fontWeight:900,cursor:'pointer',marginBottom:14,display:'flex',alignItems:'center',justifyContent:'center',gap:10,fontFamily:'inherit'}}>
+        🪙 Пересчитать кассу по купюрам
+      </button>
+
       <Card>
         <div style={{display:'flex',gap:8,marginBottom:14}}>
           <button onClick={()=>setAction('add')} style={{flex:1,padding:'11px 8px',borderRadius:11,cursor:'pointer',fontFamily:'inherit',fontSize:13,fontWeight:800,border:`1.5px solid ${action==='add'?C.green+'60':C.border}`,background:action==='add'?C.green+'18':C.bg2,color:action==='add'?C.green:C.dim}}>➕ Добавить</button>

@@ -176,7 +176,7 @@ function Home({tick}){
 
   let cashBal=0; cash.forEach(m=>{ if(m.type==='add'||m.type==='revenue') cashBal+= +m.amount; else cashBal-= +m.amount; });
 
-  const withExp=diItems.filter(i=>i.expiry_date);
+  const withExp=diItems.filter(i=>i.expiry_date&&(+i.quantity||0)>0);
   const expired=withExp.filter(i=>dLeft(i.expiry_date)<0);
   const critical=withExp.filter(i=>{ const d=dLeft(i.expiry_date); return d>=0&&d<=3; });
   const soon=withExp.filter(i=>{ const d=dLeft(i.expiry_date); return d>3&&d<=7; });
@@ -1441,7 +1441,7 @@ function App(){
   ];
 
   const diItems=dbGet('delivery_items');
-  const alertCount=diItems.filter(i=>i.expiry_date&&dLeft(i.expiry_date)<0).length+diItems.filter(i=>i.expiry_date&&dLeft(i.expiry_date)>=0&&dLeft(i.expiry_date)<=3).length;
+  const alertCount=diItems.filter(i=>i.expiry_date&&(+i.quantity||0)>0&&dLeft(i.expiry_date)<0).length+diItems.filter(i=>i.expiry_date&&(+i.quantity||0)>0&&dLeft(i.expiry_date)>=0&&dLeft(i.expiry_date)<=3).length;
 
   return(
     <div style={{background:C.bg,color:C.text,minHeight:'100vh',fontFamily:'system-ui,-apple-system,sans-serif',maxWidth:430,margin:'0 auto',paddingBottom:80}}>

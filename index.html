@@ -49,6 +49,23 @@ async function fetchAllProducts(){
   return all;
 }
 
+// ✅ АВТОСПИСАНИЕ просроченных при запуске
+async function autoWriteOffExpired(){
+  const today=tod();
+  const expired=DB.delivery_items.filter(i=>
+    i.expiry_date && i.expiry_date<today && (+i.quantity||0)>0
+  );
+  if(!expired.length) return 0;
+  await Promise.all(expired.map(item=>
+    fetch(`${SB}/delivery_items?id=eq.${item.id}`,{method:'PATCH',headers:H,body:JSON.stringify({quantity:0})})
+  ));
+  expired.forEach(item=>{
+    const idx=DB.delivery_items.findIndex(i=>i.id===item.id);
+    if(idx>=0) DB.delivery_items[idx]={...DB.delivery_items[idx],quantity:0};
+  });
+  return expired.length;
+}
+
 async function initDB(){
   try{
     const [sup,del,di,prod,rev,ri,exp,rvn,cm]=await Promise.all([
@@ -72,6 +89,7 @@ async function initDB(){
     DB.revenue=Array.isArray(rvn)?rvn:[];
     DB.cash_movements=Array.isArray(cm)?cm:[];
   }catch(e){ console.error('initDB error:',e); }
+  await autoWriteOffExpired(); // ← автосписание просроченных
   _ready=true; pub();
 }
 
@@ -1420,7 +1438,14 @@ function App(){
   const [tick,setTick]=useState(0);
   const [toastMsg,setToastMsg]=useState(null);
 
-  useEffect(()=>{ initDB().then(()=>setReady(true)); return sub(()=>setTick(t=>t+1)); },[]);
+  useEffect(()=>{
+    initDB().then(async()=>{
+      const n=await autoWriteOffExpired();
+      if(n>0) showToast(`☠ Автоматически списано ${n} просроченных`,C.orange);
+      setReady(true);
+    });
+    return sub(()=>setTick(t=>t+1));
+  },[]);
   const showToast=(msg,color)=>{ setToastMsg({msg,color}); setTimeout(()=>setToastMsg(null),2500); };
 
   if(!ready) return(

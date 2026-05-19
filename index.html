@@ -37,8 +37,7 @@ const pub=()=>_subs.forEach(fn=>fn());
 const sub=fn=>{ _subs.push(fn); return ()=>{ _subs=_subs.filter(f=>f!==fn); }; };
 
 async function fetchAllProducts(){
-  const PAGE=1000;
-  let all=[], page=0;
+  const PAGE=1000; let all=[],page=0;
   while(true){
     const batch=await sbGet('products',`select=*&order=name.asc&limit=${PAGE}&offset=${page*PAGE}`);
     if(!Array.isArray(batch)||!batch.length) break;
@@ -89,59 +88,46 @@ async function initDB(){
     DB.revenue=Array.isArray(rvn)?rvn:[];
     DB.cash_movements=Array.isArray(cm)?cm:[];
   }catch(e){ console.error('initDB error:',e); }
-  await autoWriteOffExpired(); // ← автосписание просроченных
   _ready=true; pub();
 }
 
 function dbGet(k){ return DB[k]||[]; }
-
 async function dbInsert(table,row){
   const res=await sbPost(table,row);
   const inserted=Array.isArray(res)?res[0]:res;
   DB[table]=[inserted,...DB[table]];
-  pub();
-  return inserted;
+  pub(); return inserted;
 }
 async function dbInsertMany(table,rows){
   if(!rows.length)return;
   const res=await sbPost(table,rows);
   const inserted=Array.isArray(res)?res:[];
-  DB[table]=[...inserted,...DB[table]];
-  pub();
+  DB[table]=[...inserted,...DB[table]]; pub();
 }
 async function dbDelete(table,id){
   await sbDel(table,id);
-  DB[table]=DB[table].filter(r=>r.id!==id);
-  pub();
+  DB[table]=DB[table].filter(r=>r.id!==id); pub();
 }
 
-// UTC+5 Таджикистан
 const TZ='Asia/Dushanbe';
 const OFFSET=5*60*60*1000;
-const localNow=()=>new Date(Date.now()+OFFSET);
 const uid=()=>'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0;return(c==='x'?r:(r&0x3|0x8)).toString(16);});
-const now=()=>new Date().toISOString();
 const tod=()=>{ const d=new Date(Date.now()+OFFSET); return d.toISOString().slice(0,10); };
 const monStr=()=>{ const d=new Date(Date.now()+OFFSET); return d.toISOString().slice(0,7); };
-const daysAgo=n=>{ const d=new Date(Date.now()+OFFSET); d.setDate(d.getDate()-n); return d.toISOString().slice(0,10); };
 const fmt=n=>(+n||0).toLocaleString('ru-RU',{minimumFractionDigits:2,maximumFractionDigits:2});
 const fmtD=d=>{ if(!d)return''; return new Date(d+'T00:00:00').toLocaleDateString('ru-RU',{day:'2-digit',month:'short',year:'numeric'}); };
 const fmtDs=d=>{ if(!d)return{day:'?',mon:'?'}; const dt=new Date(d+'T00:00:00'); return{day:dt.getDate(),mon:dt.toLocaleDateString('ru-RU',{month:'short'}).replace('.','')}; };
-
-// ✅ ИСПРАВЛЕНО: принудительно UTC → +5 часов
 const fmtT=s=>{
   if(!s)return'';
   try{
-    // Заменяем пробел на T, добавляем Z если нет timezone
     let ts=String(s).replace(' ','T');
     if(!/[Z+]/.test(ts.slice(10))) ts+='Z';
     const ms=new Date(ts).getTime();
     if(isNaN(ms))return'';
-    const d=new Date(ms+5*3600000); // +5 часов вручную
+    const d=new Date(ms+5*3600000);
     return String(d.getUTCHours()).padStart(2,'0')+':'+String(d.getUTCMinutes()).padStart(2,'0');
   }catch(e){return'';}
 };
-
 const dLeft=d=>{ if(!d)return 999; return Math.ceil((new Date(d)-new Date(tod()))/86400000); };
 const eColor=n=>n<0?'#f04f5a':n<=3?'#f09040':n<=7?'#e8c040':'#3ecf8e';
 const eText=n=>n<0?`просрочен ${Math.abs(n)}д`:n===0?'сегодня!':n+' дн.';
@@ -179,21 +165,19 @@ const Toast=({msg,color})=>msg?<div style={{position:'fixed',bottom:90,left:'50%
 
 function Home({tick}){
   const [period,setPeriod]=useState('day');
-  const t=tod(), ws=weekStart(), ms=monStr();
+  const t=tod(),ws=weekStart(),ms=monStr();
   const filterD=d=>period==='day'?d===t:period==='week'?d>=ws:period==='month'?d.startsWith(ms):true;
-
-  const rev=dbGet('revenue'), exp=dbGet('expenses'), cash=dbGet('cash_movements');
-  const diItems=dbGet('delivery_items'), revisions=dbGet('revisions'), riItems=dbGet('revision_items');
-
+  const rev=dbGet('revenue'),exp=dbGet('expenses'),cash=dbGet('cash_movements');
+  const diItems=dbGet('delivery_items'),revisions=dbGet('revisions'),riItems=dbGet('revision_items');
   const totalRev=rev.filter(r=>filterD(r.date)).reduce((s,r)=>s+ +r.amount,0);
   const totalGbs=rev.filter(r=>filterD(r.date)).reduce((s,r)=>s+ +(r.profit||0),0);
   const totalExp=exp.filter(e=>filterD(e.date)).reduce((s,e)=>s+ +e.amount,0);
   const cleanP=totalGbs-totalExp;
   const gbsPct=totalRev>0?Math.round((totalGbs/totalRev)*100):0;
   const cleanPct=totalRev>0?Math.round((cleanP/totalRev)*100):0;
-
   let cashBal=0; cash.forEach(m=>{ if(m.type==='add'||m.type==='revenue') cashBal+= +m.amount; else cashBal-= +m.amount; });
 
+  // ✅ фильтр quantity>0
   const withExp=diItems.filter(i=>i.expiry_date&&(+i.quantity||0)>0);
   const expired=withExp.filter(i=>dLeft(i.expiry_date)<0);
   const critical=withExp.filter(i=>{ const d=dLeft(i.expiry_date); return d>=0&&d<=3; });
@@ -208,7 +192,6 @@ function Home({tick}){
   const lrSumExp=lrChecked.reduce((s,i)=>s+i.expected*(i.price||0),0);
   const lrSumAct=lrChecked.reduce((s,i)=>s+i.actual*(i.price||0),0);
   const lrLoss=lrSumExp-lrSumAct;
-
   const dateLabel=new Date(Date.now()+OFFSET).toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long'});
   const hasAlert=(expired.length+critical.length)>0;
 
@@ -273,7 +256,6 @@ function Home({tick}){
           <div style={{background:C.bg2,border:`1px solid ${lrShort.length>0?C.red+'35':C.border}`,borderRadius:16,overflow:'hidden',marginBottom:12}}>
             <div style={{padding:'10px 16px',background:C.bg3,borderBottom:`1px solid ${C.border}`,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
               <div style={{fontSize:10,fontWeight:800,letterSpacing:2,color:C.dim}}>📦 РЕВИЗИЯ{activeRevs.length>1?` · ${activeRevs.length} ШТ`:` · ${fmtD(activeRevs[0]?.date||'').toUpperCase()}`}</div>
-              {activeRevs.length>1&&<div style={{fontSize:10,color:C.blue,fontWeight:700}}>{activeRevs.length} ревизий</div>}
             </div>
             <div style={{display:'flex'}}>
               {[['Позиций',lrItems.length,C.blue],['Недостача',lrShort.length,lrShort.length>0?C.red:C.green],['Потери',lrLoss>0?`-${fmt(lrLoss)} SM`:'✓ 0',lrLoss>0?C.red:C.green]].map(([l,v,c])=>(
@@ -303,13 +285,7 @@ function Home({tick}){
           const events=[];
           rev.filter(r=>filterD(r.date)).forEach(r=>events.push({id:'rv'+r.id,time:r.created_at,icon:'💰',color:C.green,title:`+${fmt(r.amount)} SM`,sub:'Выручка'+(r.profit?` · GBS: ${fmt(r.profit)} SM`:''),date:r.date}));
           exp.filter(e=>filterD(e.date)).forEach(e=>events.push({id:'ex'+e.id,time:e.created_at,icon:'💸',color:C.red,title:`−${fmt(e.amount)} SM`,sub:e.reason,date:e.date}));
-          const cash2=dbGet('cash_movements');
-          cash2.filter(m=>filterD(m.date)&&(m.type==='add'||m.type==='remove')).forEach(m=>events.push({id:'cs'+m.id,time:m.created_at,icon:m.type==='add'?'➕':'➖',color:m.type==='add'?C.blue:C.orange,title:`${m.type==='add'?'+':'−'}${fmt(m.amount)} SM`,sub:(m.type==='add'?'Внесено':'Снято')+(m.description?` · ${m.description}`:''),date:m.date}));
-          activeRevs.filter(r=>filterD(r.date)).forEach(r=>{
-            const its=riItems.filter(i=>i.revision_id===r.id&&i.actual!==null);
-            const loss=its.reduce((s,i)=>s+i.expected*(i.price||0),0)-its.reduce((s,i)=>s+i.actual*(i.price||0),0);
-            events.push({id:'re'+r.id,time:r.created_at,icon:'📦',color:loss>0?C.red:C.green,title:`Ревизия · ${r.category||'Все'}`,sub:`${its.length} поз.${loss>0?` · потери −${fmt(loss)} SM`:' · ✓ OK'}`,date:r.date});
-          });
+          cash.filter(m=>filterD(m.date)&&(m.type==='add'||m.type==='remove')).forEach(m=>events.push({id:'cs'+m.id,time:m.created_at,icon:m.type==='add'?'➕':'➖',color:m.type==='add'?C.blue:C.orange,title:`${m.type==='add'?'+':'−'}${fmt(m.amount)} SM`,sub:(m.type==='add'?'Внесено':'Снято')+(m.description?` · ${m.description}`:''),date:m.date}));
           events.sort((a,b)=>b.time.localeCompare(a.time));
           if(!events.length) return null;
           return(
@@ -340,17 +316,14 @@ function Suppliers({tick,toast}){
   const [curS,setCurS]=useState(null);
   const [curDel,setCurDel]=useState(null);
   const [curDelNum,setCurDelNum]=useState(null);
-
   if(sc==='add') return <AddSupplier onBack={()=>setSc('list')} onSaved={name=>{ toast('✓ '+name+' добавлен'); setSc('list'); }}/>;
   if(sc==='edit'&&curS) return <EditSupplier supplier={curS} onBack={()=>setSc('supplier')} onSaved={s=>{ setCurS(s); toast('✓ Сохранено'); setSc('supplier'); }}/>;
   if(sc==='supplier'&&curS) return <SupplierPage supplier={curS} onBack={()=>setSc('list')} onPosting={()=>setSc('posting')} onEdit={()=>setSc('edit')} onDeleted={()=>{ toast('Поставщик удалён'); setSc('list'); }} onViewDel={(d,n)=>{ setCurDel(d); setCurDelNum(n); setSc('delivery'); }}/>;
   if(sc==='posting'&&curS) return <Posting supplier={curS} onBack={()=>setSc('supplier')} onSaved={n=>{ toast(`✓ Поставка сохранена · ${n} товаров`); setSc('supplier'); }}/>;
   if(sc==='delivery'&&curDel) return <DeliveryDetail delivery={curDel} num={curDelNum} onBack={()=>setSc('supplier')} onDeleted={()=>{ toast('Партия удалена'); setSc('supplier'); }}/>;
-
   const suppliers=dbGet('suppliers');
   const deliveries=dbGet('deliveries');
   const cntMap={}; deliveries.forEach(d=>{ cntMap[d.supplier_id]=(cntMap[d.supplier_id]||0)+1; });
-
   return(
     <>
       <Hdr title="Поставщики" onAdd={()=>setSc('add')}/>
@@ -389,14 +362,11 @@ function EditSupplier({supplier,onBack,onSaved}){
   const [phone,setPhone]=useState(supplier.phone||'');
   const [saving,setSaving]=useState(false);
   const save=async()=>{
-    if(!name.trim())return;
-    setSaving(true);
+    if(!name.trim())return; setSaving(true);
     await fetch(`${SB}/suppliers?id=eq.${supplier.id}`,{method:'PATCH',headers:H,body:JSON.stringify({name:name.trim(),phone:phone.trim()})});
     const updated={...supplier,name:name.trim(),phone:phone.trim()};
-    DB.suppliers=DB.suppliers.map(s=>s.id===supplier.id?updated:s);
-    pub();
-    onSaved(updated);
-    setSaving(false);
+    DB.suppliers=DB.suppliers.map(s=>s.id===supplier.id?updated:s); pub();
+    onSaved(updated); setSaving(false);
   };
   return(
     <><Hdr title="Редактировать" sub="ПОСТАВЩИК" onBack={onBack}/>
@@ -417,14 +387,7 @@ function SupplierPage({supplier,onBack,onPosting,onEdit,onDeleted,onViewDel}){
   const [confirmDel,setConfirmDel]=useState(false);
   const deliveries=dbGet('deliveries').filter(d=>d.supplier_id===supplier.id).sort((a,b)=>b.created_at.localeCompare(a.created_at));
   const diItems=dbGet('delivery_items');
-
-  const doDelete=async()=>{
-    await sbDel('suppliers',supplier.id);
-    DB.suppliers=DB.suppliers.filter(s=>s.id!==supplier.id);
-    pub();
-    onDeleted();
-  };
-
+  const doDelete=async()=>{ await sbDel('suppliers',supplier.id); DB.suppliers=DB.suppliers.filter(s=>s.id!==supplier.id); pub(); onDeleted(); };
   return(
     <><Hdr title={supplier.name} sub="ПОСТАВЩИК" onBack={onBack} onAdd={onPosting}/>
     <div style={{padding:14,paddingBottom:30}}>
@@ -485,30 +448,20 @@ function DeliveryDetail({delivery,num,onBack,onDeleted}){
   const [editMode,setEditMode]=useState(false);
   const [editVals,setEditVals]=useState({});
   const [saving,setSaving]=useState(false);
-
   const items=dbGet('delivery_items').filter(i=>i.delivery_id===delivery.id);
   const exp=items.filter(i=>i.expiry_date&&dLeft(i.expiry_date)<0).length;
   const crit=items.filter(i=>i.expiry_date&&dLeft(i.expiry_date)>=0&&dLeft(i.expiry_date)<=3).length;
-
-  const startEdit=()=>{
-    const v={};
-    items.forEach(i=>{ v[i.id]={qty:String(i.quantity),expiry:i.expiry_date||''}; });
-    setEditVals(v);
-    setEditMode(true);
-  };
-
+  const startEdit=()=>{ const v={}; items.forEach(i=>{ v[i.id]={qty:String(i.quantity),expiry:i.expiry_date||''}; }); setEditVals(v); setEditMode(true); };
   const saveEdit=async()=>{
     setSaving(true);
     for(const item of items){
-      const v=editVals[item.id];
-      if(!v) continue;
+      const v=editVals[item.id]; if(!v) continue;
       await fetch(`${SB}/delivery_items?id=eq.${item.id}`,{method:'PATCH',headers:H,body:JSON.stringify({quantity:+v.qty,expiry_date:v.expiry||null})});
       const idx=DB.delivery_items.findIndex(i=>i.id===item.id);
       if(idx>=0) DB.delivery_items[idx]={...DB.delivery_items[idx],quantity:+v.qty,expiry_date:v.expiry||null};
     }
     pub(); setEditMode(false); setSaving(false);
   };
-
   const doDelete=async()=>{
     for(const item of items) await sbDel('delivery_items',item.id);
     await sbDel('deliveries',delivery.id);
@@ -516,7 +469,6 @@ function DeliveryDetail({delivery,num,onBack,onDeleted}){
     DB.deliveries=DB.deliveries.filter(d=>d.id!==delivery.id);
     pub(); onDeleted();
   };
-
   return(
     <><Hdr title={`Партия №${num}`} sub={fmtD(delivery.date).toUpperCase()} onBack={onBack}>
       <div style={{display:'flex',gap:6}}>
@@ -529,10 +481,7 @@ function DeliveryDetail({delivery,num,onBack,onDeleted}){
         <div style={{background:C.bg2,border:`1px solid ${C.red}50`,borderRadius:20,padding:24,width:'100%',maxWidth:380}}>
           <div style={{fontSize:18,fontWeight:800,marginBottom:8}}>Удалить партию №{num}?</div>
           <div style={{fontSize:13,color:C.dim,marginBottom:20}}>Партия от {fmtD(delivery.date)} · {items.length} товаров будет удалена безвозвратно</div>
-          <div style={{display:'flex',gap:10}}>
-            <Btn outline onClick={()=>setConfirmDel(false)} style={{flex:1,padding:'12px 0'}}>Отмена</Btn>
-            <Btn bg={C.red} onClick={doDelete} style={{flex:1,padding:'12px 0'}}>Удалить</Btn>
-          </div>
+          <div style={{display:'flex',gap:10}}><Btn outline onClick={()=>setConfirmDel(false)} style={{flex:1,padding:'12px 0'}}>Отмена</Btn><Btn bg={C.red} onClick={doDelete} style={{flex:1,padding:'12px 0'}}>Удалить</Btn></div>
         </div>
       </div>
     )}
@@ -553,16 +502,8 @@ function DeliveryDetail({delivery,num,onBack,onDeleted}){
               {item.barcode&&<div style={{fontSize:11,color:C.dim,marginBottom:6}}>🏷 {item.barcode}</div>}
               {editMode?(
                 <div style={{display:'flex',gap:8,marginTop:8}}>
-                  <div style={{flex:1}}>
-                    <div style={{fontSize:9,color:C.dim,fontWeight:800,letterSpacing:1.5,marginBottom:4}}>КОЛ-ВО ({item.unit})</div>
-                    <input type="number" value={v.qty} onChange={e=>setEditVals(prev=>({...prev,[item.id]:{...prev[item.id],qty:e.target.value}}))}
-                      style={{width:'100%',background:C.bg,border:`1px solid ${C.border}`,borderRadius:10,padding:'9px 12px',color:C.text,fontSize:16,fontWeight:800,outline:'none',boxSizing:'border-box'}}/>
-                  </div>
-                  <div style={{flex:1}}>
-                    <div style={{fontSize:9,color:C.dim,fontWeight:800,letterSpacing:1.5,marginBottom:4}}>СРОК ГОДНОСТИ</div>
-                    <input type="date" value={v.expiry} onChange={e=>setEditVals(prev=>({...prev,[item.id]:{...prev[item.id],expiry:e.target.value}}))}
-                      style={{width:'100%',background:C.bg,border:`1px solid ${C.border}`,borderRadius:10,padding:'9px 10px',color:C.text,fontSize:13,outline:'none',boxSizing:'border-box'}}/>
-                  </div>
+                  <div style={{flex:1}}><div style={{fontSize:9,color:C.dim,fontWeight:800,letterSpacing:1.5,marginBottom:4}}>КОЛ-ВО ({item.unit})</div><input type="number" value={v.qty} onChange={e=>setEditVals(prev=>({...prev,[item.id]:{...prev[item.id],qty:e.target.value}}))} style={{width:'100%',background:C.bg,border:`1px solid ${C.border}`,borderRadius:10,padding:'9px 12px',color:C.text,fontSize:16,fontWeight:800,outline:'none',boxSizing:'border-box'}}/></div>
+                  <div style={{flex:1}}><div style={{fontSize:9,color:C.dim,fontWeight:800,letterSpacing:1.5,marginBottom:4}}>СРОК ГОДНОСТИ</div><input type="date" value={v.expiry} onChange={e=>setEditVals(prev=>({...prev,[item.id]:{...prev[item.id],expiry:e.target.value}}))} style={{width:'100%',background:C.bg,border:`1px solid ${C.border}`,borderRadius:10,padding:'9px 10px',color:C.text,fontSize:13,outline:'none',boxSizing:'border-box'}}/></div>
                 </div>
               ):(
                 <>
@@ -605,47 +546,24 @@ function Posting({supplier,onBack,onSaved}){
   const [err,setErr]=useState('');
   const catalog=dbGet('products');
   const results=search.trim().length>=1?(()=>{
-    const q=search.trim();
-    const ql=q.toLowerCase();
-    const isNum=/^\d+$/.test(q);
+    const q=search.trim(),ql=q.toLowerCase(),isNum=/^\d+$/.test(q);
     const all=catalog.filter(p=>p.name.toLowerCase().includes(ql)||(p.barcode&&p.barcode.includes(q)));
     all.sort((a,b)=>{
-      const score=(p)=>{
-        const bar=p.barcode||'';
-        const nm=p.name.toLowerCase();
-        if(isNum){
-          if(bar===q) return 0;
-          if(bar.endsWith(q)) return 1;
-          if(bar.startsWith(q)) return 2;
-          if(bar.includes(q)) return 3;
-          if(nm.includes(ql)) return 4;
-          return 5;
-        } else {
-          if(nm===ql) return 0;
-          if(nm.startsWith(ql)) return 1;
-          if(nm.includes(ql)) return 2;
-          if(bar.includes(q)) return 3;
-          return 4;
-        }
+      const score=p=>{ const bar=p.barcode||'',nm=p.name.toLowerCase();
+        if(isNum){ if(bar===q)return 0; if(bar.endsWith(q))return 1; if(bar.startsWith(q))return 2; if(bar.includes(q))return 3; if(nm.includes(ql))return 4; return 5; }
+        else{ if(nm===ql)return 0; if(nm.startsWith(ql))return 1; if(nm.includes(ql))return 2; if(bar.includes(q))return 3; return 4; }
       };
       return score(a)-score(b);
     });
     return all.slice(0,10);
   })():[];
-
-  const addToList=()=>{
-    if(!qty||+qty<=0){setErr('Введите количество');return;}
-    setAddedItems(prev=>[...prev,{id:uid(),product_id:selected.id,name:selected.name,barcode:selected.barcode,qty:+qty,unit:selected.unit,category:selected.category,expiry:expiry||null}]);
-    setSelected(null);setQty('');setExpiry('');setErr('');
-  };
+  const addToList=()=>{ if(!qty||+qty<=0){setErr('Введите количество');return;} setAddedItems(prev=>[...prev,{id:uid(),product_id:selected.id,name:selected.name,barcode:selected.barcode,qty:+qty,unit:selected.unit,category:selected.category,expiry:expiry||null}]); setSelected(null);setQty('');setExpiry('');setErr(''); };
   const saveAll=async()=>{
     if(!addedItems.length)return;
     const del=await dbInsert('deliveries',{supplier_id:supplier.id,supplier_name:supplier.name,date});
-    const delId=del.id;
-    await dbInsertMany('delivery_items',addedItems.map(item=>({delivery_id:delId,product_name:item.name,barcode:item.barcode,quantity:item.qty,unit:item.unit,category:item.category,expiry_date:item.expiry||null})));
+    await dbInsertMany('delivery_items',addedItems.map(item=>({delivery_id:del.id,product_name:item.name,barcode:item.barcode,quantity:item.qty,unit:item.unit,category:item.category,expiry_date:item.expiry||null})));
     onSaved(addedItems.length);
   };
-
   return(
     <><Hdr title="Поступление" sub={supplier.name.toUpperCase()} onBack={onBack}/>
     <div style={{padding:14,paddingBottom:30}}>
@@ -653,19 +571,10 @@ function Posting({supplier,onBack,onSaved}){
       {!selected?(
         <Card style={{background:C.bg3,border:`1px solid #4466ff30`}}>
           <div style={{fontSize:11,fontWeight:800,letterSpacing:2,color:C.blue,marginBottom:10}}>🔍 ПОИСК ТОВАРА</div>
-          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Введи название или штрихкод..." autoFocus
-            style={{width:'100%',background:C.bg,border:`1.5px solid #4466ff40`,borderRadius:12,padding:'14px 16px',color:C.text,fontSize:15,fontWeight:500,outline:'none',WebkitAppearance:'none'}}/>
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Введи название или штрихкод..." autoFocus style={{width:'100%',background:C.bg,border:`1.5px solid #4466ff40`,borderRadius:12,padding:'14px 16px',color:C.text,fontSize:15,fontWeight:500,outline:'none',WebkitAppearance:'none'}}/>
           {search.trim().length>=1&&(results.length?results.map(p=>(
             <div key={p.id} onClick={()=>{setSelected(p);setSearch('');setQty('');setExpiry('');setErr('');}} style={{display:'flex',alignItems:'center',gap:10,padding:'11px 12px',background:C.bg2,borderRadius:11,marginTop:6,cursor:'pointer',border:`1px solid ${C.border}`}}>
-              <div style={{flex:1}}>
-                <div style={{fontSize:14,fontWeight:700,marginBottom:3}}>{p.name}</div>
-                <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
-                  <span style={{fontSize:11,color:C.dim}}>{p.category}</span>
-                  {p.barcode&&<span style={{fontSize:11,color:C.dim}}>· 🏷 {p.barcode}</span>}
-                  {p.price>0&&<span style={{fontSize:11,fontWeight:700,color:C.blue}}>· {p.price} SM</span>}
-                  {p.stock>0&&<span style={{fontSize:11,color:C.green}}>· остаток: {p.stock} {p.unit}</span>}
-                </div>
-              </div>
+              <div style={{flex:1}}><div style={{fontSize:14,fontWeight:700,marginBottom:3}}>{p.name}</div><div style={{display:'flex',gap:6,flexWrap:'wrap'}}><span style={{fontSize:11,color:C.dim}}>{p.category}</span>{p.barcode&&<span style={{fontSize:11,color:C.dim}}>· 🏷 {p.barcode}</span>}{p.price>0&&<span style={{fontSize:11,fontWeight:700,color:C.blue}}>· {p.price} SM</span>}{p.stock>0&&<span style={{fontSize:11,color:C.green}}>· остаток: {p.stock} {p.unit}</span>}</div></div>
               <div style={{color:C.blue,fontSize:20,fontWeight:300}}>+</div>
             </div>
           )):<div style={{fontSize:12,color:C.dim,textAlign:'center',padding:'10px 0 4px'}}>Товар не найден</div>)}
@@ -691,19 +600,12 @@ function Posting({supplier,onBack,onSaved}){
         <>
           <SecLabel>Добавлено · {addedItems.length} товаров</SecLabel>
           {addedItems.map((item,i)=>{
-            const d=item.expiry?dLeft(item.expiry):null, c=d!==null?eColor(d):C.dim;
+            const d=item.expiry?dLeft(item.expiry):null,c=d!==null?eColor(d):C.dim;
             const isEditing=editId===item.id;
             return(
               <div key={item.id} className="fu" style={{background:C.bg2,border:`1.5px solid ${isEditing?C.blue+'60':C.border}`,borderRadius:14,marginBottom:8,overflow:'hidden'}}>
                 <div style={{display:'flex',alignItems:'center',gap:10,padding:'12px 14px'}} onClick={()=>{ if(!isEditing){setEditId(item.id);setEditQty(String(item.qty));setEditExp(item.expiry||'');} else setEditId(null); }}>
-                  <div style={{flex:1}}>
-                    <div style={{fontSize:14,fontWeight:700,marginBottom:4}}>{item.name}</div>
-                    <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
-                      <Badge color={C.blue}>{item.qty} {item.unit}</Badge>
-                      {item.expiry?<Badge color={c}>до {fmtD(item.expiry)}</Badge>:<span style={{fontSize:11,color:C.dim}}>Срок не указан</span>}
-                      <span style={{fontSize:11,color:C.blue}}>✏</span>
-                    </div>
-                  </div>
+                  <div style={{flex:1}}><div style={{fontSize:14,fontWeight:700,marginBottom:4}}>{item.name}</div><div style={{display:'flex',gap:6,flexWrap:'wrap'}}><Badge color={C.blue}>{item.qty} {item.unit}</Badge>{item.expiry?<Badge color={c}>до {fmtD(item.expiry)}</Badge>:<span style={{fontSize:11,color:C.dim}}>Срок не указан</span>}<span style={{fontSize:11,color:C.blue}}>✏</span></div></div>
                   <button onClick={e=>{e.stopPropagation();setAddedItems(prev=>prev.filter((_,j)=>j!==i));}} style={{background:'none',border:'none',color:C.dim,fontSize:20,cursor:'pointer',padding:4,flexShrink:0}}>✕</button>
                 </div>
                 {isEditing&&(
@@ -728,51 +630,30 @@ function Posting({supplier,onBack,onSaved}){
   );
 }
 
-function calcFifoRemaining(deliveryItems, products) {
-  const byBarcode = {};
-  deliveryItems.filter(i=>i.expiry_date && i.barcode).forEach(i=>{
-    if(!byBarcode[i.barcode]) byBarcode[i.barcode]=[];
-    byBarcode[i.barcode].push({...i});
+function calcFifoRemaining(deliveryItems,products){
+  const byBarcode={};
+  deliveryItems.filter(i=>i.expiry_date&&i.barcode&&(+i.quantity||0)>0).forEach(i=>{ if(!byBarcode[i.barcode])byBarcode[i.barcode]=[]; byBarcode[i.barcode].push({...i}); });
+  const result=[];
+  Object.entries(byBarcode).forEach(([barcode,batches])=>{
+    const prod=products.find(p=>p.barcode===barcode);
+    const currentStock=prod?(prod.stock||0):null;
+    const sorted=[...batches].sort((a,b)=>{ const da=dbGet('deliveries').find(d=>d.id===a.delivery_id); const db2=dbGet('deliveries').find(d=>d.id===b.delivery_id); return(da?.date||'').localeCompare(db2?.date||''); });
+    if(currentStock===null){ sorted.forEach(b=>result.push({...b,remaining:b.quantity})); return; }
+    let leftToSell=Math.max(0,sorted.reduce((s,b)=>s+b.quantity,0)-currentStock);
+    sorted.forEach(batch=>{ let remaining=batch.quantity; if(leftToSell>0){const deduct=Math.min(leftToSell,batch.quantity);remaining=batch.quantity-deduct;leftToSell-=deduct;} result.push({...batch,remaining,originalQty:batch.quantity}); });
   });
-  const result = [];
-  Object.entries(byBarcode).forEach(([barcode, batches])=>{
-    const prod = products.find(p=>p.barcode===barcode);
-    const currentStock = prod ? (prod.stock||0) : null;
-    const sorted = [...batches].sort((a,b)=>{
-      const da = dbGet('deliveries').find(d=>d.id===a.delivery_id);
-      const db2 = dbGet('deliveries').find(d=>d.id===b.delivery_id);
-      return (da?.date||'').localeCompare(db2?.date||'');
-    });
-    if(currentStock === null){
-      sorted.forEach(b=>result.push({...b, remaining: b.quantity}));
-      return;
-    }
-    const totalReceived = sorted.reduce((s,b)=>s+b.quantity,0);
-    let leftToSell = Math.max(0, totalReceived - currentStock);
-    sorted.forEach(batch=>{
-      let remaining = batch.quantity;
-      if(leftToSell > 0){
-        const deduct = Math.min(leftToSell, batch.quantity);
-        remaining = batch.quantity - deduct;
-        leftToSell -= deduct;
-      }
-      result.push({...batch, remaining, originalQty: batch.quantity});
-    });
-  });
-  deliveryItems.filter(i=>i.expiry_date && !i.barcode).forEach(i=>{
-    result.push({...i, remaining: i.quantity});
-  });
+  deliveryItems.filter(i=>i.expiry_date&&!i.barcode&&(+i.quantity||0)>0).forEach(i=>{ result.push({...i,remaining:i.quantity}); });
   return result;
 }
 
 function Expiry({tick}){
   const [filter,setFilter]=useState('all');
-  const allItems=dbGet('delivery_items').filter(i=>i.expiry_date);
+  const allItems=dbGet('delivery_items').filter(i=>i.expiry_date&&(+i.quantity||0)>0);
   const products=dbGet('products');
   const dels=dbGet('deliveries');
   const delMap=Object.fromEntries(dels.map(d=>[d.id,d]));
-  const itemsWithRemaining = calcFifoRemaining(allItems, products);
-  const enriched = itemsWithRemaining.filter(i=>i.remaining > 0).map(i=>({...i, days:dLeft(i.expiry_date), delivery:delMap[i.delivery_id]||null}));
+  const itemsWithRemaining=calcFifoRemaining(allItems,products);
+  const enriched=itemsWithRemaining.filter(i=>i.remaining>0).map(i=>({...i,days:dLeft(i.expiry_date),delivery:delMap[i.delivery_id]||null}));
   const counts={all:enriched.length,expired:enriched.filter(i=>i.days<0).length,critical:enriched.filter(i=>i.days>=0&&i.days<=3).length,week:enriched.filter(i=>i.days>=0&&i.days<=7).length,month:enriched.filter(i=>i.days>=0&&i.days<=30).length};
   const filtered=enriched.filter(i=>filter==='all'?true:filter==='expired'?i.days<0:filter==='critical'?i.days>=0&&i.days<=3:filter==='week'?i.days>=0&&i.days<=7:i.days>=0&&i.days<=30).sort((a,b)=>a.days-b.days);
   const FILTERS=[{id:'all',l:'Все'},{id:'expired',l:`☠ Просрочено${counts.expired?` (${counts.expired})`:''}`},{id:'critical',l:`⚠ До 3 дней${counts.critical?` (${counts.critical})`:''}`},{id:'week',l:'До 7 дней'},{id:'month',l:'До 30 дней'}];
@@ -797,11 +678,7 @@ function Expiry({tick}){
                   <div style={{flexShrink:0,textAlign:'right'}}><div style={{fontSize:22,marginBottom:2}}>{st.icon}</div><div style={{fontSize:13,fontWeight:900,color:st.color}}>{item.days<0?Math.abs(item.days):item.days} дн.</div></div>
                 </div>
                 <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:10}}>
-                  {item.originalQty && item.remaining < item.originalQty ? (
-                    <span style={{fontSize:12,fontWeight:800,padding:'3px 9px',borderRadius:7,background:C.orange+'18',color:C.orange}}>{item.remaining} из {item.originalQty} {item.unit}</span>
-                  ) : (
-                    <Badge color={C.blue}>{item.remaining||item.quantity} {item.unit}</Badge>
-                  )}
+                  {item.originalQty&&item.remaining<item.originalQty?(<span style={{fontSize:12,fontWeight:800,padding:'3px 9px',borderRadius:7,background:C.orange+'18',color:C.orange}}>{item.remaining} из {item.originalQty} {item.unit}</span>):(<Badge color={C.blue}>{item.remaining||item.quantity} {item.unit}</Badge>)}
                   {item.category&&<Badge color={C.muted}>{item.category}</Badge>}
                   {item.delivery&&<Badge color={C.muted}>от {item.delivery.supplier_name}</Badge>}
                 </div>
@@ -809,17 +686,6 @@ function Expiry({tick}){
                   <div><div style={{fontSize:9,fontWeight:800,letterSpacing:1.5,color:C.dim,marginBottom:3}}>ПАРТИЯ</div><div style={{fontSize:13,fontWeight:700,color:C.muted}}>до {fmtD(item.expiry_date)}</div></div>
                   <div style={{fontSize:12,fontWeight:900,padding:'4px 12px',borderRadius:10,background:st.color+'20',color:st.color,border:`1px solid ${st.color}40`}}>{st.label}</div>
                 </div>
-                {item.days<0&&(
-                  <button onClick={async()=>{
-                    if(!window.confirm(`Списать «${item.product_name}»?\nТовар уберётся из списка просроченных.`)) return;
-                    await fetch(`${SB}/delivery_items?id=eq.${item.id}`,{method:'PATCH',headers:H,body:JSON.stringify({quantity:0})});
-                    const idx=DB.delivery_items.findIndex(i=>i.id===item.id);
-                    if(idx>=0) DB.delivery_items[idx]={...DB.delivery_items[idx],quantity:0};
-                    pub();
-                  }} style={{width:'100%',marginTop:10,padding:'11px',borderRadius:11,background:C.red+'15',border:`1px solid ${C.red}40`,color:C.red,fontSize:13,fontWeight:800,cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:6}}>
-                    🗑 Списать — убрать из списка
-                  </button>
-                )}
               </div>
             </div>
           );
@@ -848,9 +714,7 @@ function Revision({tick,toast}){
             <div key={rev.id} className="fu" onClick={()=>{setCurRev(rev);setSc('view');}} style={{display:'flex',alignItems:'center',gap:12,padding:'14px 16px',background:C.bg2,border:`1px solid ${short>0?C.red+'35':C.border}`,borderRadius:16,marginBottom:8,cursor:'pointer'}}>
               <div style={{width:46,height:46,borderRadius:13,background:'linear-gradient(135deg,#4466ff,#3ecf8e)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:17,fontWeight:900,color:'#fff',flexShrink:0}}>{fmtDs(rev.date).day}</div>
               <div style={{flex:1}}><div style={{fontSize:15,fontWeight:700,marginBottom:2}}>{fmtD(rev.date)}</div><div style={{fontSize:12,color:C.dim}}>{rev.category||'Все'} · {items.length} поз.</div></div>
-              <div style={{display:'flex',gap:6}}>
-                {short>0?<Badge color={C.red}>↓ {short}</Badge>:<Badge color={C.green}>✓ OK</Badge>}
-              </div>
+              <div style={{display:'flex',gap:6}}>{short>0?<Badge color={C.red}>↓ {short}</Badge>:<Badge color={C.green}>✓ OK</Badge>}</div>
               <div style={{color:C.dim,fontSize:20}}>›</div>
             </div>
           );
@@ -869,27 +733,18 @@ function NewRevision({onBack,onSaved}){
   const [saved,setSaved]=useState(false);
   const [page,setPage]=useState(1);
   const PAGE=50;
-
   const products=dbGet('products');
   const cats=[...new Set(products.map(p=>p.category).filter(Boolean))].sort();
   const toggleCat=cat=>setSelCats(prev=>prev.includes(cat)?prev.filter(c=>c!==cat):[...prev,cat]);
-  const getProdByCats=cList=>{
-    const filtered=cList.length===0?products:products.filter(p=>cList.includes(p.category));
-    return filtered.map(p=>({id:p.id,product_name:p.name,barcode:p.barcode||'',unit:p.unit||'шт',category:p.category,price:p.price||0,totalQty:p.stock||0,partCount:1})).sort((a,b)=>a.product_name.localeCompare(b.product_name));
-  };
+  const getProdByCats=cList=>{ const filtered=cList.length===0?products:products.filter(p=>cList.includes(p.category)); return filtered.map(p=>({id:p.id,product_name:p.name,barcode:p.barcode||'',unit:p.unit||'шт',category:p.category,price:p.price||0,totalQty:p.stock||0})).sort((a,b)=>a.product_name.localeCompare(b.product_name)); };
   const catLabel=selCats.length===0?'Все':selCats.length===1?selCats[0]:`${selCats.length} катег.`;
   const startRev=()=>{ const prods=getProdByCats(selCats); setItems(prods.map(p=>({id:uid(),product:p,actual:null}))); setPage(1); setStep('revision'); };
   const updActual=(id,val)=>setItems(prev=>prev.map(i=>i.id===id?{...i,actual:val===''?null:+val}:i));
   const checked=items.filter(i=>i.actual!==null).length;
   const sumExp=items.filter(i=>i.actual!==null).reduce((s,i)=>s+i.product.totalQty*(i.product.price||0),0);
   const sumAct=items.filter(i=>i.actual!==null).reduce((s,i)=>s+i.actual*(i.product.price||0),0);
-  const saveRev=async()=>{
-    const rev=await dbInsert('revisions',{category:catLabel,date});
-    const revId=rev.id;
-    await dbInsertMany('revision_items',items.map(it=>({id:uid(),revision_id:revId,product_name:it.product.product_name,barcode:it.product.barcode,unit:it.product.unit,expected:it.product.totalQty,actual:it.actual,price:it.product.price||0})));
-    setSaved(true); setTimeout(()=>onSaved(),1000);
-  };
-  const searchProds=search.trim().length>=1?products.filter(p=>{ const q=search.trim().toLowerCase(); return (p.name||'').toLowerCase().includes(q)||(p.barcode&&p.barcode.includes(search.trim())); }).slice(0,6).map(p=>({id:p.id,product_name:p.name,barcode:p.barcode||'',unit:p.unit||'шт',category:p.category,price:p.price||0,totalQty:p.stock||0,partCount:1})):[];
+  const saveRev=async()=>{ const rev=await dbInsert('revisions',{category:catLabel,date}); await dbInsertMany('revision_items',items.map(it=>({id:uid(),revision_id:rev.id,product_name:it.product.product_name,barcode:it.product.barcode,unit:it.product.unit,expected:it.product.totalQty,actual:it.actual,price:it.product.price||0}))); setSaved(true); setTimeout(()=>onSaved(),1000); };
+  const searchProds=search.trim().length>=1?products.filter(p=>{ const q=search.trim().toLowerCase(); return(p.name||'').toLowerCase().includes(q)||(p.barcode&&p.barcode.includes(search.trim())); }).slice(0,6).map(p=>({id:p.id,product_name:p.name,barcode:p.barcode||'',unit:p.unit||'шт',category:p.category,price:p.price||0,totalQty:p.stock||0})):[];
   const addFromSearch=p=>{ if(!items.find(i=>i.product.barcode===p.barcode)) setItems(prev=>[...prev,{id:uid(),product:p,actual:null}]); setSearch(''); };
 
   if(step==='setup') return(
@@ -897,10 +752,7 @@ function NewRevision({onBack,onSaved}){
     <div style={{padding:14,paddingBottom:30}}>
       <Card><TI label="ДАТА" type="date" value={date} onChange={setDate}/></Card>
       <Card>
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
-          <FL>КАТЕГОРИИ</FL>
-          {selCats.length>0&&<button onClick={()=>setSelCats([])} style={{fontSize:11,color:C.dim,background:'none',border:'none',cursor:'pointer',fontFamily:'inherit'}}>✕ Сбросить</button>}
-        </div>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}><FL>КАТЕГОРИИ</FL>{selCats.length>0&&<button onClick={()=>setSelCats([])} style={{fontSize:11,color:C.dim,background:'none',border:'none',cursor:'pointer',fontFamily:'inherit'}}>✕ Сбросить</button>}</div>
         <div style={{display:'flex',flexWrap:'wrap',gap:7}}>
           <button onClick={()=>setSelCats(selCats.length===cats.length?[]:cats)} style={{padding:'8px 14px',borderRadius:22,cursor:'pointer',fontFamily:'inherit',fontSize:12,fontWeight:800,border:`1.5px solid ${selCats.length===cats.length?C.orange+'80':C.border}`,background:selCats.length===cats.length?C.orange+'18':C.bg3,color:selCats.length===cats.length?C.orange:C.dim}}>{selCats.length===cats.length?'✓ Все':'Выбрать все'}</button>
           {cats.map(cat=>(<button key={cat} onClick={()=>toggleCat(cat)} style={{padding:'8px 14px',borderRadius:22,cursor:'pointer',fontFamily:'inherit',fontSize:12,fontWeight:700,border:`1.5px solid ${selCats.includes(cat)?C.blue+'80':C.border}`,background:selCats.includes(cat)?C.blue+'18':C.bg3,color:selCats.includes(cat)?C.blue:C.muted}}>{selCats.includes(cat)?'✓ ':''}{cat}</button>))}
@@ -912,14 +764,9 @@ function NewRevision({onBack,onSaved}){
   );
 
   const visItems=items.slice(0,page*PAGE);
-  const hasMore=items.length>page*PAGE;
-
   return(
     <><Hdr title={catLabel} sub="РЕВИЗИЯ" onBack={()=>setStep('setup')}>
-      <div style={{background:C.bg3,borderRadius:10,padding:'5px 12px',textAlign:'center',flexShrink:0}}>
-        <div style={{fontSize:9,color:C.dim,fontWeight:700}}>Проверено</div>
-        <div style={{fontSize:15,fontWeight:900,color:checked===items.length&&checked>0?C.green:C.blue}}>{checked}/{items.length}</div>
-      </div>
+      <div style={{background:C.bg3,borderRadius:10,padding:'5px 12px',textAlign:'center',flexShrink:0}}><div style={{fontSize:9,color:C.dim,fontWeight:700}}>Проверено</div><div style={{fontSize:15,fontWeight:900,color:checked===items.length&&checked>0?C.green:C.blue}}>{checked}/{items.length}</div></div>
     </Hdr>
     <div style={{padding:14,paddingBottom:160}}>
       {checked>0&&(
@@ -936,14 +783,8 @@ function NewRevision({onBack,onSaved}){
       )}
       <Card style={{background:C.bg3,border:`1px solid #4466ff25`}}>
         <div style={{fontSize:10,fontWeight:800,letterSpacing:2,color:C.blue,marginBottom:8}}>🔍 ДОБАВИТЬ ПО ШТРИХКОДУ</div>
-        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Введи название или штрихкод..."
-          style={{width:'100%',background:C.bg,border:`1.5px solid #4466ff40`,borderRadius:11,padding:'12px 14px',color:C.text,fontSize:14,outline:'none',WebkitAppearance:'none'}}/>
-        {search.trim()&&searchProds.map(p=>(
-          <div key={p.id} onClick={()=>addFromSearch(p)} style={{display:'flex',alignItems:'center',gap:10,padding:'10px 12px',background:C.bg2,borderRadius:10,marginTop:6,cursor:'pointer'}}>
-            <div style={{flex:1}}><div style={{fontSize:13,fontWeight:700}}>{p.product_name}</div><div style={{fontSize:11,color:C.dim}}>🏷 {p.barcode} · {p.totalQty} {p.unit}</div></div>
-            <div style={{color:C.blue,fontSize:20,fontWeight:300}}>+</div>
-          </div>
-        ))}
+        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Введи название или штрихкод..." style={{width:'100%',background:C.bg,border:`1.5px solid #4466ff40`,borderRadius:11,padding:'12px 14px',color:C.text,fontSize:14,outline:'none',WebkitAppearance:'none'}}/>
+        {search.trim()&&searchProds.map(p=>(<div key={p.id} onClick={()=>addFromSearch(p)} style={{display:'flex',alignItems:'center',gap:10,padding:'10px 12px',background:C.bg2,borderRadius:10,marginTop:6,cursor:'pointer'}}><div style={{flex:1}}><div style={{fontSize:13,fontWeight:700}}>{p.product_name}</div><div style={{fontSize:11,color:C.dim}}>🏷 {p.barcode} · {p.totalQty} {p.unit}</div></div><div style={{color:C.blue,fontSize:20,fontWeight:300}}>+</div></div>))}
       </Card>
       {visItems.map(ri=>{
         const diff=ri.actual!==null?ri.actual-ri.product.totalQty:null;
@@ -953,33 +794,15 @@ function NewRevision({onBack,onSaved}){
             <div style={{width:4,background:diff===null?C.border:dc+'cc',flexShrink:0}}/>
             <div style={{flex:1,padding:'12px 14px 12px 10px'}}>
               <div style={{display:'flex',alignItems:'flex-start',gap:10}}>
-                <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontSize:14,fontWeight:800,marginBottom:3}}>{ri.product.product_name}</div>
-                  <div style={{fontSize:11,color:C.dim,marginBottom:4}}>🏷 {ri.product.barcode}</div>
-                  <div style={{fontSize:12,color:C.dim}}>Ожидается: <b style={{color:C.muted}}>{ri.product.totalQty} {ri.product.unit}</b>{ri.product.price>0&&<> · <b style={{color:C.blue}}>{ri.product.price} SM</b></>}</div>
-                </div>
-                <div style={{flexShrink:0,textAlign:'right'}}>
-                  <div style={{fontSize:9,fontWeight:800,letterSpacing:1.5,color:C.dim,marginBottom:4}}>ФАКТ</div>
-                  <input type="number" placeholder={String(ri.product.totalQty)} value={ri.actual??''} onChange={e=>updActual(ri.id,e.target.value)}
-                    style={{width:72,padding:'9px 6px',borderRadius:11,textAlign:'center',background:C.bg,border:`1.5px solid ${diff===null?C.border:dc}`,color:diff===null?C.text:dc,fontSize:18,fontWeight:900,fontFamily:'inherit',outline:'none',boxSizing:'border-box'}}/>
-                  {diff!==null&&<div style={{fontSize:13,fontWeight:900,color:dc,marginTop:4}}>{diff>0?'+':''}{diff}</div>}
-                </div>
+                <div style={{flex:1,minWidth:0}}><div style={{fontSize:14,fontWeight:800,marginBottom:3}}>{ri.product.product_name}</div><div style={{fontSize:11,color:C.dim,marginBottom:4}}>🏷 {ri.product.barcode}</div><div style={{fontSize:12,color:C.dim}}>Ожидается: <b style={{color:C.muted}}>{ri.product.totalQty} {ri.product.unit}</b>{ri.product.price>0&&<> · <b style={{color:C.blue}}>{ri.product.price} SM</b></>}</div></div>
+                <div style={{flexShrink:0,textAlign:'right'}}><div style={{fontSize:9,fontWeight:800,letterSpacing:1.5,color:C.dim,marginBottom:4}}>ФАКТ</div><input type="number" placeholder={String(ri.product.totalQty)} value={ri.actual??''} onChange={e=>updActual(ri.id,e.target.value)} style={{width:72,padding:'9px 6px',borderRadius:11,textAlign:'center',background:C.bg,border:`1.5px solid ${diff===null?C.border:dc}`,color:diff===null?C.text:dc,fontSize:18,fontWeight:900,fontFamily:'inherit',outline:'none',boxSizing:'border-box'}}/>{diff!==null&&<div style={{fontSize:13,fontWeight:900,color:dc,marginTop:4}}>{diff>0?'+':''}{diff}</div>}</div>
               </div>
-              {diff!==null&&(
-                <div style={{marginTop:8,padding:'7px 10px',borderRadius:9,background:dc+'12',display:'flex',justifyContent:'space-between'}}>
-                  <span style={{fontSize:12,fontWeight:800,color:dc}}>{diff<0?`↓ Недостача ${Math.abs(diff)} ${ri.product.unit}`:diff>0?`↑ Излишек ${diff} ${ri.product.unit}`:'✓ Совпадает'}</span>
-                  {ri.product.price>0&&diff!==0&&<span style={{fontSize:13,fontWeight:900,color:dc}}>{diff<0?'-':'+'}{(Math.abs(diff)*ri.product.price).toFixed(2)} SM</span>}
-                </div>
-              )}
+              {diff!==null&&(<div style={{marginTop:8,padding:'7px 10px',borderRadius:9,background:dc+'12',display:'flex',justifyContent:'space-between'}}><span style={{fontSize:12,fontWeight:800,color:dc}}>{diff<0?`↓ Недостача ${Math.abs(diff)} ${ri.product.unit}`:diff>0?`↑ Излишек ${diff} ${ri.product.unit}`:'✓ Совпадает'}</span>{ri.product.price>0&&diff!==0&&<span style={{fontSize:13,fontWeight:900,color:dc}}>{diff<0?'-':'+'}{(Math.abs(diff)*ri.product.price).toFixed(2)} SM</span>}</div>)}
             </div>
           </div>
         );
       })}
-      {hasMore&&(
-        <button onClick={()=>setPage(p=>p+1)} style={{width:'100%',padding:'14px',borderRadius:14,background:C.bg2,border:`1px solid ${C.blue}40`,color:C.blue,fontSize:14,fontWeight:800,cursor:'pointer',fontFamily:'inherit',marginBottom:8}}>
-          Загрузить ещё {Math.min(PAGE,items.length-page*PAGE)} товаров ({page*PAGE} из {items.length})
-        </button>
-      )}
+      {items.length>page*PAGE&&(<button onClick={()=>setPage(p=>p+1)} style={{width:'100%',padding:'14px',borderRadius:14,background:C.bg2,border:`1px solid ${C.blue}40`,color:C.blue,fontSize:14,fontWeight:800,cursor:'pointer',fontFamily:'inherit',marginBottom:8}}>Загрузить ещё {Math.min(PAGE,items.length-page*PAGE)} ({page*PAGE} из {items.length})</button>)}
     </div>
     <div style={{position:'fixed',bottom:64,left:'50%',transform:'translateX(-50%)',width:'100%',maxWidth:430,padding:'10px 14px',background:'rgba(9,9,15,.97)',borderTop:`1px solid ${C.border}`,zIndex:150}}>
       {saved?<div style={{textAlign:'center',padding:14,fontSize:16,fontWeight:800,color:C.green}}>✓ Ревизия сохранена!</div>:
@@ -993,33 +816,14 @@ function RevisionView({revision,onBack,onDeleted}){
   const [editMode,setEditMode]=useState(false);
   const [editValues,setEditValues]=useState({});
   const [saving,setSaving]=useState(false);
-
   const items=dbGet('revision_items').filter(i=>i.revision_id===revision.id);
   const short=items.filter(i=>i.actual!==null&&i.actual<i.expected);
   const sumExp=items.filter(i=>i.actual!==null).reduce((s,i)=>s+i.expected*(i.price||0),0);
   const sumAct=items.filter(i=>i.actual!==null).reduce((s,i)=>s+i.actual*(i.price||0),0);
   const loss=sumExp-sumAct;
-
   const startEdit=()=>{ const vals={}; items.forEach(i=>{ vals[i.id]=i.actual!==null?String(i.actual):''; }); setEditValues(vals); setEditMode(true); };
-  const saveEdit=async()=>{
-    setSaving(true);
-    for(const item of items){
-      const val=editValues[item.id];
-      const actual=val===''?null:+val;
-      await fetch(`${SB}/revision_items?id=eq.${item.id}`,{method:'PATCH',headers:H,body:JSON.stringify({actual})});
-      const idx=DB.revision_items.findIndex(i=>i.id===item.id);
-      if(idx>=0) DB.revision_items[idx]={...DB.revision_items[idx],actual};
-    }
-    pub(); setEditMode(false); setSaving(false);
-  };
-  const doDelete=async()=>{
-    for(const item of items) await sbDel('revision_items',item.id);
-    await sbDel('revisions',revision.id);
-    DB.revision_items=DB.revision_items.filter(i=>i.revision_id!==revision.id);
-    DB.revisions=DB.revisions.filter(r=>r.id!==revision.id);
-    pub(); onDeleted();
-  };
-
+  const saveEdit=async()=>{ setSaving(true); for(const item of items){ const val=editValues[item.id]; const actual=val===''?null:+val; await fetch(`${SB}/revision_items?id=eq.${item.id}`,{method:'PATCH',headers:H,body:JSON.stringify({actual})}); const idx=DB.revision_items.findIndex(i=>i.id===item.id); if(idx>=0)DB.revision_items[idx]={...DB.revision_items[idx],actual}; } pub(); setEditMode(false); setSaving(false); };
+  const doDelete=async()=>{ for(const item of items) await sbDel('revision_items',item.id); await sbDel('revisions',revision.id); DB.revision_items=DB.revision_items.filter(i=>i.revision_id!==revision.id); DB.revisions=DB.revisions.filter(r=>r.id!==revision.id); pub(); onDeleted(); };
   return(
     <><Hdr title={fmtD(revision.date)} sub={(revision.category||'РЕВИЗИЯ').toUpperCase()} onBack={onBack}>
       <div style={{display:'flex',gap:6}}>
@@ -1027,80 +831,26 @@ function RevisionView({revision,onBack,onDeleted}){
         <button onClick={()=>setConfirmDel(true)} style={{width:38,height:38,borderRadius:11,background:'#f04f5a18',border:`1px solid #f04f5a40`,color:C.red,fontSize:16,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>🗑</button>
       </div>
     </Hdr>
-    {confirmDel&&(
-      <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,.7)',zIndex:200,display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
-        <div style={{background:C.bg2,border:`1px solid ${C.red}50`,borderRadius:20,padding:24,width:'100%',maxWidth:380}}>
-          <div style={{fontSize:18,fontWeight:800,marginBottom:8}}>Удалить ревизию?</div>
-          <div style={{fontSize:13,color:C.dim,marginBottom:20}}>Ревизия от {fmtD(revision.date)} · {items.length} позиций будет удалена безвозвратно</div>
-          <div style={{display:'flex',gap:10}}>
-            <Btn outline onClick={()=>setConfirmDel(false)} style={{flex:1,padding:'12px 0'}}>Отмена</Btn>
-            <Btn bg={C.red} onClick={doDelete} style={{flex:1,padding:'12px 0'}}>Удалить</Btn>
-          </div>
-        </div>
-      </div>
-    )}
+    {confirmDel&&(<div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,.7)',zIndex:200,display:'flex',alignItems:'center',justifyContent:'center',padding:20}}><div style={{background:C.bg2,border:`1px solid ${C.red}50`,borderRadius:20,padding:24,width:'100%',maxWidth:380}}><div style={{fontSize:18,fontWeight:800,marginBottom:8}}>Удалить ревизию?</div><div style={{fontSize:13,color:C.dim,marginBottom:20}}>Ревизия от {fmtD(revision.date)} · {items.length} позиций будет удалена безвозвратно</div><div style={{display:'flex',gap:10}}><Btn outline onClick={()=>setConfirmDel(false)} style={{flex:1,padding:'12px 0'}}>Отмена</Btn><Btn bg={C.red} onClick={doDelete} style={{flex:1,padding:'12px 0'}}>Удалить</Btn></div></div></div>)}
     <div style={{padding:14,paddingBottom:editMode?160:30}}>
       <div style={{display:'flex',gap:8,marginBottom:12}}>
-        {[['Позиций',items.length,C.blue],['Недостача',short.length,short.length>0?C.red:C.green]].map(([l,v,c])=>(
-          <div key={l} style={{flex:1,background:C.bg2,border:`1px solid ${C.border}`,borderRadius:14,padding:'13px 10px',textAlign:'center'}}><div style={{fontSize:9,color:C.dim,fontWeight:800,letterSpacing:1,textTransform:'uppercase',marginBottom:4}}>{l}</div><div style={{fontSize:20,fontWeight:900,color:c}}>{v}</div></div>
-        ))}
+        {[['Позиций',items.length,C.blue],['Недостача',short.length,short.length>0?C.red:C.green]].map(([l,v,c])=>(<div key={l} style={{flex:1,background:C.bg2,border:`1px solid ${C.border}`,borderRadius:14,padding:'13px 10px',textAlign:'center'}}><div style={{fontSize:9,color:C.dim,fontWeight:800,letterSpacing:1,textTransform:'uppercase',marginBottom:4}}>{l}</div><div style={{fontSize:20,fontWeight:900,color:c}}>{v}</div></div>))}
       </div>
-      {items.filter(i=>i.actual!==null).length>0&&(
-        <div style={{background:C.bg2,border:`1px solid ${C.border}`,borderRadius:16,overflow:'hidden',marginBottom:12}}>
-          <div style={{display:'flex',borderBottom:`1px solid ${C.border}`}}>
-            <div style={{flex:1,padding:'14px 16px',borderRight:`1px solid ${C.border}`,textAlign:'center'}}><div style={{fontSize:9,fontWeight:800,color:C.dim,marginBottom:4}}>БЫЛО</div><div style={{fontSize:18,fontWeight:900,color:C.muted}}>{fmt(sumExp)} SM</div></div>
-            <div style={{flex:1,padding:'14px 16px',textAlign:'center'}}><div style={{fontSize:9,fontWeight:800,color:C.dim,marginBottom:4}}>ОСТАЛОСЬ</div><div style={{fontSize:18,fontWeight:900,color:loss>0?C.red:C.green}}>{fmt(sumAct)} SM</div></div>
-          </div>
-          <div style={{padding:'12px 16px',background:loss>0?'#f04f5a10':'#3ecf8e10',display:'flex',justifyContent:'space-between'}}>
-            <div style={{fontSize:10,fontWeight:800,color:C.dim}}>{loss>0?'ПОТЕРИ':'РЕЗУЛЬТАТ'}</div>
-            <div style={{fontSize:22,fontWeight:900,color:loss>0?C.red:C.green}}>{loss>0?'-':''}{fmt(Math.abs(loss))} SM</div>
-          </div>
-        </div>
-      )}
+      {items.filter(i=>i.actual!==null).length>0&&(<div style={{background:C.bg2,border:`1px solid ${C.border}`,borderRadius:16,overflow:'hidden',marginBottom:12}}><div style={{display:'flex',borderBottom:`1px solid ${C.border}`}}><div style={{flex:1,padding:'14px 16px',borderRight:`1px solid ${C.border}`,textAlign:'center'}}><div style={{fontSize:9,fontWeight:800,color:C.dim,marginBottom:4}}>БЫЛО</div><div style={{fontSize:18,fontWeight:900,color:C.muted}}>{fmt(sumExp)} SM</div></div><div style={{flex:1,padding:'14px 16px',textAlign:'center'}}><div style={{fontSize:9,fontWeight:800,color:C.dim,marginBottom:4}}>ОСТАЛОСЬ</div><div style={{fontSize:18,fontWeight:900,color:loss>0?C.red:C.green}}>{fmt(sumAct)} SM</div></div></div><div style={{padding:'12px 16px',background:loss>0?'#f04f5a10':'#3ecf8e10',display:'flex',justifyContent:'space-between'}}><div style={{fontSize:10,fontWeight:800,color:C.dim}}>{loss>0?'ПОТЕРИ':'РЕЗУЛЬТАТ'}</div><div style={{fontSize:22,fontWeight:900,color:loss>0?C.red:C.green}}>{loss>0?'-':''}{fmt(Math.abs(loss))} SM</div></div></div>)}
       <Card>
-        {items.map((item,i)=>{
-          const val=editMode?editValues[item.id]??'':null;
-          const actual=editMode?(val===''?null:+val):item.actual;
-          const diff=actual!==null?actual-item.expected:null;
-          const dc=diff===null?C.dim:diff<0?C.red:diff>0?C.orange:C.green;
-          return(
-            <div key={item.id} style={{padding:'12px 0',borderBottom:i<items.length-1?`1px solid ${C.border}`:'none'}}>
-              <div style={{display:'flex',alignItems:'center',gap:10}}>
-                <div style={{flex:1}}><div style={{fontSize:14,fontWeight:800,marginBottom:3}}>{item.product_name}</div>{item.barcode&&<div style={{fontSize:11,color:C.dim}}>🏷 {item.barcode}</div>}</div>
-                <div style={{textAlign:'right',flexShrink:0}}>
-                  {editMode?(
-                    <div>
-                      <div style={{fontSize:11,color:C.dim,marginBottom:4}}>Ожид: <b>{item.expected}</b></div>
-                      <input type="number" value={editValues[item.id]??''} onChange={e=>setEditValues(prev=>({...prev,[item.id]:e.target.value}))}
-                        style={{width:70,padding:'7px 6px',borderRadius:9,textAlign:'center',background:C.bg,border:`1.5px solid ${dc}`,color:dc,fontSize:16,fontWeight:900,fontFamily:'inherit',outline:'none',boxSizing:'border-box'}}/>
-                      {diff!==null&&<div style={{fontSize:12,fontWeight:800,color:dc,marginTop:3}}>{diff>0?'+':''}{diff}</div>}
-                    </div>
-                  ):(
-                    <div>
-                      <div style={{display:'flex',gap:6,justifyContent:'flex-end',marginBottom:4}}><span style={{fontSize:11,color:C.dim}}>Ожид: <b style={{color:C.muted}}>{item.expected}</b></span>{item.actual!==null&&<span style={{fontSize:11,color:C.dim}}>Факт: <b style={{color:dc}}>{item.actual}</b></span>}</div>
-                      {diff!==null&&<span style={{fontSize:13,fontWeight:900,padding:'3px 10px',borderRadius:8,background:dc+'18',color:dc,display:'inline-block'}}>{diff>0?'+':''}{diff} {item.unit}</span>}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          );
+        {items.map((item,i)=>{ const val=editMode?editValues[item.id]??'':null; const actual=editMode?(val===''?null:+val):item.actual; const diff=actual!==null?actual-item.expected:null; const dc=diff===null?C.dim:diff<0?C.red:diff>0?C.orange:C.green;
+          return(<div key={item.id} style={{padding:'12px 0',borderBottom:i<items.length-1?`1px solid ${C.border}`:'none'}}><div style={{display:'flex',alignItems:'center',gap:10}}><div style={{flex:1}}><div style={{fontSize:14,fontWeight:800,marginBottom:3}}>{item.product_name}</div>{item.barcode&&<div style={{fontSize:11,color:C.dim}}>🏷 {item.barcode}</div>}</div><div style={{textAlign:'right',flexShrink:0}}>{editMode?(<div><div style={{fontSize:11,color:C.dim,marginBottom:4}}>Ожид: <b>{item.expected}</b></div><input type="number" value={editValues[item.id]??''} onChange={e=>setEditValues(prev=>({...prev,[item.id]:e.target.value}))} style={{width:70,padding:'7px 6px',borderRadius:9,textAlign:'center',background:C.bg,border:`1.5px solid ${dc}`,color:dc,fontSize:16,fontWeight:900,fontFamily:'inherit',outline:'none',boxSizing:'border-box'}}/>{diff!==null&&<div style={{fontSize:12,fontWeight:800,color:dc,marginTop:3}}>{diff>0?'+':''}{diff}</div>}</div>):(<div><div style={{display:'flex',gap:6,justifyContent:'flex-end',marginBottom:4}}><span style={{fontSize:11,color:C.dim}}>Ожид: <b style={{color:C.muted}}>{item.expected}</b></span>{item.actual!==null&&<span style={{fontSize:11,color:C.dim}}>Факт: <b style={{color:dc}}>{item.actual}</b></span>}</div>{diff!==null&&<span style={{fontSize:13,fontWeight:900,padding:'3px 10px',borderRadius:8,background:dc+'18',color:dc,display:'inline-block'}}>{diff>0?'+':''}{diff} {item.unit}</span>}</div>)}</div></div></div>);
         })}
       </Card>
     </div>
-    {editMode&&(
-      <div style={{position:'fixed',bottom:64,left:'50%',transform:'translateX(-50%)',width:'100%',maxWidth:430,padding:'10px 14px',background:'rgba(9,9,15,.97)',borderTop:`1px solid ${C.border}`,zIndex:150,display:'flex',gap:8}}>
-        <Btn outline onClick={()=>setEditMode(false)} style={{width:52,flex:'none',padding:'14px 0'}}>✕</Btn>
-        <Btn bg={C.green} color="#051a0e" onClick={saveEdit} disabled={saving} style={{flex:1}}>{saving?'Сохранение...':'✓ Сохранить изменения'}</Btn>
-      </div>
-    )}
+    {editMode&&(<div style={{position:'fixed',bottom:64,left:'50%',transform:'translateX(-50%)',width:'100%',maxWidth:430,padding:'10px 14px',background:'rgba(9,9,15,.97)',borderTop:`1px solid ${C.border}`,zIndex:150,display:'flex',gap:8}}><Btn outline onClick={()=>setEditMode(false)} style={{width:52,flex:'none',padding:'14px 0'}}>✕</Btn><Btn bg={C.green} color="#051a0e" onClick={saveEdit} disabled={saving} style={{flex:1}}>{saving?'Сохранение...':'✓ Сохранить изменения'}</Btn></div>)}
     </>
   );
 }
 
 function Finance({tick}){
   const [tab,setTab]=useState('expenses');
-  const exp=dbGet('expenses'), rev=dbGet('revenue'), cash=dbGet('cash_movements');
+  const exp=dbGet('expenses'),rev=dbGet('revenue'),cash=dbGet('cash_movements');
   let cashBal=0; cash.forEach(m=>{ if(m.type==='add'||m.type==='revenue') cashBal+= +m.amount; else cashBal-= +m.amount; });
   const t=tod();
   const todayRev=rev.filter(r=>r.date===t).reduce((s,r)=>s+ +r.amount,0);
@@ -1111,14 +861,10 @@ function Finance({tick}){
         <div style={{fontSize:9,fontWeight:800,letterSpacing:2.5,textTransform:'uppercase',color:C.dim}}>ФИНАНСЫ</div>
         <div style={{fontSize:20,fontWeight:900,letterSpacing:-.5,marginBottom:12}}>💰 Финансы</div>
         <div style={{display:'flex',gap:8,marginBottom:12}}>
-          {[['Выручка',`+${fmt(todayRev)}`,C.green],['Расходы',`−${fmt(todayExp)}`,C.red],['Касса',`${fmt(Math.abs(cashBal))}`,cashBal>=0?C.blue:C.red]].map(([l,v,c])=>(
-            <div key={l} style={{flex:1,background:C.bg3,borderRadius:10,padding:'8px 10px'}}><div style={{fontSize:8,fontWeight:800,letterSpacing:1,color:C.dim,marginBottom:3}}>{l.toUpperCase()}</div><div style={{fontSize:13,fontWeight:900,color:c}}>{v}</div></div>
-          ))}
+          {[['Выручка',`+${fmt(todayRev)}`,C.green],['Расходы',`−${fmt(todayExp)}`,C.red],['Касса',`${fmt(Math.abs(cashBal))}`,cashBal>=0?C.blue:C.red]].map(([l,v,c])=>(<div key={l} style={{flex:1,background:C.bg3,borderRadius:10,padding:'8px 10px'}}><div style={{fontSize:8,fontWeight:800,letterSpacing:1,color:C.dim,marginBottom:3}}>{l.toUpperCase()}</div><div style={{fontSize:13,fontWeight:900,color:c}}>{v}</div></div>))}
         </div>
         <div style={{display:'flex',gap:6}}>
-          {[['expenses','💸 Расходы'],['revenue','💰 Выручка'],['cash','🏧 Касса']].map(([id,l])=>(
-            <button key={id} onClick={()=>setTab(id)} style={{flex:1,padding:'9px 4px',borderRadius:11,cursor:'pointer',fontFamily:'inherit',fontSize:11,fontWeight:800,border:`1.5px solid ${tab===id?C.blue+'60':C.border}`,background:tab===id?C.blue+'18':C.bg2,color:tab===id?C.blue:C.dim}}>{l}</button>
-          ))}
+          {[['expenses','💸 Расходы'],['revenue','💰 Выручка'],['cash','🏧 Касса']].map(([id,l])=>(<button key={id} onClick={()=>setTab(id)} style={{flex:1,padding:'9px 4px',borderRadius:11,cursor:'pointer',fontFamily:'inherit',fontSize:11,fontWeight:800,border:`1.5px solid ${tab===id?C.blue+'60':C.border}`,background:tab===id?C.blue+'18':C.bg2,color:tab===id?C.blue:C.dim}}>{l}</button>))}
         </div>
       </div>
       {tab==='expenses'&&<ExpensesTab tick={tick}/>}
@@ -1134,10 +880,7 @@ function DelConfirm({text,onConfirm,onCancel}){
       <div style={{background:C.bg2,border:`1px solid #f04f5a50`,borderRadius:20,padding:24,width:'100%',maxWidth:380}}>
         <div style={{fontSize:18,fontWeight:800,marginBottom:8}}>Удалить?</div>
         <div style={{fontSize:13,color:C.dim,marginBottom:20}}>{text}</div>
-        <div style={{display:'flex',gap:10}}>
-          <Btn outline onClick={onCancel} style={{flex:1,padding:'12px 0'}}>Отмена</Btn>
-          <Btn bg={C.red} onClick={onConfirm} style={{flex:1,padding:'12px 0'}}>Удалить</Btn>
-        </div>
+        <div style={{display:'flex',gap:10}}><Btn outline onClick={onCancel} style={{flex:1,padding:'12px 0'}}>Отмена</Btn><Btn bg={C.red} onClick={onConfirm} style={{flex:1,padding:'12px 0'}}>Удалить</Btn></div>
       </div>
     </div>
   );
@@ -1151,12 +894,7 @@ function ExpensesTab({tick}){
   const months=getMonths(4);
   const monthExp=dbGet('expenses').filter(e=>e.month_year===curMonth).sort((a,b)=>b.created_at.localeCompare(a.created_at));
   const total=monthExp.reduce((s,e)=>s+ +e.amount,0);
-  const save=async()=>{
-    if(!amount||!reason.trim())return;
-    await dbInsert('expenses',{amount:+amount,reason:reason.trim(),month_year:monStr(),date:tod()});
-    await dbInsert('cash_movements',{type:'expense',amount:+amount,description:reason.trim(),date:tod()});
-    setAmount(''); setReason('');
-  };
+  const save=async()=>{ if(!amount||!reason.trim())return; await dbInsert('expenses',{amount:+amount,reason:reason.trim(),month_year:monStr(),date:tod()}); await dbInsert('cash_movements',{type:'expense',amount:+amount,description:reason.trim(),date:tod()}); setAmount(''); setReason(''); };
   return(
     <div style={{padding:14,paddingBottom:30}}>
       {delItem&&<DelConfirm text={`Расход «${delItem.reason}» удалится, а ${fmt(delItem.amount)} SM вернётся в кассу ↩`} onConfirm={async()=>{ await dbDelete('expenses',delItem.id); await dbInsert('cash_movements',{type:'add',amount:+delItem.amount,description:'↩ Возврат расхода: '+delItem.reason,date:tod()}); setDelItem(null); }} onCancel={()=>setDelItem(null)}/>}
@@ -1165,10 +903,7 @@ function ExpensesTab({tick}){
       </div>
       <div style={{background:C.bg2,border:`1px solid ${C.border}`,borderRadius:16,overflow:'hidden',marginBottom:14}}>
         <div style={{padding:'10px 16px',background:C.bg3,borderBottom:`1px solid ${C.border}`}}><div style={{fontSize:9,fontWeight:800,letterSpacing:2,color:C.dim}}>ИТОГО ЗА МЕСЯЦ</div></div>
-        <div style={{padding:'16px 20px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-          <div><div style={{fontSize:36,fontWeight:900,color:C.red}}>{fmt(total)} SM</div><div style={{fontSize:12,color:C.dim,marginTop:4}}>{monthExp.length} записей</div></div>
-          <div style={{fontSize:44,opacity:.35}}>💸</div>
-        </div>
+        <div style={{padding:'16px 20px',display:'flex',alignItems:'center',justifyContent:'space-between'}}><div><div style={{fontSize:36,fontWeight:900,color:C.red}}>{fmt(total)} SM</div><div style={{fontSize:12,color:C.dim,marginTop:4}}>{monthExp.length} записей</div></div><div style={{fontSize:44,opacity:.35}}>💸</div></div>
       </div>
       <Card>
         <div style={{fontSize:11,fontWeight:800,letterSpacing:2,color:C.dim,marginBottom:12}}>НОВЫЙ РАСХОД</div>
@@ -1181,11 +916,7 @@ function ExpensesTab({tick}){
       monthExp.map(e=>(
         <div key={e.id} style={{display:'flex',alignItems:'center',gap:12,padding:'13px 16px',background:C.bg2,border:`1px solid ${C.border}`,borderRadius:14,marginBottom:8}}>
           <div style={{width:44,height:44,borderRadius:12,background:'#f04f5a18',display:'flex',alignItems:'center',justifyContent:'center',fontSize:20,flexShrink:0}}>💸</div>
-          <div style={{flex:1,minWidth:0}}>
-            <div style={{fontSize:16,fontWeight:800,color:C.red,marginBottom:3}}>−{fmt(e.amount)} SM</div>
-            <div style={{fontSize:13,color:C.muted,marginBottom:2}}>{e.reason}</div>
-            <div style={{fontSize:11,color:C.dim}}>{fmtD(e.date)} · {fmtT(e.created_at)}</div>
-          </div>
+          <div style={{flex:1,minWidth:0}}><div style={{fontSize:16,fontWeight:800,color:C.red,marginBottom:3}}>−{fmt(e.amount)} SM</div><div style={{fontSize:13,color:C.muted,marginBottom:2}}>{e.reason}</div><div style={{fontSize:11,color:C.dim}}>{fmtD(e.date)} · {fmtT(e.created_at)}</div></div>
           <button onClick={()=>setDelItem(e)} style={{background:'none',border:'none',color:C.dim,fontSize:20,cursor:'pointer',padding:4,flexShrink:0}}>🗑</button>
         </div>
       ))}
@@ -1202,22 +933,14 @@ function RevenueTab({tick}){
   const totalRev=all.reduce((s,r)=>s+ +r.amount,0);
   const totalProfit=all.reduce((s,r)=>s+ +(r.profit||0),0);
   const todayRev=all.filter(r=>r.date===tod()).reduce((s,r)=>s+ +r.amount,0);
-  const save=async()=>{
-    if(!amount)return;
-    await dbInsert('revenue',{amount:+amount,profit:gbsProfit?+gbsProfit:null,date,source:'manual'});
-    await dbInsert('cash_movements',{type:'revenue',amount:+amount,description:'Выручка',date});
-    setAmount(''); setGbsProfit('');
-  };
+  const save=async()=>{ if(!amount)return; await dbInsert('revenue',{amount:+amount,profit:gbsProfit?+gbsProfit:null,date,source:'manual'}); await dbInsert('cash_movements',{type:'revenue',amount:+amount,description:'Выручка',date}); setAmount(''); setGbsProfit(''); };
   return(
     <div style={{padding:14,paddingBottom:30}}>
-      {delItem&&<DelConfirm text={`Выручка ${fmt(delItem.amount)} SM удалится и касса уменьшится на эту сумму ↩`} onConfirm={async()=>{ await dbDelete('revenue',delItem.id); await dbInsert('cash_movements',{type:'remove',amount:+delItem.amount,description:'↩ Удаление выручки',date:tod()}); setDelItem(null); }} onCancel={()=>setDelItem(null)}/> }
+      {delItem&&<DelConfirm text={`Выручка ${fmt(delItem.amount)} SM удалится и касса уменьшится на эту сумму ↩`} onConfirm={async()=>{ await dbDelete('revenue',delItem.id); await dbInsert('cash_movements',{type:'remove',amount:+delItem.amount,description:'↩ Удаление выручки',date:tod()}); setDelItem(null); }} onCancel={()=>setDelItem(null)}/>}
       <div style={{background:C.bg2,border:`1px solid ${C.border}`,borderRadius:16,overflow:'hidden',marginBottom:14}}>
         <div style={{padding:'10px 16px',background:C.bg3,borderBottom:`1px solid ${C.border}`}}><div style={{fontSize:9,fontWeight:800,letterSpacing:2,color:C.dim}}>ФИНАНСОВЫЕ ИТОГИ</div></div>
         <div style={{padding:'16px 20px',borderBottom:`1px solid ${C.border}`}}><div style={{fontSize:10,color:C.dim,marginBottom:4}}>ВЫРУЧКА СЕГОДНЯ</div><div style={{fontSize:32,fontWeight:900,color:C.green}}>{fmt(todayRev)} SM</div></div>
-        <div style={{display:'flex'}}>
-          <div style={{flex:1,padding:'14px 16px',borderRight:`1px solid ${C.border}`}}><div style={{fontSize:9,fontWeight:800,color:C.dim,marginBottom:4}}>ВЫРУЧКА ВСЕГО</div><div style={{fontSize:18,fontWeight:900,color:C.green}}>{fmt(totalRev)} SM</div></div>
-          <div style={{flex:1,padding:'14px 16px'}}><div style={{fontSize:9,fontWeight:800,color:C.dim,marginBottom:4}}>ПРИБЫЛЬ GBS</div><div style={{fontSize:18,fontWeight:900,color:C.blue}}>{fmt(totalProfit)} SM</div></div>
-        </div>
+        <div style={{display:'flex'}}><div style={{flex:1,padding:'14px 16px',borderRight:`1px solid ${C.border}`}}><div style={{fontSize:9,fontWeight:800,color:C.dim,marginBottom:4}}>ВЫРУЧКА ВСЕГО</div><div style={{fontSize:18,fontWeight:900,color:C.green}}>{fmt(totalRev)} SM</div></div><div style={{flex:1,padding:'14px 16px'}}><div style={{fontSize:9,fontWeight:800,color:C.dim,marginBottom:4}}>ПРИБЫЛЬ GBS</div><div style={{fontSize:18,fontWeight:900,color:C.blue}}>{fmt(totalProfit)} SM</div></div></div>
       </div>
       <Card>
         <div style={{fontSize:11,fontWeight:800,letterSpacing:2,color:C.dim,marginBottom:12}}>ДОБАВИТЬ ВЫРУЧКУ</div>
@@ -1231,11 +954,7 @@ function RevenueTab({tick}){
       all.map(r=>(
         <div key={r.id} style={{display:'flex',alignItems:'center',gap:12,padding:'13px 16px',background:C.bg2,border:`1px solid ${C.border}`,borderRadius:14,marginBottom:8}}>
           <div style={{width:44,height:44,borderRadius:12,background:'#3ecf8e18',display:'flex',alignItems:'center',justifyContent:'center',fontSize:20,flexShrink:0}}>💰</div>
-          <div style={{flex:1,minWidth:0}}>
-            <div style={{fontSize:16,fontWeight:800,color:C.green,marginBottom:3}}>+{fmt(r.amount)} SM</div>
-            <div style={{fontSize:12,color:C.dim}}>Прибыль GBS: <b style={{color:C.blue}}>{fmt(r.profit||0)} SM</b></div>
-            <div style={{fontSize:11,color:C.dim,marginTop:2}}>{fmtD(r.date)} · {fmtT(r.created_at)}</div>
-          </div>
+          <div style={{flex:1,minWidth:0}}><div style={{fontSize:16,fontWeight:800,color:C.green,marginBottom:3}}>+{fmt(r.amount)} SM</div><div style={{fontSize:12,color:C.dim}}>Прибыль GBS: <b style={{color:C.blue}}>{fmt(r.profit||0)} SM</b></div><div style={{fontSize:11,color:C.dim,marginTop:2}}>{fmtD(r.date)} · {fmtT(r.created_at)}</div></div>
           <button onClick={()=>setDelItem(r)} style={{background:'none',border:'none',color:C.dim,fontSize:20,cursor:'pointer',padding:4,flexShrink:0}}>🗑</button>
         </div>
       ))}
@@ -1243,20 +962,10 @@ function RevenueTab({tick}){
   );
 }
 
-// ════ ПЕРЕСЧЁТ КАССЫ ════
 const DENOMS=[
-  {val:500,label:'500 SM',icon:'💵',type:'bill'},
-  {val:200,label:'200 SM',icon:'💵',type:'bill'},
-  {val:100,label:'100 SM',icon:'💵',type:'bill'},
-  {val:50, label:'50 SM', icon:'💵',type:'bill'},
-  {val:20, label:'20 SM', icon:'💵',type:'bill'},
-  {val:10, label:'10 SM', icon:'💵',type:'bill'},
-  {val:5,  label:'5 SM',  icon:'💵',type:'bill'},
-  {val:1,  label:'1 SM',  icon:'🪙',type:'coin'},
-  {val:0.5,label:'50 д',  icon:'🪙',type:'coin'},
-  {val:0.25,label:'25 д', icon:'🪙',type:'coin'},
-  {val:0.1,label:'10 д',  icon:'🪙',type:'coin'},
-  {val:0.05,label:'5 д',  icon:'🪙',type:'coin'},
+  {val:500,label:'500 SM',type:'bill'},{val:200,label:'200 SM',type:'bill'},{val:100,label:'100 SM',type:'bill'},
+  {val:50,label:'50 SM',type:'bill'},{val:20,label:'20 SM',type:'bill'},{val:10,label:'10 SM',type:'bill'},{val:5,label:'5 SM',type:'bill'},
+  {val:1,label:'1 SM',type:'coin'},{val:0.5,label:'50 д',type:'coin'},{val:0.25,label:'25 д',type:'coin'},{val:0.1,label:'10 д',type:'coin'},{val:0.05,label:'5 д',type:'coin'},
 ];
 
 function CashCounter({onClose,onSave}){
@@ -1266,98 +975,44 @@ function CashCounter({onClose,onSave}){
   const totalCoins=DENOMS.filter(d=>d.type==='coin').reduce((s,d)=>s+(+counts[d.val]||0)*d.val,0);
   const total=totalBills+totalCoins;
   const hasAny=Object.values(counts).some(v=>+v>0);
-
   return(
     <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,.85)',zIndex:300,overflowY:'auto',paddingBottom:100}}>
       <div style={{maxWidth:430,margin:'0 auto'}}>
-        {/* Шапка */}
         <div style={{padding:'16px 16px 12px',background:C.bg2,borderBottom:`1px solid ${C.border}`,position:'sticky',top:0,zIndex:10,display:'flex',alignItems:'center',gap:10}}>
           <button onClick={onClose} style={{width:38,height:38,borderRadius:11,background:C.bg3,border:`1px solid ${C.border}`,color:C.muted,fontSize:22,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>←</button>
-          <div style={{flex:1}}>
-            <div style={{fontSize:9,fontWeight:800,letterSpacing:2,color:C.dim}}>КАССА</div>
-            <div style={{fontSize:18,fontWeight:900}}>🪙 Пересчёт наличных</div>
-          </div>
+          <div style={{flex:1}}><div style={{fontSize:9,fontWeight:800,letterSpacing:2,color:C.dim}}>КАССА</div><div style={{fontSize:18,fontWeight:900}}>🪙 Пересчёт наличных</div></div>
         </div>
-
-        {/* Итог */}
         <div style={{margin:'14px 14px 0',background:`linear-gradient(135deg,#0d2d1a,${C.bg2})`,border:`1.5px solid ${C.green}40`,borderRadius:20,padding:'18px 20px',textAlign:'center'}}>
           <div style={{fontSize:9,fontWeight:800,letterSpacing:2.5,color:C.dim,marginBottom:6}}>ИТОГО В КАССЕ</div>
           <div style={{fontSize:44,fontWeight:900,color:C.green,letterSpacing:-2}}>{fmt(total)} SM</div>
           <div style={{display:'flex',justifyContent:'center',gap:20,marginTop:10}}>
-            <div style={{textAlign:'center'}}>
-              <div style={{fontSize:9,color:C.dim,fontWeight:800,marginBottom:2}}>💵 КУПЮРЫ</div>
-              <div style={{fontSize:16,fontWeight:900,color:C.blue}}>{fmt(totalBills)} SM</div>
-            </div>
+            <div style={{textAlign:'center'}}><div style={{fontSize:9,color:C.dim,fontWeight:800,marginBottom:2}}>💵 КУПЮРЫ</div><div style={{fontSize:16,fontWeight:900,color:C.blue}}>{fmt(totalBills)} SM</div></div>
             <div style={{width:1,background:C.border}}/>
-            <div style={{textAlign:'center'}}>
-              <div style={{fontSize:9,color:C.dim,fontWeight:800,marginBottom:2}}>🪙 МОНЕТЫ</div>
-              <div style={{fontSize:16,fontWeight:900,color:C.yellow}}>{fmt(totalCoins)} SM</div>
+            <div style={{textAlign:'center'}}><div style={{fontSize:9,color:C.dim,fontWeight:800,marginBottom:2}}>🪙 МОНЕТЫ</div><div style={{fontSize:16,fontWeight:900,color:C.yellow}}>{fmt(totalCoins)} SM</div></div>
+          </div>
+        </div>
+        {['bill','coin'].map(type=>(
+          <div key={type} style={{padding:'14px 14px 0'}}>
+            <div style={{fontSize:9,fontWeight:800,letterSpacing:2,color:C.dim,marginBottom:8}}>{type==='bill'?'💵 КУПЮРЫ':'🪙 МОНЕТЫ'}</div>
+            <div style={{background:C.bg2,border:`1px solid ${C.border}`,borderRadius:16,overflow:'hidden'}}>
+              {DENOMS.filter(d=>d.type===type).map((d,i,arr)=>{
+                const cnt=+counts[d.val]||0,sub=cnt*d.val,clr=type==='bill'?C.blue:C.yellow;
+                return(
+                  <div key={d.val} style={{display:'flex',alignItems:'center',gap:10,padding:'12px 14px',borderBottom:i<arr.length-1?`1px solid ${C.border}`:'none',background:cnt>0?clr+'08':'transparent'}}>
+                    <div style={{width:52,height:34,borderRadius:8,background:cnt>0?clr+'25':C.bg3,border:`1px solid ${cnt>0?clr+'50':C.border}`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><span style={{fontSize:13,fontWeight:900,color:cnt>0?clr:C.muted}}>{d.label}</span></div>
+                    <div style={{flex:1}}>{cnt>0?<div style={{fontSize:11,color:clr,fontWeight:700}}>{cnt} шт = {fmt(sub)} SM</div>:<div style={{fontSize:11,color:C.dim}}>Количество</div>}</div>
+                    <div style={{display:'flex',alignItems:'center',gap:6}}>
+                      <button onClick={()=>set(d.val,Math.max(0,(+counts[d.val]||0)-1))} style={{width:34,height:34,borderRadius:9,background:C.bg3,border:`1px solid ${C.border}`,color:C.muted,fontSize:20,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'inherit'}}>−</button>
+                      <input type="number" value={counts[d.val]??''} onChange={e=>set(d.val,e.target.value)} placeholder="0" style={{width:52,padding:'7px 4px',borderRadius:9,textAlign:'center',background:C.bg,border:`1.5px solid ${cnt>0?clr:C.border}`,color:cnt>0?clr:C.text,fontSize:16,fontWeight:900,fontFamily:'inherit',outline:'none'}}/>
+                      <button onClick={()=>set(d.val,(+counts[d.val]||0)+1)} style={{width:34,height:34,borderRadius:9,background:clr+'20',border:`1px solid ${clr}40`,color:clr,fontSize:20,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'inherit'}}>+</button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
-        </div>
-
-        {/* Купюры */}
-        <div style={{padding:'14px 14px 0'}}>
-          <div style={{fontSize:9,fontWeight:800,letterSpacing:2,color:C.dim,marginBottom:8}}>💵 КУПЮРЫ</div>
-          <div style={{background:C.bg2,border:`1px solid ${C.border}`,borderRadius:16,overflow:'hidden'}}>
-            {DENOMS.filter(d=>d.type==='bill').map((d,i,arr)=>{
-              const cnt=+counts[d.val]||0;
-              const sub=cnt*d.val;
-              return(
-                <div key={d.val} style={{display:'flex',alignItems:'center',gap:10,padding:'12px 14px',borderBottom:i<arr.length-1?`1px solid ${C.border}`:'none',background:cnt>0?C.blue+'08':'transparent'}}>
-                  <div style={{width:52,height:34,borderRadius:8,background:cnt>0?C.blue+'25':C.bg3,border:`1px solid ${cnt>0?C.blue+'50':C.border}`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
-                    <span style={{fontSize:13,fontWeight:900,color:cnt>0?C.blue:C.muted}}>{d.label}</span>
-                  </div>
-                  <div style={{flex:1}}>
-                    {cnt>0&&<div style={{fontSize:11,color:C.blue,fontWeight:700}}>{cnt} шт = {fmt(sub)} SM</div>}
-                    {cnt===0&&<div style={{fontSize:11,color:C.dim}}>Количество</div>}
-                  </div>
-                  <div style={{display:'flex',alignItems:'center',gap:6}}>
-                    <button onClick={()=>set(d.val,Math.max(0,(+counts[d.val]||0)-1))} style={{width:34,height:34,borderRadius:9,background:C.bg3,border:`1px solid ${C.border}`,color:C.muted,fontSize:20,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'inherit'}}>−</button>
-                    <input type="number" value={counts[d.val]??''} onChange={e=>set(d.val,e.target.value)} placeholder="0"
-                      style={{width:52,padding:'7px 4px',borderRadius:9,textAlign:'center',background:C.bg,border:`1.5px solid ${cnt>0?C.blue:C.border}`,color:cnt>0?C.blue:C.text,fontSize:16,fontWeight:900,fontFamily:'inherit',outline:'none'}}/>
-                    <button onClick={()=>set(d.val,(+counts[d.val]||0)+1)} style={{width:34,height:34,borderRadius:9,background:C.blue+'20',border:`1px solid ${C.blue}40`,color:C.blue,fontSize:20,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'inherit'}}>+</button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Монеты */}
-        <div style={{padding:'14px 14px 0'}}>
-          <div style={{fontSize:9,fontWeight:800,letterSpacing:2,color:C.dim,marginBottom:8}}>🪙 МОНЕТЫ</div>
-          <div style={{background:C.bg2,border:`1px solid ${C.border}`,borderRadius:16,overflow:'hidden'}}>
-            {DENOMS.filter(d=>d.type==='coin').map((d,i,arr)=>{
-              const cnt=+counts[d.val]||0;
-              const sub=cnt*d.val;
-              return(
-                <div key={d.val} style={{display:'flex',alignItems:'center',gap:10,padding:'12px 14px',borderBottom:i<arr.length-1?`1px solid ${C.border}`:'none',background:cnt>0?C.yellow+'08':'transparent'}}>
-                  <div style={{width:52,height:34,borderRadius:8,background:cnt>0?C.yellow+'25':C.bg3,border:`1px solid ${cnt>0?C.yellow+'50':C.border}`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
-                    <span style={{fontSize:13,fontWeight:900,color:cnt>0?C.yellow:C.muted}}>{d.label}</span>
-                  </div>
-                  <div style={{flex:1}}>
-                    {cnt>0&&<div style={{fontSize:11,color:C.yellow,fontWeight:700}}>{cnt} шт = {fmt(sub)} SM</div>}
-                    {cnt===0&&<div style={{fontSize:11,color:C.dim}}>Количество</div>}
-                  </div>
-                  <div style={{display:'flex',alignItems:'center',gap:6}}>
-                    <button onClick={()=>set(d.val,Math.max(0,(+counts[d.val]||0)-1))} style={{width:34,height:34,borderRadius:9,background:C.bg3,border:`1px solid ${C.border}`,color:C.muted,fontSize:20,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'inherit'}}>−</button>
-                    <input type="number" value={counts[d.val]??''} onChange={e=>set(d.val,e.target.value)} placeholder="0"
-                      style={{width:52,padding:'7px 4px',borderRadius:9,textAlign:'center',background:C.bg,border:`1.5px solid ${cnt>0?C.yellow:C.border}`,color:cnt>0?C.yellow:C.text,fontSize:16,fontWeight:900,fontFamily:'inherit',outline:'none'}}/>
-                    <button onClick={()=>set(d.val,(+counts[d.val]||0)+1)} style={{width:34,height:34,borderRadius:9,background:C.yellow+'20',border:`1px solid ${C.yellow}40`,color:C.yellow,fontSize:20,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'inherit'}}>+</button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Кнопка сохранить */}
-        <div style={{padding:14}}>
-          <Btn bg={hasAny?C.green:C.bg3} color={hasAny?'#051a0e':C.dim} disabled={!hasAny} onClick={()=>onSave(total,totalBills,totalCoins)}>
-            {hasAny?`✓ Записать ${fmt(total)} SM в кассу`:'Введи количество купюр/монет'}
-          </Btn>
-        </div>
+        ))}
+        <div style={{padding:14}}><Btn bg={hasAny?C.green:C.bg3} color={hasAny?'#051a0e':C.dim} disabled={!hasAny} onClick={()=>onSave(total,totalBills,totalCoins)}>{hasAny?`✓ Записать ${fmt(total)} SM в кассу`:'Введи количество купюр/монет'}</Btn></div>
       </div>
     </div>
   );
@@ -1378,15 +1033,8 @@ function CashTab({tick}){
   const TYPE_ICON={remove:'➖',expense:'💸',revenue:'💰',add:'➕'};
   const TYPE_COLOR={remove:C.red,expense:C.red,revenue:C.green,add:C.green};
   const isPlus=t=>t==='revenue'||t==='add';
-  const save=async()=>{
-    if(!amount)return;
-    await dbInsert('cash_movements',{type:action,amount:+amount,description:desc.trim()||(action==='add'?'Внесено':'Снятие'),date:tod()});
-    setAmount(''); setDesc('');
-  };
-  const saveCounter=async(total,bills,coins)=>{
-    await dbInsert('cash_movements',{type:'add',amount:total,description:`Пересчёт: купюры ${fmt(bills)} SM + монеты ${fmt(coins)} SM`,date:tod()});
-    setShowCounter(false);
-  };
+  const save=async()=>{ if(!amount)return; await dbInsert('cash_movements',{type:action,amount:+amount,description:desc.trim()||(action==='add'?'Внесено':'Снятие'),date:tod()}); setAmount(''); setDesc(''); };
+  const saveCounter=async(total,bills,coins)=>{ await dbInsert('cash_movements',{type:'add',amount:total,description:`Пересчёт: купюры ${fmt(bills)} SM + монеты ${fmt(coins)} SM`,date:tod()}); setShowCounter(false); };
   return(
     <div style={{padding:14,paddingBottom:30}}>
       {showCounter&&<CashCounter onClose={()=>setShowCounter(false)} onSave={saveCounter}/>}
@@ -1400,12 +1048,9 @@ function CashTab({tick}){
         <div style={{flex:1,background:C.bg2,border:`1px solid ${C.border}`,borderRadius:14,padding:'12px 14px'}}><div style={{fontSize:9,fontWeight:800,color:C.dim,marginBottom:4}}>ПРИХОД СЕГОДНЯ</div><div style={{fontSize:18,fontWeight:900,color:C.green}}>+{fmt(todayIn)} SM</div></div>
         <div style={{flex:1,background:C.bg2,border:`1px solid ${C.border}`,borderRadius:14,padding:'12px 14px'}}><div style={{fontSize:9,fontWeight:800,color:C.dim,marginBottom:4}}>РАСХОД СЕГОДНЯ</div><div style={{fontSize:18,fontWeight:900,color:C.red}}>−{fmt(todayOut)} SM</div></div>
       </div>
-
-      {/* Кнопка пересчёта */}
       <button onClick={()=>setShowCounter(true)} style={{width:'100%',padding:15,borderRadius:14,background:'linear-gradient(135deg,#1a2a1a,#111120)',border:`1.5px solid ${C.green}40`,color:C.green,fontSize:15,fontWeight:900,cursor:'pointer',marginBottom:14,display:'flex',alignItems:'center',justifyContent:'center',gap:10,fontFamily:'inherit'}}>
         🪙 Пересчитать кассу по купюрам
       </button>
-
       <Card>
         <div style={{display:'flex',gap:8,marginBottom:14}}>
           <button onClick={()=>setAction('add')} style={{flex:1,padding:'11px 8px',borderRadius:11,cursor:'pointer',fontFamily:'inherit',fontSize:13,fontWeight:800,border:`1.5px solid ${action==='add'?C.green+'60':C.border}`,background:action==='add'?C.green+'18':C.bg2,color:action==='add'?C.green:C.dim}}>➕ Добавить</button>
@@ -1420,11 +1065,7 @@ function CashTab({tick}){
       movements.map(m=>(
         <div key={m.id} style={{display:'flex',alignItems:'center',gap:12,padding:'13px 16px',background:C.bg2,border:`1px solid ${C.border}`,borderRadius:14,marginBottom:8}}>
           <div style={{width:44,height:44,borderRadius:12,background:TYPE_COLOR[m.type]+'15',display:'flex',alignItems:'center',justifyContent:'center',fontSize:20,flexShrink:0}}>{TYPE_ICON[m.type]||'💵'}</div>
-          <div style={{flex:1,minWidth:0}}>
-            <div style={{fontSize:16,fontWeight:800,color:TYPE_COLOR[m.type]||C.muted,marginBottom:3}}>{isPlus(m.type)?'+':'−'}{fmt(m.amount)} SM</div>
-            <div style={{fontSize:12,color:C.muted}}>{TYPE_LABEL[m.type]||m.type}{m.description?` · ${m.description}`:''}</div>
-            <div style={{fontSize:11,color:C.dim,marginTop:2}}>{fmtD(m.date)} · {fmtT(m.created_at)}</div>
-          </div>
+          <div style={{flex:1,minWidth:0}}><div style={{fontSize:16,fontWeight:800,color:TYPE_COLOR[m.type]||C.muted,marginBottom:3}}>{isPlus(m.type)?'+':'−'}{fmt(m.amount)} SM</div><div style={{fontSize:12,color:C.muted}}>{TYPE_LABEL[m.type]||m.type}{m.description?` · ${m.description}`:''}</div><div style={{fontSize:11,color:C.dim,marginTop:2}}>{fmtD(m.date)} · {fmtT(m.created_at)}</div></div>
           <button onClick={()=>setDelId(m.id)} style={{background:'none',border:'none',color:C.dim,fontSize:20,cursor:'pointer',padding:4,flexShrink:0}}>🗑</button>
         </div>
       ))}
@@ -1438,15 +1079,16 @@ function App(){
   const [tick,setTick]=useState(0);
   const [toastMsg,setToastMsg]=useState(null);
 
+  const showToast=(msg,color)=>{ setToastMsg({msg,color}); setTimeout(()=>setToastMsg(null),3000); };
+
   useEffect(()=>{
     initDB().then(async()=>{
       const n=await autoWriteOffExpired();
-      if(n>0) showToast(`☠ Автоматически списано ${n} просроченных`,C.orange);
       setReady(true);
+      if(n>0) setTimeout(()=>{ setToastMsg({msg:`☠ Автосписание: ${n} просроченных убрано`,color:C.orange}); setTimeout(()=>setToastMsg(null),4000); },500);
     });
     return sub(()=>setTick(t=>t+1));
   },[]);
-  const showToast=(msg,color)=>{ setToastMsg({msg,color}); setTimeout(()=>setToastMsg(null),2500); };
 
   if(!ready) return(
     <div style={{background:C.bg,minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',gap:14,fontFamily:'system-ui'}}>
@@ -1457,26 +1099,20 @@ function App(){
     </div>
   );
 
-  const NAV=[
-    {id:'home',   icon:'🏠', label:'Главная'},
-    {id:'supply', icon:'🚚', label:'Поставки'},
-    {id:'expiry', icon:'☠️', label:'Сроки'},
-    {id:'revision',icon:'📦',label:'Ревизия'},
-    {id:'finance',icon:'💰', label:'Финансы'},
-  ];
-
+  const NAV=[{id:'home',icon:'🏠',label:'Главная'},{id:'supply',icon:'🚚',label:'Поставки'},{id:'expiry',icon:'☠️',label:'Сроки'},{id:'revision',icon:'📦',label:'Ревизия'},{id:'finance',icon:'💰',label:'Финансы'}];
   const diItems=dbGet('delivery_items');
+  // ✅ бейдж только для quantity>0
   const alertCount=diItems.filter(i=>i.expiry_date&&(+i.quantity||0)>0&&dLeft(i.expiry_date)<0).length+diItems.filter(i=>i.expiry_date&&(+i.quantity||0)>0&&dLeft(i.expiry_date)>=0&&dLeft(i.expiry_date)<=3).length;
 
   return(
     <div style={{background:C.bg,color:C.text,minHeight:'100vh',fontFamily:'system-ui,-apple-system,sans-serif',maxWidth:430,margin:'0 auto',paddingBottom:80}}>
       <style>{css}</style>
       <Toast msg={toastMsg?.msg} color={toastMsg?.color}/>
-      {tab==='home'    &&<Home     tick={tick}/>}
-      {tab==='supply'  &&<Suppliers tick={tick} toast={showToast}/>}
-      {tab==='expiry'  &&<Expiry   tick={tick}/>}
-      {tab==='revision'&&<Revision  tick={tick} toast={showToast}/>}
-      {tab==='finance' &&<Finance   tick={tick}/>}
+      {tab==='home'&&<Home tick={tick}/>}
+      {tab==='supply'&&<Suppliers tick={tick} toast={showToast}/>}
+      {tab==='expiry'&&<Expiry tick={tick}/>}
+      {tab==='revision'&&<Revision tick={tick} toast={showToast}/>}
+      {tab==='finance'&&<Finance tick={tick}/>}
       <div style={{position:'fixed',bottom:0,left:'50%',transform:'translateX(-50%)',width:'100%',maxWidth:430,background:'rgba(9,9,15,.97)',backdropFilter:'blur(20px)',borderTop:`1px solid ${C.border}`,display:'flex',zIndex:100,paddingBottom:'env(safe-area-inset-bottom,0)'}}>
         {NAV.map(n=>(
           <button key={n.id} onClick={()=>setTab(n.id)} style={{flex:1,padding:'10px 0 13px',background:'none',border:'none',borderTop:`2px solid ${tab===n.id?C.blue:'transparent'}`,cursor:'pointer',color:tab===n.id?C.blue:C.dim,display:'flex',flexDirection:'column',alignItems:'center',gap:2,fontFamily:'inherit',position:'relative'}}>
@@ -1490,8 +1126,8 @@ function App(){
   );
 }
 
-const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(<App />);
+const root=ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App/>);
 </script>
 </body>
 </html>

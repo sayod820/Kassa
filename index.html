@@ -11,14 +11,14 @@
 <style>*{box-sizing:border-box;margin:0;padding:0}body{background:#09090f}#root{max-width:430px;margin:0 auto}</style>
 </head>
 <body>
-   <script>
+      <script>
 const ALLOWED = [1095510997];
 const tg = window.Telegram?.WebApp?.initDataUnsafe?.user;
 if (tg && !ALLOWED.includes(tg.id)) {
   document.body.innerHTML = '<div style="background:#09090f;color:#fff;height:100vh;display:flex;align-items:center;justify-content:center;font-family:system-ui;flex-direction:column;text-align:center;padding:20px;position:fixed;top:0;left:0;width:100%;z-index:99999"><div style="font-size:80px">⛔</div><div style="font-size:24px;font-weight:900;color:#f04f5a;margin:15px 0">Доступ запрещён</div><div style="font-size:14px;color:#6868a0">Приложение только для владельца</div><div style="background:#111120;border:1px solid #1e1e38;border-radius:14px;padding:12px 20px;margin-top:25px"><div style="font-size:10px;color:#32324a;margin-bottom:5px">ВАШ ID</div><div style="font-size:18px;font-weight:800;color:#4466ff">'+tg.id+'</div></div></div>';
   window.stop();
 }
-   </script>
+      </script>
 <div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect, useRef } = React;
@@ -48,22 +48,7 @@ async function fetchAllProducts(){
   return all;
 }
 
-// ✅ АВТОСПИСАНИЕ просроченных при запуске
-async function autoWriteOffExpired(){
-  const today=tod();
-  const expired=DB.delivery_items.filter(i=>
-    i.expiry_date && i.expiry_date<today && (+i.quantity||0)>0
-  );
-  if(!expired.length) return 0;
-  await Promise.all(expired.map(item=>
-    fetch(`${SB}/delivery_items?id=eq.${item.id}`,{method:'PATCH',headers:H,body:JSON.stringify({quantity:0})})
-  ));
-  expired.forEach(item=>{
-    const idx=DB.delivery_items.findIndex(i=>i.id===item.id);
-    if(idx>=0) DB.delivery_items[idx]={...DB.delivery_items[idx],quantity:0};
-  });
-  return expired.length;
-}
+
 
 async function initDB(){
   try{
@@ -689,6 +674,14 @@ function Expiry({tick}){
                   <div><div style={{fontSize:9,fontWeight:800,letterSpacing:1.5,color:C.dim,marginBottom:3}}>ПАРТИЯ</div><div style={{fontSize:13,fontWeight:700,color:C.muted}}>до {fmtD(item.expiry_date)}</div></div>
                   <div style={{fontSize:12,fontWeight:900,padding:'4px 12px',borderRadius:10,background:st.color+'20',color:st.color,border:`1px solid ${st.color}40`}}>{st.label}</div>
                 </div>
+                <button onClick={async()=>{
+                  await fetch(`${SB}/delivery_items?id=eq.${item.id}`,{method:'PATCH',headers:H,body:JSON.stringify({quantity:0})});
+                  const idx=DB.delivery_items.findIndex(i=>i.id===item.id);
+                  if(idx>=0) DB.delivery_items[idx]={...DB.delivery_items[idx],quantity:0};
+                  pub();
+                }} style={{width:'100%',marginTop:10,padding:'11px',borderRadius:11,background:C.red+'15',border:`1px solid ${C.red}40`,color:C.red,fontSize:13,fontWeight:800,cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:6}}>
+                  🗑 Списать — убрать из списка
+                </button>
               </div>
             </div>
           );
@@ -1085,11 +1078,7 @@ function App(){
   const showToast=(msg,color)=>{ setToastMsg({msg,color}); setTimeout(()=>setToastMsg(null),3000); };
 
   useEffect(()=>{
-    initDB().then(async()=>{
-      const n=await autoWriteOffExpired();
-      setReady(true);
-      if(n>0) setTimeout(()=>{ setToastMsg({msg:`☠ Автосписание: ${n} просроченных убрано`,color:C.orange}); setTimeout(()=>setToastMsg(null),4000); },500);
-    });
+    initDB().then(()=>{ setReady(true); });
     return sub(()=>setTick(t=>t+1));
   },[]);
 

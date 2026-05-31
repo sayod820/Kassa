@@ -10,7 +10,7 @@
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <style>*{box-sizing:border-box;margin:0;padding:0}body{background:#09090f}#root{max-width:430px;margin:0 auto}</style>
 </head>
-<body> 
+<body>
       <script>
 const ALLOWED = [1095510997];
 const tg = window.Telegram?.WebApp?.initDataUnsafe?.user;
@@ -18,7 +18,7 @@ if (tg && !ALLOWED.includes(tg.id)) {
   document.body.innerHTML = '<div style="background:#09090f;color:#fff;height:100vh;display:flex;align-items:center;justify-content:center;font-family:system-ui;flex-direction:column;text-align:center;padding:20px;position:fixed;top:0;left:0;width:100%;z-index:99999"><div style="font-size:80px">⛔</div><div style="font-size:24px;font-weight:900;color:#f04f5a;margin:15px 0">Доступ запрещён</div><div style="font-size:14px;color:#6868a0">Приложение только для владельца</div><div style="background:#111120;border:1px solid #1e1e38;border-radius:14px;padding:12px 20px;margin-top:25px"><div style="font-size:10px;color:#32324a;margin-bottom:5px">ВАШ ID</div><div style="font-size:18px;font-weight:800;color:#4466ff">'+tg.id+'</div></div></div>';
   window.stop();
 }
-</script>
+      </script>
 <div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect, useRef } = React;
@@ -636,6 +636,25 @@ function calcFifoRemaining(deliveryItems,products){
 
 function Expiry({tick}){
   const [filter,setFilter]=useState('all');
+  const [refreshing,setRefreshing]=useState(false);
+  const [writeOff,setWriteOff]=useState({}); // {itemId: qty}
+
+  const doRefresh=async()=>{
+    setRefreshing(true);
+    const prod=await fetchAllProducts();
+    DB.products=Array.isArray(prod)?prod:[];
+    pub();
+    setRefreshing(false);
+  };
+
+  const doWriteOff=async(item,qty)=>{
+    const newQty=Math.max(0,(+item.quantity||0)-(+qty||0));
+    await fetch(`${SB}/delivery_items?id=eq.${item.id}`,{method:'PATCH',headers:H,body:JSON.stringify({quantity:newQty})});
+    const idx=DB.delivery_items.findIndex(i=>i.id===item.id);
+    if(idx>=0) DB.delivery_items[idx]={...DB.delivery_items[idx],quantity:newQty};
+    setWriteOff(p=>({...p,[item.id]:''}));
+    pub();
+  };
   const allItems=dbGet('delivery_items').filter(i=>i.expiry_date&&(+i.quantity||0)>0);
   const products=dbGet('products');
   const dels=dbGet('deliveries');
@@ -647,7 +666,9 @@ function Expiry({tick}){
   const FILTERS=[{id:'all',l:'Все'},{id:'expired',l:`☠ Просрочено${counts.expired?` (${counts.expired})`:''}`},{id:'critical',l:`⚠ До 3 дней${counts.critical?` (${counts.critical})`:''}`},{id:'week',l:'До 7 дней'},{id:'month',l:'До 30 дней'}];
   return(
     <>
-      <Hdr title="Сроки годности"/>
+      <Hdr title="Сроки годности">
+        <button onClick={doRefresh} style={{width:38,height:38,borderRadius:11,background:C.bg2,border:`1px solid ${C.border}`,color:refreshing?C.blue:C.muted,fontSize:18,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',animation:refreshing?'spin .7s linear infinite':'none'}}>↻</button>
+      </Hdr>
       <div style={{padding:14,paddingBottom:30}}>
         <div style={{display:'flex',gap:7,overflowX:'auto',paddingBottom:4,marginBottom:14}}>
           {FILTERS.map(f=>(
@@ -674,6 +695,28 @@ function Expiry({tick}){
                   <div><div style={{fontSize:9,fontWeight:800,letterSpacing:1.5,color:C.dim,marginBottom:3}}>ПАРТИЯ</div><div style={{fontSize:13,fontWeight:700,color:C.muted}}>до {fmtD(item.expiry_date)}</div></div>
                   <div style={{fontSize:12,fontWeight:900,padding:'4px 12px',borderRadius:10,background:st.color+'20',color:st.color,border:`1px solid ${st.color}40`}}>{st.label}</div>
                 </div>
+                {item.days<0&&(
+                  <div style={{marginTop:10,display:'flex',gap:8,alignItems:'center'}}>
+                    <div style={{flex:1}}>
+                      <div style={{fontSize:9,fontWeight:800,letterSpacing:1.5,color:C.dim,marginBottom:4}}>УБРАЛ СО СКЛАДА</div>
+                      <input type="number" placeholder={`макс. ${item.remaining||item.quantity}`}
+                        value={writeOff[item.id]||''}
+                        onChange={e=>setWriteOff(p=>({...p,[item.id]:e.target.value}))}
+                        style={{width:'100%',background:C.bg,border:`1.5px solid ${C.red}40`,borderRadius:10,padding:'9px 12px',color:C.text,fontSize:15,fontWeight:800,outline:'none',fontFamily:'inherit'}}/>
+                    </div>
+                    <button onClick={()=>{
+                      const qty=+writeOff[item.id]||0;
+                      if(qty<=0) return;
+                      doWriteOff(item,qty);
+                    }} style={{flexShrink:0,marginTop:18,padding:'10px 16px',borderRadius:10,background:C.red+'20',border:`1px solid ${C.red}40`,color:C.red,fontSize:13,fontWeight:800,cursor:'pointer',fontFamily:'inherit'}}>
+                      🗑 Списать
+                    </button>
+                    <button onClick={()=>doWriteOff(item,item.remaining||item.quantity)}
+                      style={{flexShrink:0,marginTop:18,padding:'10px 14px',borderRadius:10,background:'#f04f5a30',border:`1px solid ${C.red}60`,color:C.red,fontSize:12,fontWeight:800,cursor:'pointer',fontFamily:'inherit'}}>
+                      Всё
+                    </button>
+                  </div>
+                )}
 
               </div>
             </div>

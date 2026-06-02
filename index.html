@@ -48,11 +48,11 @@ async function fetchAllProducts(){
   return all;
 }
 
-None
+
 
 async function initDB(){
   try{
-    const [sup,del,di,prod,rev,ri,exp,rvn,cm,dp,dtx]=await Promise.all([
+    const [sup,del,di,prod,rev,ri,exp,rvn,cm]=await Promise.all([
       sbGet('suppliers','select=*&order=created_at.desc'),
       sbGet('deliveries','select=*&order=created_at.desc'),
       sbGet('delivery_items','select=*&order=created_at.desc'),
@@ -62,8 +62,6 @@ async function initDB(){
       sbGet('expenses','select=*&order=created_at.desc'),
       sbGet('revenue','select=*&order=created_at.desc'),
       sbGet('cash_movements','select=*&order=created_at.desc'),
-      sbGet('debt_people','select=*&order=created_at.desc'),
-      sbGet('debt_transactions','select=*&order=created_at.desc'),
     ]);
     DB.suppliers=Array.isArray(sup)?sup:[];
     DB.deliveries=Array.isArray(del)?del:[];
@@ -74,8 +72,18 @@ async function initDB(){
     DB.expenses=Array.isArray(exp)?exp:[];
     DB.revenue=Array.isArray(rvn)?rvn:[];
     DB.cash_movements=Array.isArray(cm)?cm:[];
-    DB.debt_people=Array.isArray(dp)?dp:[];
-    DB.debt_transactions=Array.isArray(dtx)?dtx:[];
+    // Таблицы долгов — отдельно, чтобы не ломать приложение
+    try{
+      const [dp,dtx]=await Promise.all([
+        sbGet('debt_people','select=*&order=created_at.desc'),
+        sbGet('debt_transactions','select=*&order=created_at.desc'),
+      ]);
+      DB.debt_people=Array.isArray(dp)?dp:[];
+      DB.debt_transactions=Array.isArray(dtx)?dtx:[];
+    }catch(e){
+      DB.debt_people=[];
+      DB.debt_transactions=[];
+    }
   }catch(e){ console.error('initDB error:',e); }
   _ready=true; pub();
 }
@@ -721,7 +729,7 @@ function Expiry({tick}){
                     </button>
                   </div>
                 )}
-None
+
               </div>
             </div>
           );
@@ -1229,7 +1237,4 @@ function RevenueTab({tick}){
   const totalRev=all.reduce((s,r)=>s+ +r.amount,0);
   const totalProfit=all.reduce((s,r)=>s+ +(r.profit||0),0);
   const todayRev=all.filter(r=>r.date===tod()).reduce((s,r)=>s+ +r.amount,0);
-  const save=async()=>{ if(!amount)return; await dbInsert('revenue',{amount:+amount,profit:gbsProfit?+gbsProfit:null,date,source:'manual'}); await dbInsert('cash_movements',{type:'revenue',amount:+amount,description:'Выручка',date}); setAmount(''); setGbsProfit(''); };
-  return(
-    <div style={{padding:14,paddingBottom:30}}>
-      {delItem&&<DelConfirm text={`Выручка ${fm
+  const save=async()=>{ if(!amount)return; await dbInsert('revenue',{amount:+amount,profit:gbsProfit?+gbsProfit:null,date,source:'manual'}); await dbInsert('cash_movements',{type:'reve

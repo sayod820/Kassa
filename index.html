@@ -31,7 +31,7 @@ async function sbGet(table,q=''){ const r=await fetch(`${SB}/${table}?${q}`,{hea
 async function sbPost(table,body){ const r=await fetch(`${SB}/${table}`,{method:'POST',headers:H,body:JSON.stringify(body)}); return r.json(); }
 async function sbDel(table,id){ await fetch(`${SB}/${table}?id=eq.${id}`,{method:'DELETE',headers:H}); }
 
-const DB={suppliers:[],deliveries:[],delivery_items:[],products:[],revisions:[],revision_items:[],expenses:[],revenue:[],cash_movements:[]};
+const DB={suppliers:[],deliveries:[],delivery_items:[],products:[],revisions:[],revision_items:[],expenses:[],revenue:[],cash_movements:[],debts:[]};
 let _ready=false,_subs=[];
 const pub=()=>_subs.forEach(fn=>fn());
 const sub=fn=>{ _subs.push(fn); return ()=>{ _subs=_subs.filter(f=>f!==fn); }; };
@@ -52,7 +52,7 @@ async function fetchAllProducts(){
 
 async function initDB(){
   try{
-    const [sup,del,di,prod,rev,ri,exp,rvn,cm]=await Promise.all([
+    const [sup,del,di,prod,rev,ri,exp,rvn,cm,dbt]=await Promise.all([
       sbGet('suppliers','select=*&order=created_at.desc'),
       sbGet('deliveries','select=*&order=created_at.desc'),
       sbGet('delivery_items','select=*&order=created_at.desc'),
@@ -62,6 +62,7 @@ async function initDB(){
       sbGet('expenses','select=*&order=created_at.desc'),
       sbGet('revenue','select=*&order=created_at.desc'),
       sbGet('cash_movements','select=*&order=created_at.desc'),
+      sbGet('debts','select=*&order=created_at.desc'),
     ]);
     DB.suppliers=Array.isArray(sup)?sup:[];
     DB.deliveries=Array.isArray(del)?del:[];
@@ -72,6 +73,7 @@ async function initDB(){
     DB.expenses=Array.isArray(exp)?exp:[];
     DB.revenue=Array.isArray(rvn)?rvn:[];
     DB.cash_movements=Array.isArray(cm)?cm:[];
+    DB.debts=Array.isArray(dbt)?dbt:[];
   }catch(e){ console.error('initDB error:',e); }
   _ready=true; pub();
 }
@@ -880,6 +882,146 @@ function RevisionView({revision,onBack,onDeleted}){
   );
 }
 
+// ════════════════════════════════════════════
+//  ДОЛГИ
+// ════════════════════════════════════════════
+function DebtsTab({tick}){
+  const [name,setName]=useState('');
+  const [amount,setAmount]=useState('');
+  const [type,setType]=useState('given');
+  const [desc,setDesc]=useState('');
+  const [repayVals,setRepayVals]=useState({});
+  const [delItem,setDelItem]=useState(null);
+  const [view,setView]=useState('active');
+
+  const debts=dbGet('debts').sort((a,b)=>b.created_at.localeCompare(a.created_at));
+  const active=debts.filter(d=>d.status==='active');
+  const paid=debts.filter(d=>d.status==='paid');
+  const totalGiven=active.filter(d=>d.type==='given').reduce((s,d)=>s+(+d.remaining_amount||0),0);
+  const totalTaken=active.filter(d=>d.type==='taken').reduce((s,d)=>s+(+d.remaining_amount||0),0);
+  const balance=totalGiven-totalTaken;
+
+  const save=async()=>{
+    if(!name.trim()||!amount)return;
+    await dbInsert('debts',{name:name.trim(),amount:+amount,remaining_amount:+amount,type,description:desc.trim(),date:tod(),status:'active'});
+    if(type==='given') await dbInsert('cash_movements',{type:'remove',amount:+amount,description:`💳 Дал в долг: ${name.trim()}`,date:tod()});
+    else await dbInsert('cash_movements',{type:'add',amount:+amount,description:`💳 Взял в долг: ${name.trim()}`,date:tod()});
+    setName('');setAmount('');setDesc('');
+  };
+
+  const repay=async(debt,val)=>{
+    const amt=Math.min(+val||0,+debt.remaining_amount||0);
+    if(amt<=0)return;
+    const newRem=+(+debt.remaining_amount-amt).toFixed(2);
+    const newStatus=newRem<=0?'paid':'active';
+    await fetch(`${SB}/debts?id=eq.${debt.id}`,{method:'PATCH',headers:H,body:JSON.stringify({remaining_amount:newRem,status:newStatus})});
+    const idx=DB.debts.findIndex(d=>d.id===debt.id);
+    if(idx>=0) DB.debts[idx]={...DB.debts[idx],remaining_amount:newRem,status:newStatus};
+    if(debt.type==='given') await dbInsert('cash_movements',{type:'add',amount:amt,description:`↩ Вернули долг: ${debt.name}`,date:tod()});
+    else await dbInsert('cash_movements',{type:'remove',amount:amt,description:`↩ Вернул долг: ${debt.name}`,date:tod()});
+    setRepayVals(p=>({...p,[debt.id]:''}));
+    pub();
+  };
+
+  return(
+    <div style={{padding:14,paddingBottom:30}}>
+      {delItem&&<DelConfirm text={`Удалить долг «${delItem.name}» ${fmt(delItem.remaining_amount)} SM?`} onConfirm={async()=>{await dbDelete('debts',delItem.id);setDelItem(null);}} onCancel={()=>setDelItem(null)}/>}
+
+      {/* Итоги */}
+      <div style={{background:`linear-gradient(135deg,${balance>=0?'#0d2d1a':'#2d0d12'},${C.bg2})`,border:`1.5px solid ${balance>=0?C.green+'50':C.red+'50'}`,borderRadius:20,padding:'18px 20px',marginBottom:12,textAlign:'center'}}>
+        <div style={{fontSize:9,fontWeight:800,letterSpacing:2.5,color:C.dim,marginBottom:6}}>БАЛАНС ДОЛГОВ</div>
+        <div style={{fontSize:40,fontWeight:900,color:balance>=0?C.green:C.red,letterSpacing:-1}}>{balance>=0?'+':''}{fmt(balance)} SM</div>
+        <div style={{display:'flex',justifyContent:'center',gap:24,marginTop:10}}>
+          <div style={{textAlign:'center'}}><div style={{fontSize:9,color:C.dim,fontWeight:800,marginBottom:2}}>💸 МНЕ ДОЛЖНЫ</div><div style={{fontSize:15,fontWeight:900,color:C.green}}>{fmt(totalGiven)} SM</div></div>
+          <div style={{width:1,background:C.border}}/>
+          <div style={{textAlign:'center'}}><div style={{fontSize:9,color:C.dim,fontWeight:800,marginBottom:2}}>💰 Я ДОЛЖЕН</div><div style={{fontSize:15,fontWeight:900,color:C.red}}>{fmt(totalTaken)} SM</div></div>
+        </div>
+      </div>
+
+      {/* Форма */}
+      <Card>
+        <div style={{fontSize:11,fontWeight:800,letterSpacing:2,color:C.dim,marginBottom:12}}>НОВЫЙ ДОЛГ</div>
+        <div style={{display:'flex',gap:8,marginBottom:14}}>
+          <button onClick={()=>setType('given')} style={{flex:1,padding:'12px 8px',borderRadius:12,cursor:'pointer',fontFamily:'inherit',fontSize:13,fontWeight:800,border:`1.5px solid ${type==='given'?C.green+'70':C.border}`,background:type==='given'?C.green+'18':C.bg2,color:type==='given'?C.green:C.dim}}>💸 Дал в долг</button>
+          <button onClick={()=>setType('taken')} style={{flex:1,padding:'12px 8px',borderRadius:12,cursor:'pointer',fontFamily:'inherit',fontSize:13,fontWeight:800,border:`1.5px solid ${type==='taken'?C.red+'70':C.border}`,background:type==='taken'?C.red+'18':C.bg2,color:type==='taken'?C.red:C.dim}}>💰 Взял в долг</button>
+        </div>
+        <TI label="КТО (имя / фирма)" placeholder="Например: Алишер, Фирма Сорбон..." value={name} onChange={setName} autoFocus/>
+        <TI label="СУММА (SM)" type="number" placeholder="0.00" value={amount} onChange={setAmount}/>
+        <TI label="ОПИСАНИЕ (необязательно)" placeholder="Причина..." value={desc} onChange={setDesc}/>
+        <Btn bg={type==='given'?C.green:C.red} color={type==='given'?'#051a0e':'#fff'} onClick={save} disabled={!name.trim()||!amount}>
+          {type==='given'?'💸 Дал в долг → спишется с кассы':'💰 Взял в долг → добавится в кассу'}
+        </Btn>
+      </Card>
+
+      {/* Вкладки */}
+      <div style={{display:'flex',gap:6,marginBottom:14}}>
+        <button onClick={()=>setView('active')} style={{flex:1,padding:'10px',borderRadius:11,cursor:'pointer',fontFamily:'inherit',fontSize:12,fontWeight:800,border:`1.5px solid ${view==='active'?C.blue+'60':C.border}`,background:view==='active'?C.blue+'18':C.bg2,color:view==='active'?C.blue:C.dim}}>⏳ Активные · {active.length}</button>
+        <button onClick={()=>setView('history')} style={{flex:1,padding:'10px',borderRadius:11,cursor:'pointer',fontFamily:'inherit',fontSize:12,fontWeight:800,border:`1.5px solid ${view==='history'?C.green+'60':C.border}`,background:view==='history'?C.green+'18':C.bg2,color:view==='history'?C.green:C.dim}}>✅ Закрытые · {paid.length}</button>
+      </div>
+
+      {/* Список */}
+      {(view==='active'?active:paid).length===0?<Empty icon={view==='active'?'🤝':'✅'} text={view==='active'?'Нет активных долгов':'Нет закрытых долгов'}/>:
+      (view==='active'?active:paid).map(debt=>{
+        const isGiven=debt.type==='given';
+        const clr=isGiven?C.green:C.red;
+        const pct=debt.amount>0?Math.round(((+debt.amount-(+debt.remaining_amount||0))/+debt.amount)*100):100;
+        return(
+          <div key={debt.id} className="fu" style={{background:C.bg2,border:`1.5px solid ${clr}30`,borderRadius:18,marginBottom:12,overflow:'hidden'}}>
+            {/* Прогресс бар */}
+            <div style={{height:4,background:C.bg3}}><div style={{width:`${pct}%`,height:'100%',background:clr+'90',transition:'width .3s'}}/></div>
+            <div style={{padding:'14px 16px'}}>
+              {/* Шапка */}
+              <div style={{display:'flex',alignItems:'flex-start',gap:12,marginBottom:10}}>
+                <div style={{width:44,height:44,borderRadius:13,background:clr+'20',display:'flex',alignItems:'center',justifyContent:'center',fontSize:22,flexShrink:0}}>{isGiven?'💸':'💰'}</div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:16,fontWeight:900,marginBottom:2}}>{debt.name}</div>
+                  <div style={{fontSize:11,fontWeight:700,color:clr,marginBottom:4}}>{isGiven?'Дал в долг':'Взял в долг'}</div>
+                  {debt.description&&<div style={{fontSize:12,color:C.dim}}>📝 {debt.description}</div>}
+                </div>
+                <div style={{textAlign:'right',flexShrink:0}}>
+                  <div style={{fontSize:22,fontWeight:900,color:clr}}>{fmt(+debt.remaining_amount||0)}</div>
+                  <div style={{fontSize:10,color:C.dim}}>SM</div>
+                  {+debt.remaining_amount<+debt.amount&&<div style={{fontSize:10,color:C.orange,marginTop:2}}>из {fmt(debt.amount)}</div>}
+                </div>
+              </div>
+
+              {/* Бейджи */}
+              <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:10}}>
+                <Badge color={C.muted}>{fmtD(debt.date)}</Badge>
+                {pct>0&&pct<100&&<Badge color={C.orange}>оплачено {pct}%</Badge>}
+                {debt.status==='paid'&&<Badge color={C.green}>✓ Закрыт</Badge>}
+              </div>
+
+              {/* Погашение */}
+              {debt.status==='active'&&(
+                <div style={{background:C.bg3,borderRadius:12,padding:'12px 14px'}}>
+                  <div style={{fontSize:9,fontWeight:800,color:C.dim,marginBottom:8}}>{isGiven?'↩ ВЕРНУЛИ':'↩ ВОЗВРАЩАЮ'} (SM)</div>
+                  <div style={{display:'flex',gap:8,alignItems:'center'}}>
+                    <input type="number" placeholder={String(+debt.remaining_amount||0)} value={repayVals[debt.id]||''}
+                      onChange={e=>setRepayVals(p=>({...p,[debt.id]:e.target.value}))}
+                      style={{flex:1,background:C.bg,border:`1.5px solid ${clr}40`,borderRadius:10,padding:'10px 12px',color:C.text,fontSize:16,fontWeight:800,outline:'none',fontFamily:'inherit'}}/>
+                    <button onClick={()=>repay(debt,repayVals[debt.id]||debt.remaining_amount)}
+                      style={{padding:'10px 16px',borderRadius:10,background:clr+'25',border:`1px solid ${clr}50`,color:clr,fontSize:13,fontWeight:800,cursor:'pointer',fontFamily:'inherit',flexShrink:0}}>
+                      {isGiven?'Получил':'Вернул'}
+                    </button>
+                    <button onClick={()=>repay(debt,debt.remaining_amount)}
+                      style={{padding:'10px 12px',borderRadius:10,background:clr+'40',border:`1px solid ${clr}70`,color:clr,fontSize:12,fontWeight:800,cursor:'pointer',fontFamily:'inherit',flexShrink:0}}>
+                      Всё
+                    </button>
+                  </div>
+                </div>
+              )}
+              <div style={{display:'flex',justifyContent:'flex-end',marginTop:8}}>
+                <button onClick={()=>setDelItem(debt)} style={{background:'none',border:'none',color:C.dim,fontSize:18,cursor:'pointer',padding:4}}>🗑</button>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function Finance({tick}){
   const [tab,setTab]=useState('expenses');
   const exp=dbGet('expenses'),rev=dbGet('revenue'),cash=dbGet('cash_movements');
@@ -895,13 +1037,14 @@ function Finance({tick}){
         <div style={{display:'flex',gap:8,marginBottom:12}}>
           {[['Выручка',`+${fmt(todayRev)}`,C.green],['Расходы',`−${fmt(todayExp)}`,C.red],['Касса',`${fmt(Math.abs(cashBal))}`,cashBal>=0?C.blue:C.red]].map(([l,v,c])=>(<div key={l} style={{flex:1,background:C.bg3,borderRadius:10,padding:'8px 10px'}}><div style={{fontSize:8,fontWeight:800,letterSpacing:1,color:C.dim,marginBottom:3}}>{l.toUpperCase()}</div><div style={{fontSize:13,fontWeight:900,color:c}}>{v}</div></div>))}
         </div>
-        <div style={{display:'flex',gap:6}}>
-          {[['expenses','💸 Расходы'],['revenue','💰 Выручка'],['cash','🏧 Касса']].map(([id,l])=>(<button key={id} onClick={()=>setTab(id)} style={{flex:1,padding:'9px 4px',borderRadius:11,cursor:'pointer',fontFamily:'inherit',fontSize:11,fontWeight:800,border:`1.5px solid ${tab===id?C.blue+'60':C.border}`,background:tab===id?C.blue+'18':C.bg2,color:tab===id?C.blue:C.dim}}>{l}</button>))}
+        <div style={{display:'flex',gap:6,overflowX:'auto',paddingBottom:2}}>
+          {[['expenses','💸 Расходы'],['revenue','💰 Выручка'],['cash','🏧 Касса'],['debts','🤝 Долги']].map(([id,l])=>(<button key={id} onClick={()=>setTab(id)} style={{flexShrink:0,padding:'9px 14px',borderRadius:11,cursor:'pointer',fontFamily:'inherit',fontSize:11,fontWeight:800,border:`1.5px solid ${tab===id?C.blue+'60':C.border}`,background:tab===id?C.blue+'18':C.bg2,color:tab===id?C.blue:C.dim}}>{l}</button>))}
         </div>
       </div>
       {tab==='expenses'&&<ExpensesTab tick={tick}/>}
       {tab==='revenue'&&<RevenueTab tick={tick}/>}
       {tab==='cash'&&<CashTab tick={tick}/>}
+      {tab==='debts'&&<DebtsTab tick={tick}/>}
     </>
   );
 }
@@ -1036,130 +1179,4 @@ function CashCounter({onClose,onSave}){
                     <div style={{display:'flex',alignItems:'center',gap:6}}>
                       <button onClick={()=>set(d.val,Math.max(0,(+counts[d.val]||0)-1))} style={{width:34,height:34,borderRadius:9,background:C.bg3,border:`1px solid ${C.border}`,color:C.muted,fontSize:20,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'inherit'}}>−</button>
                       <input type="number" value={counts[d.val]??''} onChange={e=>set(d.val,e.target.value)} placeholder="0" style={{width:52,padding:'7px 4px',borderRadius:9,textAlign:'center',background:C.bg,border:`1.5px solid ${cnt>0?clr:C.border}`,color:cnt>0?clr:C.text,fontSize:16,fontWeight:900,fontFamily:'inherit',outline:'none'}}/>
-                      <button onClick={()=>set(d.val,(+counts[d.val]||0)+1)} style={{width:34,height:34,borderRadius:9,background:clr+'20',border:`1px solid ${clr}40`,color:clr,fontSize:20,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'inherit'}}>+</button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        ))}
-        <div style={{padding:14}}><Btn bg={hasAny?C.green:C.bg3} color={hasAny?'#051a0e':C.dim} disabled={!hasAny} onClick={()=>onSave(total,totalBills,totalCoins)}>{hasAny?`✓ Записать ${fmt(total)} SM в кассу`:'Введи количество купюр/монет'}</Btn></div>
-      </div>
-    </div>
-  );
-}
-
-function CashTab({tick}){
-  const [action,setAction]=useState('add');
-  const [amount,setAmount]=useState('');
-  const [desc,setDesc]=useState('');
-  const [delId,setDelId]=useState(null);
-  const [showCounter,setShowCounter]=useState(false);
-  const movements=dbGet('cash_movements').sort((a,b)=>b.created_at.localeCompare(a.created_at));
-  let balance=0; movements.forEach(m=>{ if(m.type==='add'||m.type==='revenue') balance+= +m.amount; else balance-= +m.amount; });
-  const todayMov=movements.filter(m=>m.date===tod());
-  const todayIn=todayMov.filter(m=>m.type==='add'||m.type==='revenue').reduce((s,m)=>s+ +m.amount,0);
-  const todayOut=todayMov.filter(m=>m.type!=='add'&&m.type!=='revenue').reduce((s,m)=>s+ +m.amount,0);
-  const TYPE_LABEL={remove:'Снято',expense:'Расход',revenue:'Выручка',add:'Добавлено'};
-  const TYPE_ICON={remove:'➖',expense:'💸',revenue:'💰',add:'➕'};
-  const TYPE_COLOR={remove:C.red,expense:C.red,revenue:C.green,add:C.green};
-  const isPlus=t=>t==='revenue'||t==='add';
-  const save=async()=>{ if(!amount)return; await dbInsert('cash_movements',{type:action,amount:+amount,description:desc.trim()||(action==='add'?'Внесено':'Снятие'),date:tod()}); setAmount(''); setDesc(''); };
-  const saveCounter=async(total,bills,coins)=>{ await dbInsert('cash_movements',{type:'add',amount:total,description:`Пересчёт: купюры ${fmt(bills)} SM + монеты ${fmt(coins)} SM`,date:tod()}); setShowCounter(false); };
-  return(
-    <div style={{padding:14,paddingBottom:30}}>
-      {showCounter&&<CashCounter onClose={()=>setShowCounter(false)} onSave={saveCounter}/>}
-      {delId&&<DelConfirm text="Запись движения кассы будет удалена" onConfirm={async()=>{ await dbDelete('cash_movements',delId); setDelId(null); }} onCancel={()=>setDelId(null)}/>}
-      <div style={{background:C.bg2,border:`1.5px solid ${balance>=0?C.green+'40':C.red+'40'}`,borderRadius:18,padding:'22px 20px',marginBottom:10,textAlign:'center'}}>
-        <div style={{fontSize:10,fontWeight:800,letterSpacing:2.5,color:C.dim,marginBottom:8}}>НАЛИЧНЫЕ В КАССЕ</div>
-        <div style={{fontSize:46,fontWeight:900,color:balance>=0?C.green:C.red,letterSpacing:-1}}>{fmt(Math.abs(balance))} SM</div>
-        {balance<0&&<div style={{fontSize:13,color:C.red,marginTop:8,fontWeight:700}}>⚠ Касса в минусе!</div>}
-      </div>
-      <div style={{display:'flex',gap:8,marginBottom:14}}>
-        <div style={{flex:1,background:C.bg2,border:`1px solid ${C.border}`,borderRadius:14,padding:'12px 14px'}}><div style={{fontSize:9,fontWeight:800,color:C.dim,marginBottom:4}}>ПРИХОД СЕГОДНЯ</div><div style={{fontSize:18,fontWeight:900,color:C.green}}>+{fmt(todayIn)} SM</div></div>
-        <div style={{flex:1,background:C.bg2,border:`1px solid ${C.border}`,borderRadius:14,padding:'12px 14px'}}><div style={{fontSize:9,fontWeight:800,color:C.dim,marginBottom:4}}>РАСХОД СЕГОДНЯ</div><div style={{fontSize:18,fontWeight:900,color:C.red}}>−{fmt(todayOut)} SM</div></div>
-      </div>
-      <button onClick={()=>setShowCounter(true)} style={{width:'100%',padding:15,borderRadius:14,background:'linear-gradient(135deg,#1a2a1a,#111120)',border:`1.5px solid ${C.green}40`,color:C.green,fontSize:15,fontWeight:900,cursor:'pointer',marginBottom:14,display:'flex',alignItems:'center',justifyContent:'center',gap:10,fontFamily:'inherit'}}>
-        🪙 Пересчитать кассу по купюрам
-      </button>
-      <Card>
-        <div style={{display:'flex',gap:8,marginBottom:14}}>
-          <button onClick={()=>setAction('add')} style={{flex:1,padding:'11px 8px',borderRadius:11,cursor:'pointer',fontFamily:'inherit',fontSize:13,fontWeight:800,border:`1.5px solid ${action==='add'?C.green+'60':C.border}`,background:action==='add'?C.green+'18':C.bg2,color:action==='add'?C.green:C.dim}}>➕ Добавить</button>
-          <button onClick={()=>setAction('remove')} style={{flex:1,padding:'11px 8px',borderRadius:11,cursor:'pointer',fontFamily:'inherit',fontSize:13,fontWeight:800,border:`1.5px solid ${action==='remove'?C.red+'60':C.border}`,background:action==='remove'?C.red+'18':C.bg2,color:action==='remove'?C.red:C.dim}}>➖ Снять</button>
-        </div>
-        <TI label="СУММА (SM)" type="number" placeholder="0.00" value={amount} onChange={setAmount} autoFocus/>
-        <TI label="ОПИСАНИЕ" placeholder={action==='add'?'Откуда...':'Куда снял...'} value={desc} onChange={setDesc}/>
-        <Btn bg={action==='add'?C.green:C.red} color={action==='add'?'#051a0e':'#fff'} onClick={save} disabled={!amount}>{action==='add'?'+ Добавить в кассу':'− Снять из кассы'}</Btn>
-      </Card>
-      <SecLabel>История движений · {movements.length}</SecLabel>
-      {!movements.length?<Empty icon="🏧" text="Движений нет"/>:
-      movements.map(m=>(
-        <div key={m.id} style={{display:'flex',alignItems:'center',gap:12,padding:'13px 16px',background:C.bg2,border:`1px solid ${C.border}`,borderRadius:14,marginBottom:8}}>
-          <div style={{width:44,height:44,borderRadius:12,background:TYPE_COLOR[m.type]+'15',display:'flex',alignItems:'center',justifyContent:'center',fontSize:20,flexShrink:0}}>{TYPE_ICON[m.type]||'💵'}</div>
-          <div style={{flex:1,minWidth:0}}><div style={{fontSize:16,fontWeight:800,color:TYPE_COLOR[m.type]||C.muted,marginBottom:3}}>{isPlus(m.type)?'+':'−'}{fmt(m.amount)} SM</div><div style={{fontSize:12,color:C.muted}}>{TYPE_LABEL[m.type]||m.type}{m.description?` · ${m.description}`:''}</div><div style={{fontSize:11,color:C.dim,marginTop:2}}>{fmtD(m.date)} · {fmtT(m.created_at)}</div></div>
-          <button onClick={()=>setDelId(m.id)} style={{background:'none',border:'none',color:C.dim,fontSize:20,cursor:'pointer',padding:4,flexShrink:0}}>🗑</button>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function App(){
-  const [ready,setReady]=useState(false);
-  const [tab,setTab]=useState('home');
-  const [tick,setTick]=useState(0);
-  const [toastMsg,setToastMsg]=useState(null);
-
-  const showToast=(msg,color)=>{ setToastMsg({msg,color}); setTimeout(()=>setToastMsg(null),3000); };
-
-  useEffect(()=>{
-    initDB().then(()=>{ setReady(true); });
-    return sub(()=>setTick(t=>t+1));
-  },[]);
-
-  if(!ready) return(
-    <div style={{background:C.bg,minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',gap:14,fontFamily:'system-ui'}}>
-      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-      <div style={{fontSize:56}}>🏪</div>
-      <div style={{fontSize:20,fontWeight:900,color:'#eeeeff'}}>KassaControl</div>
-      <div style={{width:28,height:28,border:'2px solid #1e1e38',borderTopColor:'#4466ff',borderRadius:'50%',animation:'spin .7s linear infinite'}}/>
-    </div>
-  );
-
-  const NAV=[{id:'home',icon:'🏠',label:'Главная'},{id:'supply',icon:'🚚',label:'Поставки'},{id:'expiry',icon:'☠️',label:'Сроки'},{id:'revision',icon:'📦',label:'Ревизия'},{id:'finance',icon:'💰',label:'Финансы'}];
-  const diItems=dbGet('delivery_items');
-  const products2=dbGet('products');
-  const allExp2=diItems.filter(i=>i.expiry_date&&(+i.quantity||0)>0);
-  const fifo2=calcFifoRemaining(allExp2,products2);
-  const alertItems=fifo2.filter(i=>i.remaining>0);
-  // ✅ бейдж = те же числа что в разделе Сроки
-  const alertCount=alertItems.filter(i=>dLeft(i.expiry_date)<0).length+alertItems.filter(i=>dLeft(i.expiry_date)>=0&&dLeft(i.expiry_date)<=3).length;
-
-  return(
-    <div style={{background:C.bg,color:C.text,minHeight:'100vh',fontFamily:'system-ui,-apple-system,sans-serif',maxWidth:430,margin:'0 auto',paddingBottom:80}}>
-      <style>{css}</style>
-      <Toast msg={toastMsg?.msg} color={toastMsg?.color}/>
-      {tab==='home'&&<Home tick={tick}/>}
-      {tab==='supply'&&<Suppliers tick={tick} toast={showToast}/>}
-      {tab==='expiry'&&<Expiry tick={tick}/>}
-      {tab==='revision'&&<Revision tick={tick} toast={showToast}/>}
-      {tab==='finance'&&<Finance tick={tick}/>}
-      <div style={{position:'fixed',bottom:0,left:'50%',transform:'translateX(-50%)',width:'100%',maxWidth:430,background:'rgba(9,9,15,.97)',backdropFilter:'blur(20px)',borderTop:`1px solid ${C.border}`,display:'flex',zIndex:100,paddingBottom:'env(safe-area-inset-bottom,0)'}}>
-        {NAV.map(n=>(
-          <button key={n.id} onClick={()=>setTab(n.id)} style={{flex:1,padding:'10px 0 13px',background:'none',border:'none',borderTop:`2px solid ${tab===n.id?C.blue:'transparent'}`,cursor:'pointer',color:tab===n.id?C.blue:C.dim,display:'flex',flexDirection:'column',alignItems:'center',gap:2,fontFamily:'inherit',position:'relative'}}>
-            <span style={{fontSize:21}}>{n.icon}</span>
-            <span style={{fontSize:9,fontWeight:800,letterSpacing:.5,textTransform:'uppercase'}}>{n.label}</span>
-            {n.id==='expiry'&&alertCount>0&&<span style={{position:'absolute',top:6,right:'50%',transform:'translateX(8px)',background:C.red,borderRadius:10,minWidth:16,height:16,fontSize:10,fontWeight:900,color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',padding:'0 4px'}}>{alertCount}</span>}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-const root=ReactDOM.createRoot(document.getElementById('root'));
-root.render(<App/>);
-</script>
-</body>
-</html>
+                      <button onClick={()=>set(d.val,(+counts[d.val]||0)+1)} style={{width:34,height:34,borderRadius:9,background:clr+'20',bord

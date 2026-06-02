@@ -31,7 +31,7 @@ async function sbGet(table,q=''){ const r=await fetch(`${SB}/${table}?${q}`,{hea
 async function sbPost(table,body){ const r=await fetch(`${SB}/${table}`,{method:'POST',headers:H,body:JSON.stringify(body)}); return r.json(); }
 async function sbDel(table,id){ await fetch(`${SB}/${table}?id=eq.${id}`,{method:'DELETE',headers:H}); }
 
-const DB={suppliers:[],deliveries:[],delivery_items:[],products:[],revisions:[],revision_items:[],expenses:[],revenue:[],cash_movements:[],debts:[]};
+const DB={suppliers:[],deliveries:[],delivery_items:[],products:[],revisions:[],revision_items:[],expenses:[],revenue:[],cash_movements:[],debt_people:[],debt_transactions:[]};
 let _ready=false,_subs=[];
 const pub=()=>_subs.forEach(fn=>fn());
 const sub=fn=>{ _subs.push(fn); return ()=>{ _subs=_subs.filter(f=>f!==fn); }; };
@@ -48,11 +48,11 @@ async function fetchAllProducts(){
   return all;
 }
 
-
+None
 
 async function initDB(){
   try{
-    const [sup,del,di,prod,rev,ri,exp,rvn,cm,dbt]=await Promise.all([
+    const [sup,del,di,prod,rev,ri,exp,rvn,cm,dp,dtx]=await Promise.all([
       sbGet('suppliers','select=*&order=created_at.desc'),
       sbGet('deliveries','select=*&order=created_at.desc'),
       sbGet('delivery_items','select=*&order=created_at.desc'),
@@ -62,7 +62,8 @@ async function initDB(){
       sbGet('expenses','select=*&order=created_at.desc'),
       sbGet('revenue','select=*&order=created_at.desc'),
       sbGet('cash_movements','select=*&order=created_at.desc'),
-      sbGet('debts','select=*&order=created_at.desc'),
+      sbGet('debt_people','select=*&order=created_at.desc'),
+      sbGet('debt_transactions','select=*&order=created_at.desc'),
     ]);
     DB.suppliers=Array.isArray(sup)?sup:[];
     DB.deliveries=Array.isArray(del)?del:[];
@@ -73,7 +74,8 @@ async function initDB(){
     DB.expenses=Array.isArray(exp)?exp:[];
     DB.revenue=Array.isArray(rvn)?rvn:[];
     DB.cash_movements=Array.isArray(cm)?cm:[];
-    DB.debts=Array.isArray(dbt)?dbt:[];
+    DB.debt_people=Array.isArray(dp)?dp:[];
+    DB.debt_transactions=Array.isArray(dtx)?dtx:[];
   }catch(e){ console.error('initDB error:',e); }
   _ready=true; pub();
 }
@@ -719,7 +721,7 @@ function Expiry({tick}){
                     </button>
                   </div>
                 )}
-
+None
               </div>
             </div>
           );
@@ -885,144 +887,264 @@ function RevisionView({revision,onBack,onDeleted}){
 // ════════════════════════════════════════════
 //  ДОЛГИ
 // ════════════════════════════════════════════
-function DebtsTab({tick}){
-  const [name,setName]=useState('');
-  const [amount,setAmount]=useState('');
-  const [type,setType]=useState('given');
-  const [desc,setDesc]=useState('');
-  const [repayVals,setRepayVals]=useState({});
-  const [delItem,setDelItem]=useState(null);
-  const [view,setView]=useState('active');
+const DCAT={friend:{label:'Друг',icon:'👤',color:'#4466ff'},company:{label:'Фирма',icon:'🏢',color:'#f09040'},iowe:{label:'Я должен',icon:'💳',color:'#f04f5a'}};
 
-  const debts=dbGet('debts').sort((a,b)=>b.created_at.localeCompare(a.created_at));
-  const active=debts.filter(d=>d.status==='active');
-  const paid=debts.filter(d=>d.status==='paid');
-  const totalGiven=active.filter(d=>d.type==='given').reduce((s,d)=>s+(+d.remaining_amount||0),0);
-  const totalTaken=active.filter(d=>d.type==='taken').reduce((s,d)=>s+(+d.remaining_amount||0),0);
-  const balance=totalGiven-totalTaken;
+function DebtsScreen({tick,toast}){
+  const [screen,setScreen]=useState('list');
+  const [selPerson,setSelPerson]=useState(null);
+  const [filterCat,setFilterCat]=useState('all');
+  const [search,setSearch]=useState('');
+  const [apName,setApName]=useState('');
+  const [apCat,setApCat]=useState('friend');
+  const [apPhone,setApPhone]=useState('');
+  const [apNote,setApNote]=useState('');
+  const [txAmt,setTxAmt]=useState('');
+  const [txDir,setTxDir]=useState('give');
+  const [txNote,setTxNote]=useState('');
+  const [txMode,setTxMode]=useState(false);
+  const [delPerson,setDelPerson]=useState(null);
+  const [delTx,setDelTx]=useState(null);
+  const [saving,setSaving]=useState(false);
 
-  const save=async()=>{
-    if(!name.trim()||!amount)return;
-    await dbInsert('debts',{name:name.trim(),amount:+amount,remaining_amount:+amount,type,description:desc.trim(),date:tod(),status:'active'});
-    if(type==='given') await dbInsert('cash_movements',{type:'remove',amount:+amount,description:`💳 Дал в долг: ${name.trim()}`,date:tod()});
-    else await dbInsert('cash_movements',{type:'add',amount:+amount,description:`💳 Взял в долг: ${name.trim()}`,date:tod()});
-    setName('');setAmount('');setDesc('');
+  const people=dbGet('debt_people');
+  const txs=dbGet('debt_transactions');
+  const getBalance=pid=>txs.filter(t=>t.person_id===pid).reduce((s,t)=>s+(+t.amount||0),0);
+  const getPersonTxs=pid=>[...txs.filter(t=>t.person_id===pid)].sort((a,b)=>b.created_at.localeCompare(a.created_at));
+  const totalOwedToMe=people.filter(p=>p.category!=='iowe').reduce((s,p)=>{const b=getBalance(p.id);return b<0?s+Math.abs(b):s;},0);
+  const totalIOwe=people.reduce((s,p)=>{const b=getBalance(p.id);return b>0?s+b:s;},0);
+
+  const filteredPeople=[...people].filter(p=>{
+    if(filterCat!=='all'&&p.category!==filterCat)return false;
+    if(search.trim()&&!p.name.toLowerCase().includes(search.toLowerCase()))return false;
+    return true;
+  }).sort((a,b)=>Math.abs(getBalance(b.id))-Math.abs(getBalance(a.id)));
+
+  const addPerson=async()=>{
+    if(!apName.trim())return;
+    setSaving(true);
+    await dbInsert('debt_people',{name:apName.trim(),category:apCat,phone:apPhone.trim(),note:apNote.trim()});
+    toast('✓ Контакт добавлен');
+    setApName('');setApPhone('');setApNote('');setApCat('friend');
+    setSaving(false); setScreen('list');
   };
 
-  const repay=async(debt,val)=>{
-    const amt=Math.min(+val||0,+debt.remaining_amount||0);
-    if(amt<=0)return;
-    const newRem=+(+debt.remaining_amount-amt).toFixed(2);
-    const newStatus=newRem<=0?'paid':'active';
-    await fetch(`${SB}/debts?id=eq.${debt.id}`,{method:'PATCH',headers:H,body:JSON.stringify({remaining_amount:newRem,status:newStatus})});
-    const idx=DB.debts.findIndex(d=>d.id===debt.id);
-    if(idx>=0) DB.debts[idx]={...DB.debts[idx],remaining_amount:newRem,status:newStatus};
-    if(debt.type==='given') await dbInsert('cash_movements',{type:'add',amount:amt,description:`↩ Вернули долг: ${debt.name}`,date:tod()});
-    else await dbInsert('cash_movements',{type:'remove',amount:amt,description:`↩ Вернул долг: ${debt.name}`,date:tod()});
-    setRepayVals(p=>({...p,[debt.id]:''}));
-    pub();
+  const addTx=async()=>{
+    if(!txAmt||!selPerson)return;
+    setSaving(true);
+    const amt=txDir==='give'?-(+txAmt):(+txAmt);
+    const personName=selPerson.name;
+    await dbInsert('debt_transactions',{person_id:selPerson.id,amount:amt,note:txNote.trim()});
+    // ✅ Соединение с кассой
+    if(txDir==='give'){
+      await dbInsert('cash_movements',{type:'remove',amount:+txAmt,description:`🤝 Дал в долг: ${personName}`,date:tod()});
+      toast(`💸 Дал ${fmt(+txAmt)} SM — списано с кассы`);
+    } else {
+      await dbInsert('cash_movements',{type:'add',amount:+txAmt,description:`🤝 Вернули долг: ${personName}`,date:tod()});
+      toast(`💰 Получил ${fmt(+txAmt)} SM — добавлено в кассу`);
+    }
+    setTxAmt('');setTxNote('');setTxMode(false);setSaving(false);
   };
 
-  return(
-    <div style={{padding:14,paddingBottom:30}}>
-      {delItem&&<DelConfirm text={`Удалить долг «${delItem.name}» ${fmt(delItem.remaining_amount)} SM?`} onConfirm={async()=>{await dbDelete('debts',delItem.id);setDelItem(null);}} onCancel={()=>setDelItem(null)}/>}
+  const doDelPerson=async()=>{
+    const id=delPerson;
+    const ptxs=txs.filter(t=>t.person_id===id);
+    for(const t of ptxs) await sbDel('debt_transactions',t.id);
+    DB.debt_transactions=DB.debt_transactions.filter(t=>t.person_id!==id);
+    await sbDel('debt_people',id);
+    DB.debt_people=DB.debt_people.filter(p=>p.id!==id);
+    pub(); setDelPerson(null); toast('Контакт удалён');
+  };
 
-      {/* Итоги */}
-      <div style={{background:`linear-gradient(135deg,${balance>=0?'#0d2d1a':'#2d0d12'},${C.bg2})`,border:`1.5px solid ${balance>=0?C.green+'50':C.red+'50'}`,borderRadius:20,padding:'18px 20px',marginBottom:12,textAlign:'center'}}>
-        <div style={{fontSize:9,fontWeight:800,letterSpacing:2.5,color:C.dim,marginBottom:6}}>БАЛАНС ДОЛГОВ</div>
-        <div style={{fontSize:40,fontWeight:900,color:balance>=0?C.green:C.red,letterSpacing:-1}}>{balance>=0?'+':''}{fmt(balance)} SM</div>
-        <div style={{display:'flex',justifyContent:'center',gap:24,marginTop:10}}>
-          <div style={{textAlign:'center'}}><div style={{fontSize:9,color:C.dim,fontWeight:800,marginBottom:2}}>💸 МНЕ ДОЛЖНЫ</div><div style={{fontSize:15,fontWeight:900,color:C.green}}>{fmt(totalGiven)} SM</div></div>
-          <div style={{width:1,background:C.border}}/>
-          <div style={{textAlign:'center'}}><div style={{fontSize:9,color:C.dim,fontWeight:800,marginBottom:2}}>💰 Я ДОЛЖЕН</div><div style={{fontSize:15,fontWeight:900,color:C.red}}>{fmt(totalTaken)} SM</div></div>
-        </div>
-      </div>
+  const doDelTx=async()=>{
+    const t=txs.find(x=>x.id===delTx);
+    if(t){
+      // Обратное движение кассы
+      const person=people.find(p=>p.id===t.person_id);
+      const nm=person?person.name:'';
+      if(t.amount<0) await dbInsert('cash_movements',{type:'add',amount:Math.abs(t.amount),description:`↩ Отмена долга: ${nm}`,date:tod()});
+      else await dbInsert('cash_movements',{type:'remove',amount:t.amount,description:`↩ Отмена возврата: ${nm}`,date:tod()});
+      await sbDel('debt_transactions',delTx);
+      DB.debt_transactions=DB.debt_transactions.filter(x=>x.id!==delTx);
+      pub();
+    }
+    setDelTx(null); toast('Запись удалена');
+  };
 
-      {/* Форма */}
-      <Card>
-        <div style={{fontSize:11,fontWeight:800,letterSpacing:2,color:C.dim,marginBottom:12}}>НОВЫЙ ДОЛГ</div>
-        <div style={{display:'flex',gap:8,marginBottom:14}}>
-          <button onClick={()=>setType('given')} style={{flex:1,padding:'12px 8px',borderRadius:12,cursor:'pointer',fontFamily:'inherit',fontSize:13,fontWeight:800,border:`1.5px solid ${type==='given'?C.green+'70':C.border}`,background:type==='given'?C.green+'18':C.bg2,color:type==='given'?C.green:C.dim}}>💸 Дал в долг</button>
-          <button onClick={()=>setType('taken')} style={{flex:1,padding:'12px 8px',borderRadius:12,cursor:'pointer',fontFamily:'inherit',fontSize:13,fontWeight:800,border:`1.5px solid ${type==='taken'?C.red+'70':C.border}`,background:type==='taken'?C.red+'18':C.bg2,color:type==='taken'?C.red:C.dim}}>💰 Взял в долг</button>
-        </div>
-        <TI label="КТО (имя / фирма)" placeholder="Например: Алишер, Фирма Сорбон..." value={name} onChange={setName} autoFocus/>
-        <TI label="СУММА (SM)" type="number" placeholder="0.00" value={amount} onChange={setAmount}/>
-        <TI label="ОПИСАНИЕ (необязательно)" placeholder="Причина..." value={desc} onChange={setDesc}/>
-        <Btn bg={type==='given'?C.green:C.red} color={type==='given'?'#051a0e':'#fff'} onClick={save} disabled={!name.trim()||!amount}>
-          {type==='given'?'💸 Дал в долг → спишется с кассы':'💰 Взял в долг → добавится в кассу'}
-        </Btn>
-      </Card>
-
-      {/* Вкладки */}
-      <div style={{display:'flex',gap:6,marginBottom:14}}>
-        <button onClick={()=>setView('active')} style={{flex:1,padding:'10px',borderRadius:11,cursor:'pointer',fontFamily:'inherit',fontSize:12,fontWeight:800,border:`1.5px solid ${view==='active'?C.blue+'60':C.border}`,background:view==='active'?C.blue+'18':C.bg2,color:view==='active'?C.blue:C.dim}}>⏳ Активные · {active.length}</button>
-        <button onClick={()=>setView('history')} style={{flex:1,padding:'10px',borderRadius:11,cursor:'pointer',fontFamily:'inherit',fontSize:12,fontWeight:800,border:`1.5px solid ${view==='history'?C.green+'60':C.border}`,background:view==='history'?C.green+'18':C.bg2,color:view==='history'?C.green:C.dim}}>✅ Закрытые · {paid.length}</button>
-      </div>
-
-      {/* Список */}
-      {(view==='active'?active:paid).length===0?<Empty icon={view==='active'?'🤝':'✅'} text={view==='active'?'Нет активных долгов':'Нет закрытых долгов'}/>:
-      (view==='active'?active:paid).map(debt=>{
-        const isGiven=debt.type==='given';
-        const clr=isGiven?C.green:C.red;
-        const pct=debt.amount>0?Math.round(((+debt.amount-(+debt.remaining_amount||0))/+debt.amount)*100):100;
-        return(
-          <div key={debt.id} className="fu" style={{background:C.bg2,border:`1.5px solid ${clr}30`,borderRadius:18,marginBottom:12,overflow:'hidden'}}>
-            {/* Прогресс бар */}
-            <div style={{height:4,background:C.bg3}}><div style={{width:`${pct}%`,height:'100%',background:clr+'90',transition:'width .3s'}}/></div>
-            <div style={{padding:'14px 16px'}}>
-              {/* Шапка */}
-              <div style={{display:'flex',alignItems:'flex-start',gap:12,marginBottom:10}}>
-                <div style={{width:44,height:44,borderRadius:13,background:clr+'20',display:'flex',alignItems:'center',justifyContent:'center',fontSize:22,flexShrink:0}}>{isGiven?'💸':'💰'}</div>
-                <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontSize:16,fontWeight:900,marginBottom:2}}>{debt.name}</div>
-                  <div style={{fontSize:11,fontWeight:700,color:clr,marginBottom:4}}>{isGiven?'Дал в долг':'Взял в долг'}</div>
-                  {debt.description&&<div style={{fontSize:12,color:C.dim}}>📝 {debt.description}</div>}
-                </div>
-                <div style={{textAlign:'right',flexShrink:0}}>
-                  <div style={{fontSize:22,fontWeight:900,color:clr}}>{fmt(+debt.remaining_amount||0)}</div>
-                  <div style={{fontSize:10,color:C.dim}}>SM</div>
-                  {+debt.remaining_amount<+debt.amount&&<div style={{fontSize:10,color:C.orange,marginTop:2}}>из {fmt(debt.amount)}</div>}
-                </div>
-              </div>
-
-              {/* Бейджи */}
-              <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:10}}>
-                <Badge color={C.muted}>{fmtD(debt.date)}</Badge>
-                {pct>0&&pct<100&&<Badge color={C.orange}>оплачено {pct}%</Badge>}
-                {debt.status==='paid'&&<Badge color={C.green}>✓ Закрыт</Badge>}
-              </div>
-
-              {/* Погашение */}
-              {debt.status==='active'&&(
-                <div style={{background:C.bg3,borderRadius:12,padding:'12px 14px'}}>
-                  <div style={{fontSize:9,fontWeight:800,color:C.dim,marginBottom:8}}>{isGiven?'↩ ВЕРНУЛИ':'↩ ВОЗВРАЩАЮ'} (SM)</div>
-                  <div style={{display:'flex',gap:8,alignItems:'center'}}>
-                    <input type="number" placeholder={String(+debt.remaining_amount||0)} value={repayVals[debt.id]||''}
-                      onChange={e=>setRepayVals(p=>({...p,[debt.id]:e.target.value}))}
-                      style={{flex:1,background:C.bg,border:`1.5px solid ${clr}40`,borderRadius:10,padding:'10px 12px',color:C.text,fontSize:16,fontWeight:800,outline:'none',fontFamily:'inherit'}}/>
-                    <button onClick={()=>repay(debt,repayVals[debt.id]||debt.remaining_amount)}
-                      style={{padding:'10px 16px',borderRadius:10,background:clr+'25',border:`1px solid ${clr}50`,color:clr,fontSize:13,fontWeight:800,cursor:'pointer',fontFamily:'inherit',flexShrink:0}}>
-                      {isGiven?'Получил':'Вернул'}
-                    </button>
-                    <button onClick={()=>repay(debt,debt.remaining_amount)}
-                      style={{padding:'10px 12px',borderRadius:10,background:clr+'40',border:`1px solid ${clr}70`,color:clr,fontSize:12,fontWeight:800,cursor:'pointer',fontFamily:'inherit',flexShrink:0}}>
-                      Всё
-                    </button>
-                  </div>
-                </div>
-              )}
-              <div style={{display:'flex',justifyContent:'flex-end',marginTop:8}}>
-                <button onClick={()=>setDelItem(debt)} style={{background:'none',border:'none',color:C.dim,fontSize:18,cursor:'pointer',padding:4}}>🗑</button>
-              </div>
+  // ── Экран детали персоны ──
+  if(screen==='person'&&selPerson){
+    const sp=people.find(p=>p.id===selPerson.id)||selPerson;
+    const ptxs=getPersonTxs(sp.id);
+    const bal=getBalance(sp.id);
+    const cat=DCAT[sp.category]||DCAT.friend;
+    const totalGave=ptxs.filter(t=>t.amount<0).reduce((s,t)=>s+Math.abs(t.amount),0);
+    const totalGot=ptxs.filter(t=>t.amount>0).reduce((s,t)=>s+t.amount,0);
+    return(
+      <>
+        {delTx&&<div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.85)',zIndex:999,display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
+          <div style={{background:C.bg2,border:`1px solid ${C.red}50`,borderRadius:20,padding:24,width:'100%',maxWidth:340}}>
+            <div style={{fontSize:17,fontWeight:800,marginBottom:8}}>Удалить запись?</div>
+            <div style={{fontSize:13,color:C.dim,marginBottom:20}}>Касса тоже откатится назад</div>
+            <div style={{display:'flex',gap:10}}>
+              <Btn outline onClick={()=>setDelTx(null)} style={{flex:1,padding:'12px 0'}}>Отмена</Btn>
+              <Btn bg={C.red} onClick={doDelTx} style={{flex:1,padding:'12px 0'}}>Удалить</Btn>
             </div>
           </div>
-        );
-      })}
-    </div>
+        </div>}
+
+        <div style={{padding:'14px 16px 14px',background:'rgba(9,9,15,.97)',borderBottom:`1px solid ${C.border}`,position:'sticky',top:0,zIndex:50}}>
+          <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:12}}>
+            <button onClick={()=>{setScreen('list');setTxMode(false);}} style={{width:38,height:38,borderRadius:11,background:C.bg2,border:`1px solid ${C.border}`,color:C.muted,fontSize:22,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>←</button>
+            <div style={{flex:1}}><div style={{fontSize:8,fontWeight:800,letterSpacing:2,color:C.dim}}>ДОЛГИ</div><div style={{fontSize:19,fontWeight:900}}>{sp.name}</div></div>
+            <div style={{padding:'5px 12px',borderRadius:20,background:cat.color+'20',border:`1px solid ${cat.color}40`}}><span style={{fontSize:11,fontWeight:700,color:cat.color}}>{cat.icon} {cat.label}</span></div>
+          </div>
+          <div style={{background:`linear-gradient(135deg,${bal<0?'#0a2018':bal>0?'#200a0e':C.bg3},${C.bg2})`,border:`1.5px solid ${bal<0?C.green+'50':bal>0?C.red+'50':C.border}`,borderRadius:14,padding:'12px 14px',marginBottom:10}}>
+            <div style={{fontSize:8,fontWeight:800,letterSpacing:2,color:C.dim,marginBottom:3}}>{bal<0?'МНЕ ДОЛЖНЫ':bal>0?'Я ДОЛЖЕН':'БАЛАНС НУЛЕВОЙ'}</div>
+            <div style={{fontSize:30,fontWeight:900,color:bal<0?C.green:bal>0?C.red:C.dim,letterSpacing:-1}}>{bal<0?'+':bal>0?'-':''}{fmt(Math.abs(bal))} SM</div>
+            {sp.note&&<div style={{fontSize:11,color:C.dim,marginTop:3}}>📝 {sp.note}</div>}
+          </div>
+          <div style={{display:'flex',gap:8,marginBottom:10}}>
+            <div style={{flex:1,background:C.bg3,borderRadius:11,padding:'9px 12px'}}><div style={{fontSize:8,fontWeight:800,color:C.dim,marginBottom:2}}>ВЫДАНО</div><div style={{fontSize:14,fontWeight:900,color:C.red}}>−{fmt(totalGave)} SM</div></div>
+            <div style={{flex:1,background:C.bg3,borderRadius:11,padding:'9px 12px'}}><div style={{fontSize:8,fontWeight:800,color:C.dim,marginBottom:2}}>ПОЛУЧЕНО</div><div style={{fontSize:14,fontWeight:900,color:C.green}}>+{fmt(totalGot)} SM</div></div>
+          </div>
+          <div style={{display:'flex',gap:8}}>
+            <button onClick={()=>{setTxDir('give');setTxMode(true);}} style={{flex:1,padding:'11px',borderRadius:11,background:C.red+'20',border:`1.5px solid ${C.red}50`,color:C.red,fontSize:12,fontWeight:800,cursor:'pointer',fontFamily:'inherit'}}>💸 Дал / Выдал</button>
+            <button onClick={()=>{setTxDir('receive');setTxMode(true);}} style={{flex:1,padding:'11px',borderRadius:11,background:C.green+'20',border:`1.5px solid ${C.green}50`,color:C.green,fontSize:12,fontWeight:800,cursor:'pointer',fontFamily:'inherit'}}>💰 Получил / Вернули</button>
+          </div>
+        </div>
+
+        {txMode&&(
+          <div style={{padding:'12px 14px',background:C.bg3,borderBottom:`1px solid ${C.border}`}}>
+            <div style={{fontSize:8,fontWeight:800,letterSpacing:2,color:txDir==='give'?C.red:C.green,marginBottom:8}}>{txDir==='give'?'💸 ВЫДАЮ / ДАЛ':'💰 ПОЛУЧИЛ / ВЕРНУЛИ'} (SM)</div>
+            <div style={{display:'flex',gap:8,marginBottom:8}}>
+              <input type="number" autoFocus placeholder="Сумма..." value={txAmt} onChange={e=>setTxAmt(e.target.value)}
+                style={{flex:2,background:C.bg,border:`1.5px solid ${txDir==='give'?C.red:C.green}40`,borderRadius:11,padding:'11px 14px',color:C.text,fontSize:16,fontWeight:800,outline:'none',fontFamily:'inherit'}}/>
+              <input type="text" placeholder="Заметка..." value={txNote} onChange={e=>setTxNote(e.target.value)}
+                style={{flex:3,background:C.bg,border:`1px solid ${C.border}`,borderRadius:11,padding:'11px 14px',color:C.text,fontSize:13,outline:'none',fontFamily:'inherit'}}/>
+            </div>
+            <div style={{display:'flex',gap:8}}>
+              <button onClick={()=>{setTxMode(false);setTxAmt('');setTxNote('');}} style={{width:44,padding:'10px',borderRadius:10,background:'transparent',border:`1px solid ${C.border}`,color:C.dim,fontSize:18,cursor:'pointer',fontFamily:'inherit'}}>✕</button>
+              <Btn bg={txDir==='give'?C.red:C.green} color={txDir==='give'?'#fff':'#051a0e'} onClick={addTx} disabled={!txAmt||saving} style={{flex:1}}>
+                {saving?'Сохранение...':`✓ Сохранить · ${txDir==='give'?'−':'+'}${fmt(+txAmt||0)} SM`}
+              </Btn>
+            </div>
+          </div>
+        )}
+
+        <div style={{padding:14,paddingBottom:30}}>
+          <div style={{fontSize:9,fontWeight:800,letterSpacing:2,color:C.dim,marginBottom:10}}>ИСТОРИЯ · {ptxs.length} записей</div>
+          {!ptxs.length&&<Empty icon="📋" text="Нет записей. Нажми Дал или Получил"/>}
+          {ptxs.map(tx=>(
+            <div key={tx.id} onClick={()=>setDelTx(tx.id)} className="fu" style={{display:'flex',alignItems:'center',gap:12,padding:'12px 14px',background:tx.amount<0?C.red+'08':C.green+'08',border:`1px solid ${tx.amount<0?C.red+'30':C.green+'30'}`,borderRadius:14,marginBottom:8,cursor:'pointer'}}>
+              <div style={{width:40,height:40,borderRadius:11,background:tx.amount<0?C.red+'20':C.green+'20',display:'flex',alignItems:'center',justifyContent:'center',fontSize:20,flexShrink:0}}>{tx.amount<0?'💸':'💰'}</div>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontSize:18,fontWeight:900,color:tx.amount<0?C.red:C.green}}>{tx.amount<0?'−':'+'}{ fmt(Math.abs(tx.amount))} SM</div>
+                <div style={{fontSize:11,color:C.dim,marginTop:1}}>{tx.note||'—'}</div>
+              </div>
+              <div style={{textAlign:'right',flexShrink:0}}>
+                <div style={{fontSize:11,color:C.dim}}>{fmtT(tx.created_at)}</div>
+                <div style={{fontSize:9,color:C.dim,marginTop:2}}>нажми → удалить</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </>
+    );
+  }
+
+  // ── Экран добавить персону ──
+  if(screen==='addPerson') return(
+    <>
+      <Hdr title="Новый контакт" sub="ДОЛГИ" onBack={()=>setScreen('list')}/>
+      <div style={{padding:14}}>
+        <Card>
+          <div style={{fontSize:10,fontWeight:800,letterSpacing:2,color:C.dim,marginBottom:12}}>КАТЕГОРИЯ</div>
+          <div style={{display:'flex',gap:6,marginBottom:16}}>
+            {Object.entries(DCAT).map(([id,{label,icon,color}])=>(
+              <button key={id} onClick={()=>setApCat(id)} style={{flex:1,padding:'12px 6px',borderRadius:12,cursor:'pointer',fontFamily:'inherit',fontSize:11,fontWeight:800,border:`1.5px solid ${apCat===id?color+'70':C.border}`,background:apCat===id?color+'18':C.bg3,color:apCat===id?color:C.dim}}>
+                <div style={{fontSize:20,marginBottom:3}}>{icon}</div>{label}
+              </button>
+            ))}
+          </div>
+          <TI label="ИМЯ / НАЗВАНИЕ *" placeholder="Алишер, Фирма Ёвон..." value={apName} onChange={setApName} autoFocus/>
+          <TI label="ТЕЛЕФОН" type="tel" placeholder="+992 XX XXX XXXX" value={apPhone} onChange={setApPhone}/>
+          <TI label="ЗАМЕТКА" placeholder="Доп. информация..." value={apNote} onChange={setApNote}/>
+          <Btn bg={C.blue} onClick={addPerson} disabled={!apName.trim()||saving}>{saving?'Сохранение...':'✓ Добавить контакт'}</Btn>
+        </Card>
+      </div>
+    </>
+  );
+
+  // ── Главный список ──
+  const counts={all:people.length,friend:people.filter(p=>p.category==='friend').length,company:people.filter(p=>p.category==='company').length,iowe:people.filter(p=>p.category==='iowe').length};
+
+  return(
+    <>
+      {delPerson&&<div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.85)',zIndex:200,display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
+        <div style={{background:C.bg2,border:`1px solid ${C.red}50`,borderRadius:20,padding:24,width:'100%',maxWidth:340}}>
+          <div style={{fontSize:17,fontWeight:800,marginBottom:8}}>Удалить контакт?</div>
+          <div style={{fontSize:13,color:C.dim,marginBottom:20}}>Все записи долгов этого человека тоже удалятся</div>
+          <div style={{display:'flex',gap:10}}>
+            <Btn outline onClick={()=>setDelPerson(null)} style={{flex:1,padding:'12px 0'}}>Отмена</Btn>
+            <Btn bg={C.red} onClick={doDelPerson} style={{flex:1,padding:'12px 0'}}>Удалить</Btn>
+          </div>
+        </div>
+      </div>}
+
+      <div style={{padding:'14px 14px 12px',background:'rgba(9,9,15,.97)',backdropFilter:'blur(20px)',borderBottom:`1px solid ${C.border}`,position:'sticky',top:0,zIndex:50}}>
+        <div style={{fontSize:8,fontWeight:800,letterSpacing:2.5,color:C.dim,marginBottom:3}}>KASSACONTROL</div>
+        <div style={{fontSize:20,fontWeight:900,marginBottom:12}}>🤝 Долги</div>
+        <div style={{display:'flex',gap:8,marginBottom:12}}>
+          <div style={{flex:1,background:'#0a2018',border:`1.5px solid ${C.green}40`,borderRadius:13,padding:'11px 13px'}}>
+            <div style={{fontSize:8,fontWeight:800,color:C.dim,marginBottom:2}}>💸 МНЕ ДОЛЖНЫ</div>
+            <div style={{fontSize:17,fontWeight:900,color:C.green}}>{fmt(totalOwedToMe)} SM</div>
+          </div>
+          <div style={{flex:1,background:'#200a0e',border:`1.5px solid ${C.red}40`,borderRadius:13,padding:'11px 13px'}}>
+            <div style={{fontSize:8,fontWeight:800,color:C.dim,marginBottom:2}}>💰 Я ДОЛЖЕН</div>
+            <div style={{fontSize:17,fontWeight:900,color:C.red}}>{fmt(totalIOwe)} SM</div>
+          </div>
+        </div>
+        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="🔍 Поиск..."
+          style={{width:'100%',background:C.bg3,border:`1px solid ${C.border}`,borderRadius:11,padding:'9px 14px',color:C.text,fontSize:13,outline:'none',marginBottom:10,boxSizing:'border-box'}}/>
+        <div style={{display:'flex',gap:6,overflowX:'auto',paddingBottom:2}}>
+          {[['all',`Все · ${counts.all}`],['friend',`👤 Друзья · ${counts.friend}`],['company',`🏢 Фирмы · ${counts.company}`],['iowe',`💳 Я должен · ${counts.iowe}`]].map(([id,l])=>(
+            <button key={id} onClick={()=>setFilterCat(id)} style={{flexShrink:0,padding:'7px 12px',borderRadius:20,cursor:'pointer',fontFamily:'inherit',fontSize:10,fontWeight:800,border:`1.5px solid ${filterCat===id?C.blue+'60':C.border}`,background:filterCat===id?C.blue+'18':C.bg3,color:filterCat===id?C.blue:C.dim,whiteSpace:'nowrap'}}>{l}</button>
+          ))}
+        </div>
+      </div>
+
+      <div style={{padding:12,paddingBottom:90}}>
+        {filteredPeople.length===0&&<Empty icon="🤝" text="Нет контактов. Нажми + чтобы добавить"/>}
+        {filteredPeople.map(person=>{
+          const bal=getBalance(person.id);
+          const ptxs=getPersonTxs(person.id);
+          const cat=DCAT[person.category]||DCAT.friend;
+          const balColor=bal<0?C.green:bal>0?C.red:C.dim;
+          const lastTx=ptxs[0];
+          return(
+            <div key={person.id} onClick={()=>{setSelPerson(person);setScreen('person');}} className="fu" style={{display:'flex',alignItems:'center',gap:12,padding:'14px',background:C.bg2,border:`1.5px solid ${balColor}20`,borderRadius:18,marginBottom:8,cursor:'pointer',position:'relative'}}>
+              <div style={{width:48,height:48,borderRadius:14,background:`linear-gradient(135deg,${cat.color}40,${cat.color}20)`,border:`2px solid ${cat.color}40`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:17,fontWeight:900,color:cat.color,flexShrink:0}}>{inits(person.name)}</div>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:2}}>
+                  <div style={{fontSize:15,fontWeight:900}}>{person.name}</div>
+                  <span style={{fontSize:9,fontWeight:700,padding:'2px 7px',borderRadius:6,background:cat.color+'20',color:cat.color}}>{cat.icon}</span>
+                </div>
+                <div style={{fontSize:11,color:C.dim}}>{ptxs.length} записей{lastTx?` · ${fmtT(lastTx.created_at).split(' ')[0]}`:''}</div>
+              </div>
+              <div style={{textAlign:'right',flexShrink:0}}>
+                <div style={{fontSize:19,fontWeight:900,color:balColor}}>{bal<0?'+':bal>0?'-':''}{fmt(Math.abs(bal))}</div>
+                <div style={{fontSize:10,color:C.dim}}>SM</div>
+              </div>
+              <button onClick={e=>{e.stopPropagation();setDelPerson(person.id);}} style={{position:'absolute',top:8,right:10,background:'none',border:'none',color:C.dim,fontSize:14,cursor:'pointer',padding:4,opacity:.4}}>✕</button>
+            </div>
+          );
+        })}
+      </div>
+      <button onClick={()=>setScreen('addPerson')} style={{position:'fixed',bottom:80,right:16,width:52,height:52,borderRadius:16,background:C.blue,border:'none',color:'#fff',fontSize:28,cursor:'pointer',boxShadow:'0 8px 30px rgba(68,102,255,.5)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:90}}>+</button>
+    </>
   );
 }
 
-function Finance({tick}){
+
   const [tab,setTab]=useState('expenses');
   const exp=dbGet('expenses'),rev=dbGet('revenue'),cash=dbGet('cash_movements');
   let cashBal=0; cash.forEach(m=>{ if(m.type==='add'||m.type==='revenue') cashBal+= +m.amount; else cashBal-= +m.amount; });
@@ -1037,14 +1159,13 @@ function Finance({tick}){
         <div style={{display:'flex',gap:8,marginBottom:12}}>
           {[['Выручка',`+${fmt(todayRev)}`,C.green],['Расходы',`−${fmt(todayExp)}`,C.red],['Касса',`${fmt(Math.abs(cashBal))}`,cashBal>=0?C.blue:C.red]].map(([l,v,c])=>(<div key={l} style={{flex:1,background:C.bg3,borderRadius:10,padding:'8px 10px'}}><div style={{fontSize:8,fontWeight:800,letterSpacing:1,color:C.dim,marginBottom:3}}>{l.toUpperCase()}</div><div style={{fontSize:13,fontWeight:900,color:c}}>{v}</div></div>))}
         </div>
-        <div style={{display:'flex',gap:6,overflowX:'auto',paddingBottom:2}}>
-          {[['expenses','💸 Расходы'],['revenue','💰 Выручка'],['cash','🏧 Касса'],['debts','🤝 Долги']].map(([id,l])=>(<button key={id} onClick={()=>setTab(id)} style={{flexShrink:0,padding:'9px 14px',borderRadius:11,cursor:'pointer',fontFamily:'inherit',fontSize:11,fontWeight:800,border:`1.5px solid ${tab===id?C.blue+'60':C.border}`,background:tab===id?C.blue+'18':C.bg2,color:tab===id?C.blue:C.dim}}>{l}</button>))}
+        <div style={{display:'flex',gap:6}}>
+          {[['expenses','💸 Расходы'],['revenue','💰 Выручка'],['cash','🏧 Касса']].map(([id,l])=>(<button key={id} onClick={()=>setTab(id)} style={{flex:1,padding:'9px 4px',borderRadius:11,cursor:'pointer',fontFamily:'inherit',fontSize:11,fontWeight:800,border:`1.5px solid ${tab===id?C.blue+'60':C.border}`,background:tab===id?C.blue+'18':C.bg2,color:tab===id?C.blue:C.dim}}>{l}</button>))}
         </div>
       </div>
       {tab==='expenses'&&<ExpensesTab tick={tick}/>}
       {tab==='revenue'&&<RevenueTab tick={tick}/>}
       {tab==='cash'&&<CashTab tick={tick}/>}
-      {tab==='debts'&&<DebtsTab tick={tick}/>}
     </>
   );
 }
@@ -1111,72 +1232,4 @@ function RevenueTab({tick}){
   const save=async()=>{ if(!amount)return; await dbInsert('revenue',{amount:+amount,profit:gbsProfit?+gbsProfit:null,date,source:'manual'}); await dbInsert('cash_movements',{type:'revenue',amount:+amount,description:'Выручка',date}); setAmount(''); setGbsProfit(''); };
   return(
     <div style={{padding:14,paddingBottom:30}}>
-      {delItem&&<DelConfirm text={`Выручка ${fmt(delItem.amount)} SM удалится и касса уменьшится на эту сумму ↩`} onConfirm={async()=>{ await dbDelete('revenue',delItem.id); await dbInsert('cash_movements',{type:'remove',amount:+delItem.amount,description:'↩ Удаление выручки',date:tod()}); setDelItem(null); }} onCancel={()=>setDelItem(null)}/>}
-      <div style={{background:C.bg2,border:`1px solid ${C.border}`,borderRadius:16,overflow:'hidden',marginBottom:14}}>
-        <div style={{padding:'10px 16px',background:C.bg3,borderBottom:`1px solid ${C.border}`}}><div style={{fontSize:9,fontWeight:800,letterSpacing:2,color:C.dim}}>ФИНАНСОВЫЕ ИТОГИ</div></div>
-        <div style={{padding:'16px 20px',borderBottom:`1px solid ${C.border}`}}><div style={{fontSize:10,color:C.dim,marginBottom:4}}>ВЫРУЧКА СЕГОДНЯ</div><div style={{fontSize:32,fontWeight:900,color:C.green}}>{fmt(todayRev)} SM</div></div>
-        <div style={{display:'flex'}}><div style={{flex:1,padding:'14px 16px',borderRight:`1px solid ${C.border}`}}><div style={{fontSize:9,fontWeight:800,color:C.dim,marginBottom:4}}>ВЫРУЧКА ВСЕГО</div><div style={{fontSize:18,fontWeight:900,color:C.green}}>{fmt(totalRev)} SM</div></div><div style={{flex:1,padding:'14px 16px'}}><div style={{fontSize:9,fontWeight:800,color:C.dim,marginBottom:4}}>ПРИБЫЛЬ GBS</div><div style={{fontSize:18,fontWeight:900,color:C.blue}}>{fmt(totalProfit)} SM</div></div></div>
-      </div>
-      <Card>
-        <div style={{fontSize:11,fontWeight:800,letterSpacing:2,color:C.dim,marginBottom:12}}>ДОБАВИТЬ ВЫРУЧКУ</div>
-        <TI label="ВЫРУЧКА (SM)" type="number" placeholder="0.00" value={amount} onChange={setAmount} autoFocus/>
-        <TI label="ПРИБЫЛЬ GBS (SM) — необязательно" type="number" placeholder="из GBS.Market" value={gbsProfit} onChange={setGbsProfit}/>
-        <div style={{marginBottom:12}}><FL>ДАТА</FL><input type="date" value={date} onChange={e=>setDate(e.target.value)} style={{width:'100%',background:C.bg,border:`1px solid ${C.border}`,borderRadius:12,padding:'13px 16px',color:C.text,fontSize:15,outline:'none',WebkitAppearance:'none'}}/></div>
-        <Btn bg={C.green} color="#051a0e" onClick={save} disabled={!amount}>+ Добавить выручку</Btn>
-      </Card>
-      <SecLabel>История выручки</SecLabel>
-      {!all.length?<Empty icon="💰" text="Записей нет"/>:
-      all.map(r=>(
-        <div key={r.id} style={{display:'flex',alignItems:'center',gap:12,padding:'13px 16px',background:C.bg2,border:`1px solid ${C.border}`,borderRadius:14,marginBottom:8}}>
-          <div style={{width:44,height:44,borderRadius:12,background:'#3ecf8e18',display:'flex',alignItems:'center',justifyContent:'center',fontSize:20,flexShrink:0}}>💰</div>
-          <div style={{flex:1,minWidth:0}}><div style={{fontSize:16,fontWeight:800,color:C.green,marginBottom:3}}>+{fmt(r.amount)} SM</div><div style={{fontSize:12,color:C.dim}}>Прибыль GBS: <b style={{color:C.blue}}>{fmt(r.profit||0)} SM</b></div><div style={{fontSize:11,color:C.dim,marginTop:2}}>{fmtD(r.date)} · {fmtT(r.created_at)}</div></div>
-          <button onClick={()=>setDelItem(r)} style={{background:'none',border:'none',color:C.dim,fontSize:20,cursor:'pointer',padding:4,flexShrink:0}}>🗑</button>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-const DENOMS=[
-  {val:500,label:'500 SM',type:'bill'},{val:200,label:'200 SM',type:'bill'},{val:100,label:'100 SM',type:'bill'},
-  {val:50,label:'50 SM',type:'bill'},{val:20,label:'20 SM',type:'bill'},{val:10,label:'10 SM',type:'bill'},{val:5,label:'5 SM',type:'bill'},
-  {val:1,label:'1 SM',type:'coin'},{val:0.5,label:'50 д',type:'coin'},{val:0.25,label:'25 д',type:'coin'},{val:0.1,label:'10 д',type:'coin'},{val:0.05,label:'5 д',type:'coin'},
-];
-
-function CashCounter({onClose,onSave}){
-  const [counts,setCounts]=useState({});
-  const set=(v,n)=>setCounts(p=>({...p,[v]:n===''?'':+n<0?0:n}));
-  const totalBills=DENOMS.filter(d=>d.type==='bill').reduce((s,d)=>s+(+counts[d.val]||0)*d.val,0);
-  const totalCoins=DENOMS.filter(d=>d.type==='coin').reduce((s,d)=>s+(+counts[d.val]||0)*d.val,0);
-  const total=totalBills+totalCoins;
-  const hasAny=Object.values(counts).some(v=>+v>0);
-  return(
-    <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,.85)',zIndex:300,overflowY:'auto',paddingBottom:100}}>
-      <div style={{maxWidth:430,margin:'0 auto'}}>
-        <div style={{padding:'16px 16px 12px',background:C.bg2,borderBottom:`1px solid ${C.border}`,position:'sticky',top:0,zIndex:10,display:'flex',alignItems:'center',gap:10}}>
-          <button onClick={onClose} style={{width:38,height:38,borderRadius:11,background:C.bg3,border:`1px solid ${C.border}`,color:C.muted,fontSize:22,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>←</button>
-          <div style={{flex:1}}><div style={{fontSize:9,fontWeight:800,letterSpacing:2,color:C.dim}}>КАССА</div><div style={{fontSize:18,fontWeight:900}}>🪙 Пересчёт наличных</div></div>
-        </div>
-        <div style={{margin:'14px 14px 0',background:`linear-gradient(135deg,#0d2d1a,${C.bg2})`,border:`1.5px solid ${C.green}40`,borderRadius:20,padding:'18px 20px',textAlign:'center'}}>
-          <div style={{fontSize:9,fontWeight:800,letterSpacing:2.5,color:C.dim,marginBottom:6}}>ИТОГО В КАССЕ</div>
-          <div style={{fontSize:44,fontWeight:900,color:C.green,letterSpacing:-2}}>{fmt(total)} SM</div>
-          <div style={{display:'flex',justifyContent:'center',gap:20,marginTop:10}}>
-            <div style={{textAlign:'center'}}><div style={{fontSize:9,color:C.dim,fontWeight:800,marginBottom:2}}>💵 КУПЮРЫ</div><div style={{fontSize:16,fontWeight:900,color:C.blue}}>{fmt(totalBills)} SM</div></div>
-            <div style={{width:1,background:C.border}}/>
-            <div style={{textAlign:'center'}}><div style={{fontSize:9,color:C.dim,fontWeight:800,marginBottom:2}}>🪙 МОНЕТЫ</div><div style={{fontSize:16,fontWeight:900,color:C.yellow}}>{fmt(totalCoins)} SM</div></div>
-          </div>
-        </div>
-        {['bill','coin'].map(type=>(
-          <div key={type} style={{padding:'14px 14px 0'}}>
-            <div style={{fontSize:9,fontWeight:800,letterSpacing:2,color:C.dim,marginBottom:8}}>{type==='bill'?'💵 КУПЮРЫ':'🪙 МОНЕТЫ'}</div>
-            <div style={{background:C.bg2,border:`1px solid ${C.border}`,borderRadius:16,overflow:'hidden'}}>
-              {DENOMS.filter(d=>d.type===type).map((d,i,arr)=>{
-                const cnt=+counts[d.val]||0,sub=cnt*d.val,clr=type==='bill'?C.blue:C.yellow;
-                return(
-                  <div key={d.val} style={{display:'flex',alignItems:'center',gap:10,padding:'12px 14px',borderBottom:i<arr.length-1?`1px solid ${C.border}`:'none',background:cnt>0?clr+'08':'transparent'}}>
-                    <div style={{width:52,height:34,borderRadius:8,background:cnt>0?clr+'25':C.bg3,border:`1px solid ${cnt>0?clr+'50':C.border}`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><span style={{fontSize:13,fontWeight:900,color:cnt>0?clr:C.muted}}>{d.label}</span></div>
-                    <div style={{flex:1}}>{cnt>0?<div style={{fontSize:11,color:clr,fontWeight:700}}>{cnt} шт = {fmt(sub)} SM</div>:<div style={{fontSize:11,color:C.dim}}>Количество</div>}</div>
-                    <div style={{display:'flex',alignItems:'center',gap:6}}>
-                      <button onClick={()=>set(d.val,Math.max(0,(+counts[d.val]||0)-1))} style={{width:34,height:34,borderRadius:9,background:C.bg3,border:`1px solid ${C.border}`,color:C.muted,fontSize:20,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'inherit'}}>−</button>
-                      <input type="number" value={counts[d.val]??''} onChange={e=>set(d.val,e.target.value)} placeholder="0" style={{width:52,padding:'7px 4px',borderRadius:9,textAlign:'center',background:C.bg,border:`1.5px solid ${cnt>0?clr:C.border}`,color:cnt>0?clr:C.text,fontSize:16,fontWeight:900,fontFamily:'inherit',outline:'none'}}/>
-                      <button onClick={()=>set(d.val,(+counts[d.val]||0)+1)} style={{width:34,height:34,borderRadius:9,background:clr+'20',bord
+      {delItem&&<DelConfirm text={`Выручка ${fm

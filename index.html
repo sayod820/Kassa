@@ -985,4 +985,112 @@ function _Debts_DISABLED({tick,toast}){
           <TI label="ИМЯ / НАЗВАНИЕ *" placeholder="Алишер, Фирма Ёвон..." value={apName} onChange={setApName} autoFocus/>
           <TI label="ТЕЛЕФОН" type="tel" placeholder="+992 XX XXX XXXX" value={apPhone} onChange={setApPhone}/>
           <TI label="ЗАМЕТКА" placeholder="Доп. информация..." value={apNote} onChange={setApNote}/>
+          <Btn bg={C.blue} onClick={addPerson} disabled={!apName.trim()||saving}>{saving?'Сохранение...':'✓ Добавить контакт'}</Btn>
+        </Card>
+      </div>
+    </React.Fragment>
+  );
 
+  // Главный список
+  const counts={all:people.length,friend:people.filter(p=>p.category==='friend').length,company:people.filter(p=>p.category==='company').length,iowe:people.filter(p=>p.category==='iowe').length};
+  return(
+    <React.Fragment>
+      {delP&&<DelConfirm text="Все записи долгов этого человека тоже удалятся" onConfirm={doDelP} onCancel={()=>setDelP(null)}/>}
+      <div style={{padding:'14px 14px 12px',background:'rgba(9,9,15,.97)',backdropFilter:'blur(20px)',borderBottom:'1px solid '+C.border,position:'sticky',top:0,zIndex:50}}>
+        <div style={{fontSize:8,fontWeight:800,letterSpacing:2.5,color:C.dim,marginBottom:3}}>KASSACONTROL</div>
+        <div style={{fontSize:20,fontWeight:900,marginBottom:12}}>🤝 Долги</div>
+        <div style={{display:'flex',gap:8,marginBottom:12}}>
+          <div style={{flex:1,background:'#0a2018',border:'1.5px solid '+C.green+'40',borderRadius:13,padding:'11px 13px'}}><div style={{fontSize:8,fontWeight:800,color:C.dim,marginBottom:2}}>💸 МНЕ ДОЛЖНЫ</div><div style={{fontSize:17,fontWeight:900,color:C.green}}>{fmt(totalOwed)} SM</div></div>
+          <div style={{flex:1,background:'#200a0e',border:'1.5px solid '+C.red+'40',borderRadius:13,padding:'11px 13px'}}><div style={{fontSize:8,fontWeight:800,color:C.dim,marginBottom:2}}>💰 Я ДОЛЖЕН</div><div style={{fontSize:17,fontWeight:900,color:C.red}}>{fmt(totalIOwe)} SM</div></div>
+        </div>
+        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="🔍 Поиск..." style={{width:'100%',background:C.bg3,border:'1px solid '+C.border,borderRadius:11,padding:'9px 14px',color:C.text,fontSize:13,outline:'none',marginBottom:10,boxSizing:'border-box'}}/>
+        <div style={{display:'flex',gap:6,overflowX:'auto',paddingBottom:2}}>
+          {[['all','Все · '+counts.all],['friend','👤 Друзья · '+counts.friend],['company','🏢 Фирмы · '+counts.company],['iowe','💳 Я должен · '+counts.iowe]].map(([id,l])=>(
+            <button key={id} onClick={()=>setFCat(id)} style={{flexShrink:0,padding:'7px 12px',borderRadius:20,cursor:'pointer',fontFamily:'inherit',fontSize:10,fontWeight:800,border:'1.5px solid '+(fCat===id?C.blue+'60':C.border),background:fCat===id?C.blue+'18':C.bg3,color:fCat===id?C.blue:C.dim,whiteSpace:'nowrap'}}>{l}</button>
+          ))}
+        </div>
+      </div>
+      <div style={{padding:12,paddingBottom:90}}>
+        {filtered.length===0&&<Empty icon="🤝" text="Нет контактов. Нажми + чтобы добавить"/>}
+        {filtered.map(person=>{
+          const bal=getBal(person.id);const ptxs=getPTxs(person.id);
+          const cat=DCAT[person.category]||DCAT.friend;
+          const balColor=bal<0?C.green:bal>0?C.red:C.dim;
+          const lastTx=ptxs[0];
+          return(
+            <div key={person.id} onClick={()=>{setSelP(person);setSc('person');}} className="fu" style={{display:'flex',alignItems:'center',gap:12,padding:'14px',background:C.bg2,border:'1.5px solid '+balColor+'20',borderRadius:18,marginBottom:8,cursor:'pointer',position:'relative'}}>
+              <div style={{width:48,height:48,borderRadius:14,background:cat.color+'30',border:'2px solid '+cat.color+'40',display:'flex',alignItems:'center',justifyContent:'center',fontSize:17,fontWeight:900,color:cat.color,flexShrink:0}}>{inits(person.name)}</div>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:2}}>
+                  <div style={{fontSize:15,fontWeight:900}}>{person.name}</div>
+                  <span style={{fontSize:9,fontWeight:700,padding:'2px 7px',borderRadius:6,background:cat.color+'20',color:cat.color}}>{cat.icon}</span>
+                </div>
+                <div style={{fontSize:11,color:C.dim}}>{ptxs.length} записей{lastTx?' · '+fmtDT(lastTx.created_at).split(' ')[0]:''}</div>
+              </div>
+              <div style={{textAlign:'right',flexShrink:0}}>
+                <div style={{fontSize:19,fontWeight:900,color:balColor}}>{bal<0?'+':bal>0?'-':''}{fmt(Math.abs(bal))}</div>
+                <div style={{fontSize:10,color:C.dim}}>SM</div>
+              </div>
+              <button onClick={e=>{e.stopPropagation();setDelP(person.id);}} style={{position:'absolute',top:8,right:10,background:'none',border:'none',color:C.dim,fontSize:14,cursor:'pointer',padding:4,opacity:.4}}>✕</button>
+            </div>
+          );
+        })}
+      </div>
+      <button onClick={()=>setSc('addP')} style={{position:'fixed',bottom:80,right:16,width:52,height:52,borderRadius:16,background:C.blue,border:'none',color:'#fff',fontSize:28,cursor:'pointer',boxShadow:'0 8px 30px rgba(68,102,255,.5)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:90}}>+</button>
+    </React.Fragment>
+  );
+}
+
+// ════════════════════════════════════════════
+// APP
+// ════════════════════════════════════════════
+function App(){
+  const [ready,setReady]=useState(false);
+  const [tab,setTab]=useState('home');
+  const [tick,setTick]=useState(0);
+  const [toastMsg,setToastMsg]=useState(null);
+  const showToast=(msg,color)=>{setToastMsg({msg,color});setTimeout(()=>setToastMsg(null),3000);};
+  useEffect(()=>{
+    initDB().then(()=>setReady(true));
+    return sub(()=>setTick(t=>t+1));
+  },[]);
+  if(!ready)return(
+    <div style={{background:C.bg,minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',gap:14,fontFamily:'system-ui'}}>
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+      <div style={{fontSize:56}}>🏪</div>
+      <div style={{fontSize:20,fontWeight:900,color:'#eeeeff'}}>KassaControl</div>
+      <div style={{width:28,height:28,border:'2px solid #1e1e38',borderTopColor:'#4466ff',borderRadius:'50%',animation:'spin .7s linear infinite'}}/>
+    </div>
+  );
+  const NAV=[{id:'home',icon:'🏠',label:'Главная'},{id:'supply',icon:'🚚',label:'Поставки'},{id:'expiry',icon:'☠️',label:'Сроки'},{id:'revision',icon:'📦',label:'Ревизия'},{id:'finance',icon:'💰',label:'Финансы'}];
+  const diItems=dbGet('delivery_items');
+  const products2=dbGet('products');
+  const allExp2=diItems.filter(i=>i.expiry_date&&(+i.quantity||0)>0);
+  const fifo2=calcFifoRemaining(allExp2,products2);
+  const alertCount=fifo2.filter(i=>i.remaining>0&&dLeft(i.expiry_date)<0).length+fifo2.filter(i=>i.remaining>0&&dLeft(i.expiry_date)>=0&&dLeft(i.expiry_date)<=3).length;
+  return(
+    <div style={{background:C.bg,color:C.text,minHeight:'100vh',fontFamily:'system-ui,-apple-system,sans-serif',maxWidth:430,margin:'0 auto',paddingBottom:80}}>
+      <style>{css}</style>
+      <Toast msg={toastMsg?.msg} color={toastMsg?.color}/>
+      {tab==='home'&&<Home tick={tick}/>}
+      {tab==='supply'&&<Suppliers tick={tick} toast={showToast}/>}
+      {tab==='expiry'&&<Expiry tick={tick}/>}
+      {tab==='revision'&&<Revision tick={tick} toast={showToast}/>}
+      {tab==='finance'&&<Finance tick={tick}/>}
+
+      <div style={{position:'fixed',bottom:0,left:'50%',transform:'translateX(-50%)',width:'100%',maxWidth:430,background:'rgba(9,9,15,.97)',backdropFilter:'blur(20px)',borderTop:'1px solid '+C.border,display:'flex',zIndex:100,paddingBottom:'env(safe-area-inset-bottom,0)'}}>
+        {NAV.map(n=>(
+          <button key={n.id} onClick={()=>setTab(n.id)} style={{flex:1,padding:'10px 0 11px',background:'none',border:'none',borderTop:'2px solid '+(tab===n.id?C.blue:'transparent'),cursor:'pointer',color:tab===n.id?C.blue:C.dim,display:'flex',flexDirection:'column',alignItems:'center',gap:2,fontFamily:'inherit',position:'relative'}}>
+            <span style={{fontSize:19}}>{n.icon}</span>
+            <span style={{fontSize:8,fontWeight:800,letterSpacing:.5,textTransform:'uppercase'}}>{n.label}</span>
+            {n.id==='expiry'&&alertCount>0&&<span style={{position:'absolute',top:4,right:'50%',transform:'translateX(8px)',background:C.red,borderRadius:10,minWidth:16,height:16,fontSize:10,fontWeight:900,color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',padding:'0 4px'}}>{alertCount}</span>}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

@@ -46,8 +46,8 @@ function Home({tick}){
     <React.Fragment>
       <div style={{padding:'16px 16px 12px',background:'rgba(9,9,15,.97)',backdropFilter:'blur(20px)',borderBottom:'1px solid '+C.border,position:'sticky',top:0,zIndex:50}}>
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
-          <div><div style={{fontSize:9,fontWeight:800,letterSpacing:2,color:C.dim,textTransform:'uppercase',marginBottom:3}}>{dateLabel}</div><div style={{fontSize:22,fontWeight:900,letterSpacing:-.5}}>&#128234; KassaControl</div></div>
-          {hasAlert&&<div style={{background:'#f04f5a18',border:'1px solid #f04f5a50',borderRadius:14,padding:'6px 14px',textAlign:'center'}}><div style={{fontSize:9,color:C.red,fontWeight:800}}>&#1042;&#1053;&#1048;&#1052;&#1040;&#1053;&#1048;&#1045;</div><div style={{fontSize:18,fontWeight:900,color:C.red}}>&#9760; {expired.length+critical.length}</div></div>}
+          <div><div style={{fontSize:9,fontWeight:800,letterSpacing:2,color:C.dim,textTransform:'uppercase',marginBottom:3}}>{dateLabel}</div><div style={{fontSize:22,fontWeight:900,letterSpacing:-.5}}>🏪 KassaControl</div></div>
+          {hasAlert&&<div style={{background:'#f04f5a18',border:'1px solid #f04f5a50',borderRadius:14,padding:'6px 14px',textAlign:'center'}}><div style={{fontSize:9,color:C.red,fontWeight:800}}>ВНИМАНИЕ</div><div style={{fontSize:18,fontWeight:900,color:C.red}}>☠️ {expired.length+critical.length}</div></div>}
         </div>
         <div style={{display:'flex',gap:6}}>
           {[['day','День'],['week','Неделя'],['month','Месяц'],['all','Всё']].map(([id,l])=>(
@@ -68,7 +68,7 @@ function Home({tick}){
         </div>
         <div style={{background:C.bg2,border:'1.5px solid '+(cashBal>=0?C.blue+'40':C.red+'40'),borderRadius:16,padding:'14px 16px',marginBottom:12,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
           <div><div style={{fontSize:9,fontWeight:800,letterSpacing:2,color:C.dim,marginBottom:4}}>НАЛИЧНЫЕ В КАССЕ</div><div style={{fontSize:28,fontWeight:900,color:cashBal>=0?C.blue:C.red}}>{fmt(Math.abs(cashBal))} SM</div></div>
-          <div style={{fontSize:40,opacity:.35}}>&#127975;</div>
+          <div style={{fontSize:40,opacity:.35}}>🏧</div>
         </div>
         <div style={{background:C.bg2,border:'1px solid '+((expired.length+critical.length)>0?C.red+'40':C.border),borderRadius:16,overflow:'hidden',marginBottom:12}}>
           <div style={{padding:'10px 16px',background:C.bg3,borderBottom:'1px solid '+C.border,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
@@ -135,13 +135,13 @@ function Suppliers({tick,toast}){
     <React.Fragment>
       <Hdr title="Поставщики" onAdd={()=>setSc('add')}/>
       <div style={{padding:14,paddingBottom:30}}>
-        {!suppliers.length?<Empty icon="&#128666;" text="Нажми + чтобы добавить поставщика"/>:
+        {!suppliers.length?<Empty icon="🚚" text="Нажми + чтобы добавить поставщика"/>:
         suppliers.map(s=>(
           <div key={s.id} className="fu" onClick={()=>{setCurS(s);setSc('supplier');}} style={{display:'flex',alignItems:'center',gap:12,padding:'14px 16px',background:C.bg2,border:'1px solid '+C.border,borderRadius:16,marginBottom:8,cursor:'pointer'}}>
             <div style={{width:46,height:46,borderRadius:13,background:'linear-gradient(135deg,#4466ff,#8844ff)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:17,fontWeight:900,color:'#fff',flexShrink:0}}>{inits(s.name)}</div>
             <div style={{flex:1,minWidth:0}}><div style={{fontSize:15,fontWeight:700,marginBottom:2}}>{s.name}</div><div style={{fontSize:12,color:C.dim}}>{s.phone||'Нет номера'}</div></div>
             {cntMap[s.id]>0&&<span style={{fontSize:11,fontWeight:700,padding:'3px 10px',borderRadius:20,background:'rgba(68,102,255,.12)',color:C.blue,flexShrink:0}}>{cntMap[s.id]} пост.</span>}
-            <div style={{color:C.dim,fontSize:20}}>&#8250;</div>
+            <div style={{color:C.dim,fontSize:20}}>›</div>
           </div>
         ))}
       </div>
@@ -151,12 +151,12 @@ function Suppliers({tick,toast}){
 function AddSupplier({onBack,onSaved}){
   const [name,setName]=useState('');const [phone,setPhone]=useState('');const [err,setErr]=useState('');
   const save=async()=>{if(!name.trim()){setErr('Введите имя');return;}await dbInsert('suppliers',{name:name.trim(),phone:phone.trim()});onSaved(name.trim());};
-  return(<React.Fragment><Hdr title="Новый поставщик" sub="ПОСТАВКИ" onBack={onBack}/><div style={{padding:14}}><Card><TI label="ИМЯ" placeholder="Имя поставщика" value={name} onChange={v=>{setName(v);setErr('');}} autoFocus/>{err&&<div style={{color:C.red,fontSize:12,marginBottom:8}}>{err}</div>}<TI label="ТЕЛЕФОН" type="tel" placeholder="+992 XX XXX XXXX" value={phone} onChange={setPhone}/><div style={{display:'flex',gap:8,marginTop:4}}><Btn outline onClick={onBack} style={{width:52,flex:'none',padding:'14px 0'}}>&#8592;</Btn><Btn bg={C.green} color="#051a0e" onClick={save} style={{flex:1}}>Сохранить</Btn></div></Card></div></React.Fragment>);
+  return(<React.Fragment><Hdr title="Новый поставщик" sub="ПОСТАВКИ" onBack={onBack}/><div style={{padding:14}}><Card><TI label="ИМЯ" placeholder="Имя поставщика" value={name} onChange={v=>{setName(v);setErr('');}} autoFocus/>{err&&<div style={{color:C.red,fontSize:12,marginBottom:8}}>{err}</div>}<TI label="ТЕЛЕФОН" type="tel" placeholder="+992 XX XXX XXXX" value={phone} onChange={setPhone}/><div style={{display:'flex',gap:8,marginTop:4}}><Btn outline onClick={onBack} style={{width:52,flex:'none',padding:'14px 0'}}>←</Btn><Btn bg={C.green} color="#051a0e" onClick={save} style={{flex:1}}>Сохранить</Btn></div></Card></div></React.Fragment>);
 }
 function EditSupplier({supplier,onBack,onSaved}){
   const [name,setName]=useState(supplier.name);const [phone,setPhone]=useState(supplier.phone||'');const [saving,setSaving]=useState(false);
   const save=async()=>{if(!name.trim())return;setSaving(true);await sbPatch('suppliers',supplier.id,{name:name.trim(),phone:phone.trim()});const u={...supplier,name:name.trim(),phone:phone.trim()};DB.suppliers=DB.suppliers.map(s=>s.id===supplier.id?u:s);pub();onSaved(u);setSaving(false);};
-  return(<React.Fragment><Hdr title="Редактировать" sub="ПОСТАВЩИК" onBack={onBack}/><div style={{padding:14}}><Card><TI label="ИМЯ" placeholder="Имя поставщика" value={name} onChange={setName} autoFocus/><TI label="ТЕЛЕФОН" type="tel" placeholder="+992 XX XXX XXXX" value={phone} onChange={setPhone}/><div style={{display:'flex',gap:8,marginTop:4}}><Btn outline onClick={onBack} style={{width:52,flex:'none',padding:'14px 0'}}>&#8592;</Btn><Btn bg={C.green} color="#051a0e" onClick={save} disabled={!name.trim()||saving} style={{flex:1}}>{saving?'Сохранение...':'Сохранить'}</Btn></div></Card></div></React.Fragment>);
+  return(<React.Fragment><Hdr title="Редактировать" sub="ПОСТАВЩИК" onBack={onBack}/><div style={{padding:14}}><Card><TI label="ИМЯ" placeholder="Имя поставщика" value={name} onChange={setName} autoFocus/><TI label="ТЕЛЕФОН" type="tel" placeholder="+992 XX XXX XXXX" value={phone} onChange={setPhone}/><div style={{display:'flex',gap:8,marginTop:4}}><Btn outline onClick={onBack} style={{width:52,flex:'none',padding:'14px 0'}}>←</Btn><Btn bg={C.green} color="#051a0e" onClick={save} disabled={!name.trim()||saving} style={{flex:1}}>{saving?'Сохранение...':'Сохранить'}</Btn></div></Card></div></React.Fragment>);
 }
 function SupplierPage({supplier,onBack,onPosting,onEdit,onDeleted,onViewDel}){
   const [confirmDel,setConfirmDel]=useState(false);
@@ -175,21 +175,21 @@ function SupplierPage({supplier,onBack,onPosting,onEdit,onDeleted,onViewDel}){
           <div style={{display:'flex',gap:8}}>
             {supplier.phone&&<a href={'tel:'+supplier.phone} style={{flex:1}}><Btn outline style={{padding:'11px 0'}}>Позвонить</Btn></a>}
             <Btn outline onClick={onEdit} style={{flex:1,padding:'11px 0',color:C.blue,borderColor:C.blue+'40'}}>Изменить</Btn>
-            <Btn outline onClick={()=>setConfirmDel(true)} style={{width:48,flex:'none',padding:'11px 0',color:C.red,borderColor:C.red+'40'}}>&#128465;</Btn>
+            <Btn outline onClick={()=>setConfirmDel(true)} style={{width:48,flex:'none',padding:'11px 0',color:C.red,borderColor:C.red+'40'}}>🗑</Btn>
           </div>
           {confirmDel&&<div style={{marginTop:12,background:'#f04f5a15',border:'1px solid '+C.red+'40',borderRadius:12,padding:14}}><div style={{fontSize:14,fontWeight:700,marginBottom:12,color:C.red}}>Удалить «{supplier.name}»?</div><div style={{display:'flex',gap:8}}><Btn outline onClick={()=>setConfirmDel(false)} style={{flex:1,padding:'10px 0'}}>Отмена</Btn><Btn bg={C.red} onClick={doDelete} style={{flex:1,padding:'10px 0'}}>Удалить</Btn></div></div>}
         </Card>
         <button onClick={onPosting} style={{width:'100%',padding:15,borderRadius:14,background:'linear-gradient(135deg,#4466ff,#6644ff)',border:'none',color:'#fff',fontSize:16,fontWeight:900,cursor:'pointer',marginBottom:14}}>Поступление товара</button>
-        {!deliveries.length?<Empty icon="&#128203;" text="Поставок пока нет"/>:deliveries.map((d,idx)=>{
+        {!deliveries.length?<Empty icon="📋" text="Поставок пока нет"/>:deliveries.map((d,idx)=>{
           const items=diItems.filter(i=>i.delivery_id===d.id);
           const expI=items.filter(i=>i.expiry_date&&dLeft(i.expiry_date)<0).length;
           const crit=items.filter(i=>i.expiry_date&&dLeft(i.expiry_date)>=0&&dLeft(i.expiry_date)<=3).length;
           const num=deliveries.length-idx;
           return(
             <div key={d.id} onClick={()=>onViewDel(d,num)} className="fu" style={{display:'flex',alignItems:'center',gap:12,padding:'14px 16px',background:C.bg2,border:'1px solid '+(expI>0?C.red+'40':crit>0?C.orange+'40':C.border),borderRadius:16,marginBottom:8,cursor:'pointer'}}>
-              <div style={{background:C.bg3,borderRadius:12,padding:'8px 12px',textAlign:'center',flexShrink:0,minWidth:54}}><div style={{fontSize:9,fontWeight:800,color:C.dim,marginBottom:1}}>ПАРТИЯ</div><div style={{fontSize:20,fontWeight:900}}>{'&#8470;'+num}</div></div>
+              <div style={{background:C.bg3,borderRadius:12,padding:'8px 12px',textAlign:'center',flexShrink:0,minWidth:54}}><div style={{fontSize:9,fontWeight:800,color:C.dim,marginBottom:1}}>ПАРТИЯ</div><div style={{fontSize:20,fontWeight:900}}>{'№'+num}</div></div>
               <div style={{flex:1,minWidth:0}}><div style={{fontSize:15,fontWeight:700,marginBottom:4}}>{fmtD(d.date)}</div><div style={{display:'flex',gap:6,flexWrap:'wrap'}}><Badge color={C.blue}>{items.length} товаров</Badge>{expI>0&&<Badge color={C.red}>{expI}</Badge>}{crit>0&&<Badge color={C.orange}>{crit}</Badge>}</div></div>
-              <div style={{color:C.dim,fontSize:22}}>&#8250;</div>
+              <div style={{color:C.dim,fontSize:22}}>›</div>
             </div>
           );
         })}
@@ -208,7 +208,7 @@ function DeliveryDetail({delivery,num,onBack,onDeleted}){
       <Hdr title={'Партия '+num} sub={fmtD(delivery.date).toUpperCase()} onBack={onBack}>
         <div style={{display:'flex',gap:6}}>
           {!editMode&&<button onClick={startEdit} style={{width:38,height:38,borderRadius:11,background:'#4466ff18',border:'1px solid #4466ff40',color:C.blue,fontSize:16,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>✏️</button>}
-          <button onClick={()=>setConfirmDel(true)} style={{width:38,height:38,borderRadius:11,background:'#f04f5a18',border:'1px solid #f04f5a40',color:C.red,fontSize:16,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>&#128465;</button>
+          <button onClick={()=>setConfirmDel(true)} style={{width:38,height:38,borderRadius:11,background:'#f04f5a18',border:'1px solid #f04f5a40',color:C.red,fontSize:16,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>🗑</button>
         </div>
       </Hdr>
       {confirmDel&&<DelConfirm text={'Партия от '+fmtD(delivery.date)+' · '+items.length+' товаров'} onConfirm={doDelete} onCancel={()=>setConfirmDel(false)}/>}
@@ -278,7 +278,7 @@ function Posting({supplier,onBack,onSaved}){
               <div style={{flex:1}}><FL>СРОК ГОДНОСТИ</FL><input type="date" value={expiry} onChange={e=>setExpiry(e.target.value)} style={{width:'100%',background:C.bg,border:'1px solid '+C.border,borderRadius:12,padding:'13px 14px',color:C.text,fontSize:14,outline:'none'}}/></div>
             </div>
             {err&&<div style={{color:C.red,fontSize:12,marginTop:8}}>{err}</div>}
-            <div style={{display:'flex',gap:8,marginTop:12}}><Btn outline onClick={()=>setSelected(null)} style={{width:52,flex:'none',padding:'14px 0'}}>&#8592;</Btn><Btn bg={C.blue} onClick={addToList} style={{flex:1}}>+ Добавить</Btn></div>
+            <div style={{display:'flex',gap:8,marginTop:12}}><Btn outline onClick={()=>setSelected(null)} style={{width:52,flex:'none',padding:'14px 0'}}>←</Btn><Btn bg={C.blue} onClick={addToList} style={{flex:1}}>+ Добавить</Btn></div>
           </Card>
         )}
         {addedItems.length>0&&(
@@ -328,13 +328,13 @@ function Expiry({tick}){
   return(
     <React.Fragment>
       <Hdr title="Сроки годности">
-        <button onClick={doRefresh} style={{width:38,height:38,borderRadius:11,background:C.bg2,border:'1px solid '+C.border,color:refreshing?C.blue:C.muted,fontSize:20,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',animation:refreshing?'spin .7s linear infinite':'none'}}>&#8635;</button>
+        <button onClick={doRefresh} style={{width:38,height:38,borderRadius:11,background:C.bg2,border:'1px solid '+C.border,color:refreshing?C.blue:C.muted,fontSize:20,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',animation:refreshing?'spin .7s linear infinite':'none'}}>↻</button>
       </Hdr>
       <div style={{padding:14,paddingBottom:30}}>
         <div style={{display:'flex',gap:7,overflowX:'auto',paddingBottom:4,marginBottom:14}}>
           {FILTERS.map(f=>(<button key={f.id} onClick={()=>setFilter(f.id)} style={{padding:'8px 14px',borderRadius:22,cursor:'pointer',fontFamily:'inherit',fontSize:12,fontWeight:800,whiteSpace:'nowrap',flexShrink:0,border:'1.5px solid '+(filter===f.id?C.blue+'80':C.border),background:filter===f.id?C.blue+'18':C.bg2,color:filter===f.id?C.blue:C.dim}}>{f.l}</button>))}
         </div>
-        {!filtered.length?<Empty icon="&#9989;" text="Всё в норме"/>:
+        {!filtered.length?<Empty icon="✅" text="Всё в норме"/>:
         filtered.map(item=>{
           const st={color:eColor(item.days),label:eText(item.days)};
           return(
@@ -379,7 +379,7 @@ function Revision({tick,toast}){
     <React.Fragment>
       <Hdr title="Ревизия" onAdd={()=>setSc('new')}/>
       <div style={{padding:14,paddingBottom:30}}>
-        {!revisions.length?<Empty icon="&#128230;" text="Нажми + чтобы начать ревизию"/>:
+        {!revisions.length?<Empty icon="📦" text="Нажми + чтобы начать ревизию"/>:
         revisions.map(rev=>{
           const items=riAll.filter(i=>i.revision_id===rev.id);
           const short=items.filter(i=>i.actual!==null&&i.actual<i.expected).length;
@@ -388,7 +388,7 @@ function Revision({tick,toast}){
               <div style={{width:46,height:46,borderRadius:13,background:'linear-gradient(135deg,#4466ff,#3ecf8e)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:17,fontWeight:900,color:'#fff',flexShrink:0}}>{fmtDs(rev.date).day}</div>
               <div style={{flex:1}}><div style={{fontSize:15,fontWeight:700,marginBottom:2}}>{fmtD(rev.date)}</div><div style={{fontSize:12,color:C.dim}}>{(rev.category||'Все')+' · '+items.length+' поз.'}</div></div>
               <div style={{display:'flex',gap:6}}>{short>0?<Badge color={C.red}>{short}</Badge>:<Badge color={C.green}>OK</Badge>}</div>
-              <div style={{color:C.dim,fontSize:20}}>&#8250;</div>
+              <div style={{color:C.dim,fontSize:20}}>›</div>
             </div>
           );
         })}
@@ -453,7 +453,7 @@ function RevisionView({revision,onBack,onDeleted}){
       <Hdr title={fmtD(revision.date)} sub={(revision.category||'РЕВИЗИЯ').toUpperCase()} onBack={onBack}>
         <div style={{display:'flex',gap:6}}>
           {!editMode&&<button onClick={startEdit} style={{width:38,height:38,borderRadius:11,background:'#4466ff18',border:'1px solid #4466ff40',color:C.blue,fontSize:16,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>✏️</button>}
-          <button onClick={()=>setConfirmDel(true)} style={{width:38,height:38,borderRadius:11,background:'#f04f5a18',border:'1px solid #f04f5a40',color:C.red,fontSize:16,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>&#128465;</button>
+          <button onClick={()=>setConfirmDel(true)} style={{width:38,height:38,borderRadius:11,background:'#f04f5a18',border:'1px solid #f04f5a40',color:C.red,fontSize:16,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>🗑</button>
         </div>
       </Hdr>
       {confirmDel&&<DelConfirm text={'Ревизия от '+fmtD(revision.date)} onConfirm={doDelete} onCancel={()=>setConfirmDel(false)}/>}
@@ -480,7 +480,7 @@ function Finance({tick}){
   return(
     <React.Fragment>
       <div style={{padding:'14px 16px 12px',background:'rgba(9,9,15,.97)',backdropFilter:'blur(20px)',borderBottom:'1px solid '+C.border,position:'sticky',top:0,zIndex:50}}>
-        <div style={{fontSize:20,fontWeight:900,letterSpacing:-.5,marginBottom:12}}>&#128176; Финансы</div>
+        <div style={{fontSize:20,fontWeight:900,letterSpacing:-.5,marginBottom:12}}>💰 Финансы</div>
         <div style={{display:'flex',gap:8,marginBottom:12}}>
           {[['Выручка','+'+fmt(todayRev),C.green],['Расходы','−'+fmt(todayExp),C.red],['Касса',fmt(Math.abs(cashBal)),cashBal>=0?C.blue:C.red]].map(([l,v,c])=>(<div key={l} style={{flex:1,background:C.bg3,borderRadius:10,padding:'8px 10px'}}><div style={{fontSize:8,fontWeight:800,letterSpacing:1,color:C.dim,marginBottom:3}}>{l.toUpperCase()}</div><div style={{fontSize:13,fontWeight:900,color:c}}>{v}</div></div>))}
         </div>
@@ -505,13 +505,13 @@ function ExpensesTab({tick}){
     <div style={{padding:14,paddingBottom:30}}>
       {delItem&&<DelConfirm text={'Расход «'+delItem.reason+'» удалится'} onConfirm={async()=>{await dbDelete('expenses',delItem.id);await dbInsert('cash_movements',{type:'add',amount:+delItem.amount,description:'Возврат расхода: '+delItem.reason,date:tod()});setDelItem(null);}} onCancel={()=>setDelItem(null)}/>}
       <div style={{display:'flex',gap:6,overflowX:'auto',paddingBottom:4,marginBottom:12}}>{months.map(m=><button key={m.val} onClick={()=>setCurMonth(m.val)} style={{padding:'7px 14px',borderRadius:20,cursor:'pointer',fontFamily:'inherit',fontSize:11,fontWeight:700,whiteSpace:'nowrap',flexShrink:0,border:'1.5px solid '+(curMonth===m.val?C.red+'70':C.border),background:curMonth===m.val?C.red+'18':C.bg2,color:curMonth===m.val?C.red:C.dim}}>{m.label}</button>)}</div>
-      <div style={{background:C.bg2,border:'1px solid '+C.border,borderRadius:16,overflow:'hidden',marginBottom:14}}><div style={{padding:'16px 20px',display:'flex',alignItems:'center',justifyContent:'space-between'}}><div><div style={{fontSize:36,fontWeight:900,color:C.red}}>{fmt(total)+' SM'}</div><div style={{fontSize:12,color:C.dim,marginTop:4}}>{monthExp.length+' записей'}</div></div><div style={{fontSize:44,opacity:.35}}>&#128184;</div></div></div>
+      <div style={{background:C.bg2,border:'1px solid '+C.border,borderRadius:16,overflow:'hidden',marginBottom:14}}><div style={{padding:'16px 20px',display:'flex',alignItems:'center',justifyContent:'space-between'}}><div><div style={{fontSize:36,fontWeight:900,color:C.red}}>{fmt(total)+' SM'}</div><div style={{fontSize:12,color:C.dim,marginTop:4}}>{monthExp.length+' записей'}</div></div><div style={{fontSize:44,opacity:.35}}>💸</div></div></div>
       <Card><TI label="СУММА (SM)" type="number" placeholder="0.00" value={amount} onChange={setAmount} autoFocus/><TI label="ПРИЧИНА" placeholder="Аренда, зарплата..." value={reason} onChange={setReason}/><Btn bg={C.red} onClick={save} disabled={!amount||!reason.trim()}>Записать расход</Btn></Card>
       <SecLabel>{'История · '+(curMonthObj?curMonthObj.label:'')}</SecLabel>
-      {!monthExp.length?<Empty icon="&#128184;" text="Расходов нет"/>:monthExp.map(e=>(
+      {!monthExp.length?<Empty icon="💸" text="Расходов нет"/>:monthExp.map(e=>(
         <div key={e.id} style={{display:'flex',alignItems:'center',gap:12,padding:'13px 16px',background:C.bg2,border:'1px solid '+C.border,borderRadius:14,marginBottom:8}}>
           <div style={{flex:1,minWidth:0}}><div style={{fontSize:16,fontWeight:800,color:C.red,marginBottom:3}}>{'−'+fmt(e.amount)+' SM'}</div><div style={{fontSize:13,color:C.muted,marginBottom:2}}>{e.reason}</div><div style={{fontSize:11,color:C.dim}}>{fmtD(e.date)+' · '+fmtT(e.created_at)}</div></div>
-          <button onClick={()=>setDelItem(e)} style={{background:'none',border:'none',color:C.dim,fontSize:20,cursor:'pointer',padding:4,flexShrink:0}}>&#128465;</button>
+          <button onClick={()=>setDelItem(e)} style={{background:'none',border:'none',color:C.dim,fontSize:20,cursor:'pointer',padding:4,flexShrink:0}}>🗑</button>
         </div>
       ))}
     </div>
@@ -528,10 +528,10 @@ function RevenueTab({tick}){
       {delItem&&<DelConfirm text={'Выручка '+fmt(delItem.amount)+' SM удалится'} onConfirm={async()=>{await dbDelete('revenue',delItem.id);await dbInsert('cash_movements',{type:'remove',amount:+delItem.amount,description:'Удаление выручки',date:tod()});setDelItem(null);}} onCancel={()=>setDelItem(null)}/>}
       <div style={{background:C.bg2,border:'1px solid '+C.border,borderRadius:16,overflow:'hidden',marginBottom:14}}><div style={{padding:'16px 20px',borderBottom:'1px solid '+C.border}}><div style={{fontSize:10,color:C.dim,marginBottom:4}}>ВЫРУЧКА СЕГОДНЯ</div><div style={{fontSize:32,fontWeight:900,color:C.green}}>{fmt(todayRev)+' SM'}</div></div><div style={{display:'flex'}}><div style={{flex:1,padding:'14px 16px',borderRight:'1px solid '+C.border}}><div style={{fontSize:9,fontWeight:800,color:C.dim,marginBottom:4}}>ВСЕГО</div><div style={{fontSize:18,fontWeight:900,color:C.green}}>{fmt(totalRev)+' SM'}</div></div><div style={{flex:1,padding:'14px 16px'}}><div style={{fontSize:9,fontWeight:800,color:C.dim,marginBottom:4}}>ПРИБЫЛЬ GBS</div><div style={{fontSize:18,fontWeight:900,color:C.blue}}>{fmt(totalProfit)+' SM'}</div></div></div></div>
       <Card><TI label="ВЫРУЧКА (SM)" type="number" placeholder="0.00" value={amount} onChange={setAmount} autoFocus/><TI label="ПРИБЫЛЬ GBS (необязательно)" type="number" placeholder="из GBS.Market" value={gbsProfit} onChange={setGbsProfit}/><div style={{marginBottom:12}}><FL>ДАТА</FL><input type="date" value={date} onChange={e=>setDate(e.target.value)} style={{width:'100%',background:C.bg,border:'1px solid '+C.border,borderRadius:12,padding:'13px 16px',color:C.text,fontSize:15,outline:'none'}}/></div><Btn bg={C.green} color="#051a0e" onClick={save} disabled={!amount}>+ Добавить выручку</Btn></Card>
-      {!all.length?<Empty icon="&#128176;" text="Записей нет"/>:all.map(r=>(
+      {!all.length?<Empty icon="💰" text="Записей нет"/>:all.map(r=>(
         <div key={r.id} style={{display:'flex',alignItems:'center',gap:12,padding:'13px 16px',background:C.bg2,border:'1px solid '+C.border,borderRadius:14,marginBottom:8}}>
           <div style={{flex:1,minWidth:0}}><div style={{fontSize:16,fontWeight:800,color:C.green,marginBottom:3}}>{'+'+ fmt(r.amount)+' SM'}</div><div style={{fontSize:12,color:C.dim}}>{'GBS: '+fmt(r.profit||0)+' SM'}</div><div style={{fontSize:11,color:C.dim,marginTop:2}}>{fmtD(r.date)+' · '+fmtT(r.created_at)}</div></div>
-          <button onClick={()=>setDelItem(r)} style={{background:'none',border:'none',color:C.dim,fontSize:20,cursor:'pointer',padding:4,flexShrink:0}}>&#128465;</button>
+          <button onClick={()=>setDelItem(r)} style={{background:'none',border:'none',color:C.dim,fontSize:20,cursor:'pointer',padding:4,flexShrink:0}}>🗑</button>
         </div>
       ))}
     </div>
@@ -554,7 +554,7 @@ function CashTab({tick}){
   if(counts!==null)return(
     <div style={{padding:14,paddingBottom:30}}>
       <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:16}}>
-        <button onClick={()=>setCounts(null)} style={{width:38,height:38,borderRadius:11,background:C.bg2,border:'1px solid '+C.border,color:C.muted,fontSize:22,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>&#8592;</button>
+        <button onClick={()=>setCounts(null)} style={{width:38,height:38,borderRadius:11,background:C.bg2,border:'1px solid '+C.border,color:C.muted,fontSize:22,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>←</button>
         <div style={{fontSize:18,fontWeight:900}}>Пересчёт кассы</div>
       </div>
       <div style={{background:C.bg2,border:'1.5px solid '+C.green+'40',borderRadius:16,padding:'16px',marginBottom:14,textAlign:'center'}}>
@@ -599,10 +599,10 @@ function CashTab({tick}){
         <Btn bg={action==='add'?C.green:C.red} color={action==='add'?'#051a0e':'#fff'} onClick={save} disabled={!amount}>{action==='add'?'+ Добавить в кассу':'− Снять из кассы'}</Btn>
       </Card>
       <SecLabel>{'История · '+movements.length}</SecLabel>
-      {!movements.length?<Empty icon="&#127975;" text="Движений нет"/>:movements.map(m=>(
+      {!movements.length?<Empty icon="🏧" text="Движений нет"/>:movements.map(m=>(
         <div key={m.id} style={{display:'flex',alignItems:'center',gap:12,padding:'13px 16px',background:C.bg2,border:'1px solid '+C.border,borderRadius:14,marginBottom:8}}>
           <div style={{flex:1,minWidth:0}}><div style={{fontSize:16,fontWeight:800,color:TYPE_COLOR[m.type]||C.muted,marginBottom:3}}>{(isPlus(m.type)?'+':'−')+fmt(m.amount)+' SM'}</div><div style={{fontSize:12,color:C.muted}}>{m.description||m.type}</div><div style={{fontSize:11,color:C.dim,marginTop:2}}>{fmtD(m.date)+' · '+fmtT(m.created_at)}</div></div>
-          <button onClick={()=>setDelId(m.id)} style={{background:'none',border:'none',color:C.dim,fontSize:20,cursor:'pointer',padding:4,flexShrink:0}}>&#128465;</button>
+          <button onClick={()=>setDelId(m.id)} style={{background:'none',border:'none',color:C.dim,fontSize:20,cursor:'pointer',padding:4,flexShrink:0}}>🗑</button>
         </div>
       ))}
     </div>
@@ -643,7 +643,7 @@ function Debts({tick,toast}){
     <React.Fragment>
       <div style={{padding:'14px 16px 12px',background:'rgba(9,9,15,.97)',backdropFilter:'blur(20px)',borderBottom:'1px solid '+C.border,position:'sticky',top:0,zIndex:50}}>
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
-          <div><div style={{fontSize:9,fontWeight:800,letterSpacing:2,color:C.dim}}>KASSACONTROL</div><div style={{fontSize:20,fontWeight:900}}>&#129309; Долги</div></div>
+          <div><div style={{fontSize:9,fontWeight:800,letterSpacing:2,color:C.dim}}>KASSACONTROL</div><div style={{fontSize:20,fontWeight:900}}>🤝 Долги</div></div>
           <button onClick={()=>setShowAdd(v=>!v)} style={{width:40,height:40,borderRadius:12,background:showAdd?C.bg3:C.blue,border:'none',color:'#fff',fontSize:26,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'inherit'}}>{showAdd?'✕':'+'}</button>
         </div>
         <div style={{display:'flex',gap:8,marginBottom:10}}>
@@ -683,15 +683,15 @@ function Debts({tick,toast}){
           </div>
         )}
         {people.length>5&&<div style={{marginBottom:12}}><input value={srch} onChange={e=>setSrch(e.target.value)} placeholder="Поиск..." style={{width:'100%',background:C.bg2,border:'1px solid '+C.border,borderRadius:12,padding:'11px 14px',color:C.text,fontSize:14,outline:'none'}}/></div>}
-        {!fl.length?<Empty icon="&#129309;" text={people.length?'Никого не найдено':'Нажми + чтобы добавить контакт'}/>:
+        {!fl.length?<Empty icon="🤝" text={people.length?'Никого не найдено':'Нажми + чтобы добавить контакт'}/>:
         fl.map(p=>{
           const bal=getBal(p.id);
           const isOwed=bal<0;const isWeOwe=bal>0;
           const bc=isOwed?C.green:isWeOwe?C.red:C.dim;
-          const ci=p.category==='company'?'&#127962;':p.category==='iowe'?'&#128179;':'&#128100;';
+          const ci=p.category==='company'?'🏢':p.category==='iowe'?'💳':'👤';
           return(
             <div key={p.id} className="fu" onClick={()=>{setSelP(p);setSc('person');}} style={{display:'flex',alignItems:'center',gap:12,padding:'14px 16px',background:C.bg2,border:'1px solid '+(isOwed?C.green+'30':isWeOwe?C.red+'30':C.border),borderRadius:16,marginBottom:8,cursor:'pointer'}}>
-              <div style={{width:46,height:46,borderRadius:13,background:bc+'20',border:'1px solid '+bc+'40',display:'flex',alignItems:'center',justifyContent:'center',fontSize:20,flexShrink:0}} dangerouslySetInnerHTML={{__html:ci}}/>
+              <div style={{width:46,height:46,borderRadius:13,background:bc+'20',border:'1px solid '+bc+'40',display:'flex',alignItems:'center',justifyContent:'center',fontSize:20,flexShrink:0}}>{ci}</div>
               <div style={{flex:1,minWidth:0}}>
                 <div style={{fontSize:15,fontWeight:700,marginBottom:3}}>{p.name}</div>
                 <div style={{fontSize:11,color:C.dim}}>{p.phone||'Нет номера'}</div>
@@ -700,7 +700,7 @@ function Debts({tick,toast}){
                 <div style={{fontSize:15,fontWeight:900,color:bc}}>{(isOwed?'+':'-')+fmt(Math.abs(bal))+' SM'}</div>
                 <div style={{fontSize:10,color:C.dim,marginTop:2}}>{isOwed?'должны нам':isWeOwe?'мы должны':'чисто'}</div>
               </div>
-              <div style={{color:C.dim,fontSize:20}}>&#8250;</div>
+              <div style={{color:C.dim,fontSize:20}}>›</div>
             </div>
           );
         })}
@@ -752,7 +752,7 @@ function DebtPerson({person,onBack,toast}){
       {delTx&&<DelConfirm text="Запись удалится, касса откатится" onConfirm={doDelTx} onCancel={()=>setDelTx(null)}/>}
       {delP&&<DelConfirm text={'Удалить «'+sp.name+'» и всю историю?'} onConfirm={doDelPerson} onCancel={()=>setDelP(false)}/>}
       <Hdr title={sp.name} sub="ДОЛГИ" onBack={onBack}>
-        <button onClick={()=>setDelP(true)} style={{width:38,height:38,borderRadius:11,background:'#f04f5a18',border:'1px solid #f04f5a40',color:C.red,fontSize:16,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>&#128465;</button>
+        <button onClick={()=>setDelP(true)} style={{width:38,height:38,borderRadius:11,background:'#f04f5a18',border:'1px solid #f04f5a40',color:C.red,fontSize:16,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>🗑</button>
       </Hdr>
       <div style={{padding:14,paddingBottom:30}}>
         <div style={{background:C.bg2,border:'1.5px solid '+bc+'40',borderRadius:16,padding:'18px 20px',marginBottom:14,textAlign:'center'}}>
@@ -782,13 +782,13 @@ function DebtPerson({person,onBack,toast}){
                     {t.note&&<div style={{fontSize:12,color:C.muted,marginBottom:2}}>{t.note}</div>}
                     <div style={{fontSize:11,color:C.dim}}>{fmtDT(t.created_at)}</div>
                   </div>
-                  <button onClick={()=>setDelTx(t.id)} style={{background:'none',border:'none',color:C.dim,fontSize:20,cursor:'pointer',padding:4,flexShrink:0}}>&#128465;</button>
+                  <button onClick={()=>setDelTx(t.id)} style={{background:'none',border:'none',color:C.dim,fontSize:20,cursor:'pointer',padding:4,flexShrink:0}}>🗑</button>
                 </div>
               );
             })}
           </React.Fragment>
         )}
-        {!ptxs.length&&<Empty icon="&#128203;" text="Операций пока нет"/>}
+        {!ptxs.length&&<Empty icon="📋" text="Операций пока нет"/>}
       </div>
     </React.Fragment>
   );
@@ -807,8 +807,8 @@ function App(){
   const alertCount=fifo2.filter(i=>i.remaining>0&&dLeft(i.expiry_date)<0).length+fifo2.filter(i=>i.remaining>0&&dLeft(i.expiry_date)>=0&&dLeft(i.expiry_date)<=3).length;
   const debtTxs=dbGet('debt_transactions');const debtPpl=dbGet('debt_people');
   const debtAlert=debtPpl.filter(p=>{const b=debtTxs.filter(t=>t.person_id===p.id).reduce((s,t)=>s+(+t.amount||0),0);return b!==0;}).length;
-  if(loading)return(<div style={{height:'100vh',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',background:C.bg,color:C.text}}><div style={{fontSize:48,marginBottom:20}}>&#127978;</div><div style={{fontSize:18,fontWeight:800,marginBottom:8}}>KassaControl</div><div style={{fontSize:13,color:C.dim}}>Загрузка...</div></div>);
-  const NAV=[{id:'home',icon:'&#127968;',label:'Главная'},{id:'supply',icon:'&#128666;',label:'Поставки'},{id:'expiry',icon:'&#9760;',label:'Сроки'},{id:'revision',icon:'&#128230;',label:'Ревизия'},{id:'finance',icon:'&#128176;',label:'Финансы'},{id:'debts',icon:'&#129309;',label:'Долги'}];
+  if(loading)return(<div style={{height:'100vh',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',background:C.bg,color:C.text}}><div style={{fontSize:48,marginBottom:20}}>🏪</div><div style={{fontSize:18,fontWeight:800,marginBottom:8}}>KassaControl</div><div style={{fontSize:13,color:C.dim}}>Загрузка...</div></div>);
+  const NAV=[{id:'home',icon:'🏠',label:'Главная'},{id:'supply',icon:'🚚',label:'Поставки'},{id:'expiry',icon:'☠️',label:'Сроки'},{id:'revision',icon:'📦',label:'Ревизия'},{id:'finance',icon:'💰',label:'Финансы'},{id:'debts',icon:'🤝',label:'Долги'}];
   return(
     <div style={{background:C.bg,color:C.text,minHeight:'100vh',fontFamily:'system-ui,-apple-system,sans-serif',maxWidth:430,margin:'0 auto',paddingBottom:80}}>
       <style>{css}</style>
@@ -822,7 +822,7 @@ function App(){
       <div style={{position:'fixed',bottom:0,left:'50%',transform:'translateX(-50%)',width:'100%',maxWidth:430,background:'rgba(9,9,15,.97)',backdropFilter:'blur(20px)',borderTop:'1px solid '+C.border,display:'flex',zIndex:100,paddingBottom:'env(safe-area-inset-bottom,0)'}}>
         {NAV.map(n=>(
           <button key={n.id} onClick={()=>setTab(n.id)} style={{flex:1,padding:'10px 0 11px',background:'none',border:'none',borderTop:'2px solid '+(tab===n.id?C.blue:'transparent'),cursor:'pointer',color:tab===n.id?C.blue:C.dim,display:'flex',flexDirection:'column',alignItems:'center',gap:2,fontFamily:'inherit',position:'relative'}}>
-            <span style={{fontSize:19}} dangerouslySetInnerHTML={{__html:n.icon}}/>
+            <span style={{fontSize:19}}>{n.icon}</span>
             <span style={{fontSize:8,fontWeight:800,letterSpacing:.5,textTransform:'uppercase'}}>{n.label}</span>
             {n.id==='expiry'&&alertCount>0&&<span style={{position:'absolute',top:4,right:'50%',transform:'translateX(8px)',background:C.red,borderRadius:10,minWidth:16,height:16,fontSize:10,fontWeight:900,color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',padding:'0 4px'}}>{alertCount}</span>}
             {n.id==='debts'&&debtAlert>0&&<span style={{position:'absolute',top:4,right:'50%',transform:'translateX(8px)',background:C.orange,borderRadius:10,minWidth:16,height:16,fontSize:10,fontWeight:900,color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',padding:'0 4px'}}>{debtAlert}</span>}

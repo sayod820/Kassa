@@ -1063,16 +1063,14 @@ function Debts({tick,toast}){
   const [apPhone,setApPhone]=useState('');
   const [sv,setSv]=useState(false);
 
-  useEffect(()=>{ const u=sub(()=>{}); return u; },[tick]);
-
   const people=dbGet('debt_people');
   const txs=dbGet('debt_transactions');
 
   const getBal=pid=>txs.filter(t=>t.person_id===pid).reduce((s,t)=>s+(+t.amount||0),0);
   const getPTxs=pid=>[...txs.filter(t=>t.person_id===pid)].sort((a,b)=>b.created_at.localeCompare(a.created_at));
 
-  // bal < 0 = мы дали в долг (они должны нам)
-  // bal > 0 = мы взяли в долг (мы должны им)
+  
+  
   const totalOwedToUs=people.filter(p=>p.category!=='iowe').reduce((s,p)=>{ const b=getBal(p.id); return b<0?s+Math.abs(b):s; },0);
   const totalWeOwe=people.reduce((s,p)=>{ const b=getBal(p.id); return b>0?s+b:s; },0);
 
@@ -1122,4 +1120,9 @@ function Debts({tick,toast}){
         {/* Фильтры */}
         <div style={{display:'flex',gap:6}}>
           {[['all','Все'],['owed','Должны нам'],['iowe','Мы должны']].map(([id,l])=>(
-            <button key={id} onClick={()=>setFcat(id)} style={{flex:1,padding:'8px 4px',borderRadius:10,cursor:'pointer',fontFamily:'inherit',fontSize:11,fontWeight:800,border:`1.5px solid ${fcat===id?C.blue+'60':C.border}`
+            <button key={id} onClick={()=>setFcat(id)} style={{flex:1,padding:'8px 4px',borderRadius:10,cursor:'pointer',fontFamily:'inherit',fontSize:11,fontWeight:800,border:`1.5px solid ${fcat===id?C.blue+'60':C.border}`,background:fcat===id?C.blue+'18':C.bg2,color:fcat===id?C.blue:C.dim}}>{l}</button>
+          ))}
+        </div>
+      </div>
+
+      <div style={{pa

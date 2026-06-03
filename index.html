@@ -1046,67 +1046,80 @@ function CashTab({tick}){
 // ════════════════════════════════════════════
 // ДОЛГИ
 // ════════════════════════════════════════════
-const DCAT={friend:{l:'Друг',i:'👤',c:'#4466ff'},company:{l:'Фирма',i:'🏢',c:'#f09040'},iowe:{l:'Я должен',i:'💳',c:'#f04f5a'}};
+const DCAT={
+  friend:{l:'Друг/знакомый',i:'👤',c:'#4466ff'},
+  company:{l:'Фирма',i:'🏢',c:'#f09040'},
+  iowe:{l:'Я должен',i:'💳',c:'#f04f5a'}
+};
 
 function Debts({tick,toast}){
   const [sc,setSc]=useState('list');
   const [selP,setSelP]=useState(null);
   const [fcat,setFcat]=useState('all');
   const [srch,setSrch]=useState('');
-  const [apName,setApName]=useState('');const [apCat,setApCat]=useState('friend');const [apPhone,setApPhone]=useState('');const [apNote,setApNote]=useState('');
-  const [txAmt,setTxAmt]=useState('');const [txDir,setTxDir]=useState('give');const [txNote,setTxNote]=useState('');const [txMode,setTxMode]=useState(false);
-  const [delP,setDelP]=useState(null);const [delTx,setDelTx]=useState(null);const [sv,setSv]=useState(false);
+  const [showAddForm,setShowAddForm]=useState(false);
+  const [apName,setApName]=useState('');
+  const [apCat,setApCat]=useState('friend');
+  const [apPhone,setApPhone]=useState('');
+  const [sv,setSv]=useState(false);
+
+  useEffect(()=>{ const u=sub(()=>{}); return u; },[tick]);
 
   const people=dbGet('debt_people');
   const txs=dbGet('debt_transactions');
+
   const getBal=pid=>txs.filter(t=>t.person_id===pid).reduce((s,t)=>s+(+t.amount||0),0);
   const getPTxs=pid=>[...txs.filter(t=>t.person_id===pid)].sort((a,b)=>b.created_at.localeCompare(a.created_at));
-  const totalOwed=people.filter(p=>p.category!=='iowe').reduce((s,p)=>{ const b=getBal(p.id); return b<0?s+Math.abs(b):s; },0);
-  const totalIOwe=people.reduce((s,p)=>{ const b=getBal(p.id); return b>0?s+b:s; },0);
-  const fl=[...people].filter(p=>{ if(fcat!=='all'&&p.category!==fcat)return false; if(srch.trim()&&!(p.name||'').toLowerCase().includes(srch.toLowerCase()))return false; return true; }).sort((a,b)=>Math.abs(getBal(b.id))-Math.abs(getBal(a.id)));
 
-  const addPerson=async()=>{ if(!apName.trim())return; setSv(true); await dbInsert('debt_people',{name:apName.trim(),category:apCat,phone:apPhone.trim(),note:apNote.trim()}); toast('✓ Контакт добавлен'); setApName('');setApPhone('');setApNote('');setApCat('friend');setSv(false);setSc('list'); };
+  // bal < 0 = мы дали в долг (они должны нам)
+  // bal > 0 = мы взяли в долг (мы должны им)
+  const totalOwedToUs=people.filter(p=>p.category!=='iowe').reduce((s,p)=>{ const b=getBal(p.id); return b<0?s+Math.abs(b):s; },0);
+  const totalWeOwe=people.reduce((s,p)=>{ const b=getBal(p.id); return b>0?s+b:s; },0);
 
-  const addTx=async()=>{
-    if(!txAmt||!selP)return; setSv(true);
-    const amt=txDir==='give'?-(+txAmt):(+txAmt);
-    await dbInsert('debt_transactions',{person_id:selP.id,amount:amt,note:txNote.trim()});
-    if(txDir==='give'){ await dbInsert('cash_movements',{type:'remove',amount:+txAmt,description:`🤝 Дал в долг: ${selP.name}`,date:tod()}); toast(`💸 Дал ${fmt(+txAmt)} SM — списано с кассы`); }
-    else{ await dbInsert('cash_movements',{type:'add',amount:+txAmt,description:`🤝 Вернули: ${selP.name}`,date:tod()}); toast(`💰 Получил ${fmt(+txAmt)} SM — добавлено в кассу`); }
-    setTxAmt('');setTxNote('');setTxMode(false);setSv(false);
-  };
+  const fl=[...people].filter(p=>{
+    if(fcat==='owed'&&getBal(p.id)>=0) return false;
+    if(fcat==='iowe'&&getBal(p.id)<=0) return false;
+    if(srch.trim()&&!(p.name||'').toLowerCase().includes(srch.toLowerCase())) return false;
+    return true;
+  }).sort((a,b)=>Math.abs(getBal(b.id))-Math.abs(getBal(a.id)));
 
-  const doDelP=async()=>{
-    const id=delP;
-    for(const t of txs.filter(t=>t.person_id===id)) await sbDel('debt_transactions',t.id);
-    DB.debt_transactions=DB.debt_transactions.filter(t=>t.person_id!==id);
-    await sbDel('debt_people',id); DB.debt_people=DB.debt_people.filter(p=>p.id!==id);
-    pub(); setDelP(null); toast('Контакт удалён');
-  };
-
-  const doDelTx=async()=>{
-    const t=txs.find(x=>x.id===delTx);
-    if(t){
-      const nm=(people.find(p=>p.id===t.person_id)||{}).name||'';
-      if(t.amount<0) await dbInsert('cash_movements',{type:'add',amount:Math.abs(t.amount),description:`Отмена долга: ${nm}`,date:tod()});
-      else await dbInsert('cash_movements',{type:'remove',amount:t.amount,description:`Отмена возврата: ${nm}`,date:tod()});
-      await sbDel('debt_transactions',delTx);
-      DB.debt_transactions=DB.debt_transactions.filter(x=>x.id!==delTx); pub();
-    }
-    setDelTx(null); toast('Запись удалена');
+  const addPerson=async()=>{
+    if(!apName.trim()) return;
+    setSv(true);
+    await dbInsert('debt_people',{name:apName.trim(),category:apCat,phone:apPhone.trim()});
+    toast('✓ Контакт добавлен');
+    setApName(''); setApPhone(''); setApCat('friend');
+    setSv(false); setShowAddForm(false);
   };
 
   // Страница персоны
   if(sc==='person'&&selP){
     const sp=people.find(p=>p.id===selP.id)||selP;
-    const ptxs=getPTxs(sp.id);
-    const bal=getBal(sp.id);
-    const cat=DCAT[sp.category]||DCAT.friend;
-    const tGave=ptxs.filter(t=>t.amount<0).reduce((s,t)=>s+Math.abs(t.amount),0);
-    const tGot=ptxs.filter(t=>t.amount>0).reduce((s,t)=>s+t.amount,0);
-    return(
-      <>
-        {delTx&&<DelConfirm text="Запись удалится, касса откатится" onConfirm={doDelTx} onCancel={()=>setDelTx(null)}/>}
-        <div style={{padding:'14px 16px 14px',background:'rgba(9,9,15,.97)',backdropFilter:'blur(20px)',borderBottom:`1px solid ${C.border}`,position:'sticky',top:0,zIndex:50}}>
-          <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:12}}>
-            <button
+    return <DebtPerson person={sp} onBack={()=>{ setSc('list'); setSelP(null); }} toast={toast}/>;
+  }
+
+  return(
+    <>
+      <div style={{padding:'14px 16px 12px',background:'rgba(9,9,15,.97)',backdropFilter:'blur(20px)',borderBottom:`1px solid ${C.border}`,position:'sticky',top:0,zIndex:50}}>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
+          <div>
+            <div style={{fontSize:9,fontWeight:800,letterSpacing:2.5,textTransform:'uppercase',color:C.dim}}>KASSACONTROL</div>
+            <div style={{fontSize:20,fontWeight:900,letterSpacing:-.5}}>🤝 Долги</div>
+          </div>
+          <button onClick={()=>setShowAddForm(v=>!v)} style={{width:40,height:40,borderRadius:12,background:showAddForm?C.bg3:C.blue,border:`1px solid ${showAddForm?C.border:'transparent'}`,color:'#fff',fontSize:28,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',lineHeight:1,paddingBottom:2}}>{showAddForm?'✕':'+'}</button>
+        </div>
+        {/* Итоги */}
+        <div style={{display:'flex',gap:8,marginBottom:10}}>
+          <div style={{flex:1,background:'#3ecf8e12',border:`1px solid ${C.green}30`,borderRadius:12,padding:'10px 12px'}}>
+            <div style={{fontSize:8,fontWeight:800,letterSpacing:1.5,color:C.dim,marginBottom:3}}>НАМ ДОЛЖНЫ</div>
+            <div style={{fontSize:16,fontWeight:900,color:C.green}}>{fmt(totalOwedToUs)} SM</div>
+          </div>
+          <div style={{flex:1,background:'#f04f5a12',border:`1px solid ${C.red}30`,borderRadius:12,padding:'10px 12px'}}>
+            <div style={{fontSize:8,fontWeight:800,letterSpacing:1.5,color:C.dim,marginBottom:3}}>МЫ ДОЛЖНЫ</div>
+            <div style={{fontSize:16,fontWeight:900,color:C.red}}>{fmt(totalWeOwe)} SM</div>
+          </div>
+        </div>
+        {/* Фильтры */}
+        <div style={{display:'flex',gap:6}}>
+          {[['all','Все'],['owed','Должны нам'],['iowe','Мы должны']].map(([id,l])=>(
+            <button key={id} onClick={()=>setFcat(id)} style={{flex:1,padding:'8px 4px',borderRadius:10,cursor:'pointer',fontFamily:'inherit',fontSize:11,fontWeight:800,border:`1.5px solid ${fcat===id?C.blue+'60':C.border}`,background:fcat===id?C.blue+'18':C.bg2,

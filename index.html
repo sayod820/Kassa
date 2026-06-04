@@ -1065,7 +1065,7 @@ function Debts({tick,toast}){
   const totalIOwe=people.reduce((s,p)=>{ const b=getBal(p.id); return b>0?s+b:s; },0);
   const fl=[...people].filter(p=>{ if(fcat!=='all'&&p.category!==fcat)return false; if(srch.trim()&&!(p.name||'').toLowerCase().includes(srch.toLowerCase()))return false; return true; }).sort((a,b)=>Math.abs(getBal(b.id))-Math.abs(getBal(a.id)));
 
-  const addPerson=async()=>{ if(!apName.trim())return; setSv(true); await dbInsert('debt_people',{name:apName.trim(),category:apCat,phone:apPhone.trim(),note:apNote.trim()}); toast('✓ Контакт добавлен'); setApName('');setApPhone('');setApNote('');setApCat('friend');setSv(false);setSc('list'); };
+  const addPerson=async()=>{ if(!apName.trim())return; document.activeElement&&document.activeElement.blur(); setSv(true); const inserted=await dbInsert('debt_people',{name:apName.trim(),category:apCat,phone:apPhone.trim(),note:apNote.trim()}); toast('✓ Контакт добавлен'); setApName('');setApPhone('');setApNote('');setApCat('friend');setSv(false); setFcat('all'); setTimeout(()=>{ if(inserted&&inserted.id){ setSelP(inserted); setSc('person'); } else { setSc('list'); } },350); };
 
   const addTx=async()=>{
     if(!txAmt||!selP)return; setSv(true);

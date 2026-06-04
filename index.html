@@ -11,6 +11,15 @@
 <style>*{box-sizing:border-box;margin:0;padding:0}body{background:#09090f}#root{max-width:430px;margin:0 auto}</style>
 </head>
 <body>
+<script>
+const ALLOWED = [1095510997];
+const tg = window.Telegram?.WebApp?.initDataUnsafe?.user;
+if (tg && !ALLOWED.includes(tg.id)) {
+  document.body.innerHTML = '<div style="background:#09090f;color:#fff;height:100vh;display:flex;align-items:center;justify-content:center;font-family:system-ui;flex-direction:column;text-align:center;padding:20px;position:fixed;top:0;left:0;width:100%;z-index:99999"><div style="font-size:80px">⛔</div><div style="font-size:24px;font-weight:900;color:#f04f5a;margin:15px 0">Доступ запрещён</div><div style="font-size:14px;color:#6868a0">Приложение только для владельца</div><div style="background:#111120;border:1px solid #1e1e38;border-radius:14px;padding:12px 20px;margin-top:25px"><div style="font-size:10px;color:#32324a;margin-bottom:5px">ВАШ ID</div><div style="font-size:18px;font-weight:800;color:#4466ff">'+tg.id+'</div></div></div>';
+  window.stop();
+}
+</script>
+
 <div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect, useRef } = React;
@@ -1061,7 +1070,7 @@ function Debts({tick,toast}){
   const [fcat,setFcat]=useState('all');
   const [srch,setSrch]=useState('');
   const [apName,setApName]=useState('');const [apCat,setApCat]=useState('friend');const [apPhone,setApPhone]=useState('');const [apNote,setApNote]=useState('');
-  const [txAmt,setTxAmt]=useState('');const [txDir,setTxDir]=useState('give');const [txNote,setTxNote]=useState('');const [txMode,setTxMode]=useState(false);
+  const [txAmt,setTxAmt]=useState('');const [txDir,setTxDir]=useState('give');const [txNote,setTxNote]=useState('');const [txMode,setTxMode]=useState(false);const [txCash,setTxCash]=useState(true);
   const [delP,setDelP]=useState(null);const [delTx,setDelTx]=useState(null);const [sv,setSv]=useState(false);
 
   const people=dbGet('debt_people');
@@ -1078,8 +1087,12 @@ function Debts({tick,toast}){
     if(!txAmt||!selP)return; setSv(true);
     const amt=txDir==='give'?-(+txAmt):(+txAmt);
     await dbInsert('debt_transactions',{id:uid(),person_id:selP.id,amount:amt,note:txNote.trim()});
-    if(txDir==='give'){ await dbInsert('cash_movements',{id:uid(),type:'remove',amount:+txAmt,description:`🤝 Дал в долг: ${selP.name}`,date:tod()}); toast(`💸 Дал ${fmt(+txAmt)} SM — списано с кассы`); }
-    else{ await dbInsert('cash_movements',{id:uid(),type:'add',amount:+txAmt,description:`🤝 Вернули: ${selP.name}`,date:tod()}); toast(`💰 Получил ${fmt(+txAmt)} SM — добавлено в кассу`); }
+    if(txCash){
+      if(txDir==='give'){ await dbInsert('cash_movements',{id:uid(),type:'remove',amount:+txAmt,description:`🤝 Дал в долг: ${selP.name}`,date:tod()}); toast(`💸 Дал ${fmt(+txAmt)} SM — списано с кассы`); }
+      else{ await dbInsert('cash_movements',{id:uid(),type:'add',amount:+txAmt,description:`🤝 Вернули: ${selP.name}`,date:tod()}); toast(`💰 Получил ${fmt(+txAmt)} SM — добавлено в кассу`); }
+    } else {
+      toast(txDir==='give'?`💸 Дал ${fmt(+txAmt)} SM — только долг`:`💰 Получил ${fmt(+txAmt)} SM — только долг`);
+    }
     setTxAmt('');setTxNote('');setTxMode(false);setSv(false);
   };
 
@@ -1137,14 +1150,18 @@ function Debts({tick,toast}){
         </div>
         {txMode&&(
           <div style={{padding:'12px 14px',background:C.bg3,borderBottom:`1px solid ${C.border}`}}>
-            <div style={{fontSize:8,fontWeight:800,letterSpacing:2,color:txDir==='give'?C.red:C.green,marginBottom:8}}>{txDir==='give'?'💸 ВЫДАЮ':'💰 ПОЛУЧИЛ'} (SM)</div>
-            <div style={{display:'flex',gap:8,marginBottom:8}}>
-              <input type="number" autoFocus placeholder="Сумма..." value={txAmt} onChange={e=>setTxAmt(e.target.value)} style={{flex:2,background:C.bg,border:`1.5px solid ${txDir==='give'?C.red:C.green}40`,borderRadius:11,padding:'11px 14px',color:C.text,fontSize:16,fontWeight:800,outline:'none',fontFamily:'inherit'}}/>
-              <input type="text" placeholder="Заметка..." value={txNote} onChange={e=>setTxNote(e.target.value)} style={{flex:3,background:C.bg,border:`1px solid ${C.border}`,borderRadius:11,padding:'11px 14px',color:C.text,fontSize:13,outline:'none',fontFamily:'inherit'}}/>
+            <div style={{fontSize:8,fontWeight:800,letterSpacing:2,color:txDir==='give'?C.red:C.green,marginBottom:10}}>{txDir==='give'?'💸 ВЫДАЮ':'💰 ПОЛУЧИЛ'} (SM)</div>
+            <div style={{display:'flex',gap:8,marginBottom:10}}>
+              <input type="number" autoFocus placeholder="Сумма..." value={txAmt} onChange={e=>setTxAmt(e.target.value)} style={{flex:1,background:C.bg,border:`1.5px solid ${txDir==='give'?C.red:C.green}50`,borderRadius:11,padding:'11px 14px',color:C.text,fontSize:16,fontWeight:800,outline:'none',fontFamily:'inherit'}}/>
             </div>
+            <input type="text" placeholder="Заметка (необязательно)..." value={txNote} onChange={e=>setTxNote(e.target.value)} style={{width:'100%',background:C.bg,border:`1px solid ${C.border}`,borderRadius:11,padding:'10px 14px',color:C.text,fontSize:13,outline:'none',fontFamily:'inherit',boxSizing:'border-box',marginBottom:10}}/>
+            <button onClick={()=>setTxCash(v=>!v)} style={{width:'100%',padding:'11px 14px',borderRadius:11,cursor:'pointer',fontFamily:'inherit',fontSize:13,fontWeight:800,border:`1.5px solid ${txCash?C.blue+'60':C.border}`,background:txCash?C.blue+'18':C.bg2,color:txCash?C.blue:C.dim,marginBottom:10,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+              <span>🏧 {txDir==='give'?'Списать с кассы':'Добавить в кассу'}</span>
+              <span style={{fontSize:18,color:txCash?C.blue:C.dim}}>{txCash?'✅':'⬜'}</span>
+            </button>
             <div style={{display:'flex',gap:8}}>
-              <button onClick={()=>{setTxMode(false);setTxAmt('');setTxNote('');}} style={{width:44,padding:'10px',borderRadius:10,background:'transparent',border:`1px solid ${C.border}`,color:C.dim,fontSize:18,cursor:'pointer',fontFamily:'inherit'}}>✕</button>
-              <Btn bg={txDir==='give'?C.red:C.green} color={txDir==='give'?'#fff':'#051a0e'} onClick={addTx} disabled={!txAmt||sv} style={{flex:1}}>{sv?'Сохранение...':'✓ Сохранить'}</Btn>
+              <button onClick={()=>{setTxMode(false);setTxAmt('');setTxNote('');setTxCash(true);}} style={{width:44,padding:'10px',borderRadius:10,background:'transparent',border:`1px solid ${C.border}`,color:C.dim,fontSize:18,cursor:'pointer',fontFamily:'inherit'}}>✕</button>
+              <Btn bg={txDir==='give'?C.red:C.green} color={txDir==='give'?'#fff':'#051a0e'} onClick={addTx} disabled={!txAmt||sv} style={{flex:1}}>{sv?'Сохранение...':txCash?(txDir==='give'?'💸 Дал + списать с кассы':'💰 Получил + в кассу'):(txDir==='give'?'💸 Дал (только долг)':'💰 Получил (только долг)')}</Btn>
             </div>
           </div>
         )}

@@ -2,366 +2,1294 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>KassaControl</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-<style>
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-body{background:#09090f;color:#eeeeff;font-family:system-ui,-apple-system,sans-serif}
-#root{max-width:430px;margin:0 auto}
-input,button{font-family:inherit}
-input::placeholder{color:#32324a}
-::-webkit-scrollbar{display:none}
-@keyframes su{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-@keyframes spin{to{transform:rotate(360deg)}}
-.fu{animation:su .18s ease}
-</style>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>*{box-sizing:border-box;margin:0;padding:0}body{background:#09090f}#root{max-width:430px;margin:0 auto}</style>
 </head>
 <body>
 <div id="root"></div>
-<script>
-// ЭМУЛЯЦИЯ TELEGRAM WEBAPP ДЛЯ GITHUB PAGES
-window.Telegram = {
-  WebApp: {
-    ready: function() { console.log('Telegram WebApp emulated: ready'); },
-    expand: function() { console.log('Telegram WebApp emulated: expand'); },
-    close: function() { console.log('Telegram WebApp emulated: close'); },
-    MainButton: {
-      show: function() {},
-      hide: function() {},
-      setText: function() {},
-      onClick: function() {}
-    },
-    HapticFeedback: {
-      impactOccurred: function() {}
-    },
-    themeParams: {
-      bg_color: '#09090f',
-      text_color: '#eeeeff',
-      hint_color: '#6868a0',
-      link_color: '#4466ff',
-      button_color: '#4466ff',
-      button_text_color: '#ffffff'
-    },
-    colorScheme: 'dark',
-    isExpanded: true,
-    viewportHeight: window.innerHeight,
-    viewportStableHeight: window.innerHeight,
-    sendData: function() {},
-    onEvent: function() {},
-    offEvent: function() {}
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+
+const SB='https://lozieoldpkezxonrxwry.supabase.co/rest/v1';
+const KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxvemllb2xkcGtlenhvbnJ4d3J5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwMzY0MjEsImV4cCI6MjA5MzYxMjQyMX0.sS5Z8i1xFdv6YiKrpL9Y2sTWEo6Yk3K9TqQhv4HNwts';
+const H={'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json','Prefer':'return=representation'};
+
+async function sbGet(table,q=''){ const r=await fetch(`${SB}/${table}?${q}`,{headers:H}); return r.json(); }
+async function sbPost(table,body){ const r=await fetch(`${SB}/${table}`,{method:'POST',headers:H,body:JSON.stringify(body)}); return r.json(); }
+async function sbDel(table,id){ await fetch(`${SB}/${table}?id=eq.${id}`,{method:'DELETE',headers:H}); }
+
+const DB={suppliers:[],deliveries:[],delivery_items:[],products:[],revisions:[],revision_items:[],expenses:[],revenue:[],cash_movements:[],debt_people:[],debt_transactions:[]};
+let _ready=false,_subs=[];
+const pub=()=>_subs.forEach(fn=>fn());
+const sub=fn=>{ _subs.push(fn); return ()=>{ _subs=_subs.filter(f=>f!==fn); }; };
+
+async function fetchAllProducts(){
+  const PAGE=1000; let all=[],page=0;
+  while(true){
+    const batch=await sbGet('products',`select=*&order=name.asc&limit=${PAGE}&offset=${page*PAGE}`);
+    if(!Array.isArray(batch)||!batch.length) break;
+    all=[...all,...batch];
+    if(batch.length<PAGE) break;
+    page++;
   }
-};
-
-// КОНФИГУРАЦИЯ
-var C = {
-  bg: "#09090f",
-  bg2: "#111120",
-  bg3: "#18182e",
-  border: "#1e1e38",
-  text: "#eeeeff",
-  muted: "#6868a0",
-  dim: "#32324a",
-  green: "#3ecf8e",
-  red: "#f04f5a",
-  orange: "#f09040",
-  blue: "#4466ff",
-  yellow: "#e8c040"
-};
-
-var OFF = 5 * 3600000;
-var uid = function() { return Math.random().toString(36).slice(2) + Date.now().toString(36); };
-var tod = function() { var d = new Date(Date.now() + OFF); return d.toISOString().slice(0, 10); };
-var monStr = function() { var d = new Date(Date.now() + OFF); return d.toISOString().slice(0, 7); };
-var fmt = function(n) { return (+n || 0).toLocaleString("ru-RU", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
-var fmtD = function(d) { if (!d) return ""; return new Date(d + "T00:00:00").toLocaleDateString("ru-RU", { day: "2-digit", month: "short", year: "numeric" }); };
-var fmtDT = function(s) {
-  if (!s) return "";
-  try {
-    var ts = String(s).replace(" ", "T");
-    if (!/[Z+]/.test(ts.slice(10))) ts += "Z";
-    var ms = new Date(ts).getTime();
-    if (isNaN(ms)) return "";
-    var d = new Date(ms + OFF);
-    return new Date(d.getTime()).toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit", timeZone: "UTC" }) + " " + String(d.getUTCHours()).padStart(2, "0") + ":" + String(d.getUTCMinutes()).padStart(2, "0");
-  } catch(e) { return ""; }
-};
-var dLeft = function(d) { if (!d) return 999; return Math.ceil((new Date(d) - new Date(tod())) / 86400000); };
-var eColor = function(n) { return n < 0 ? C.red : n <= 3 ? C.orange : n <= 7 ? C.yellow : C.green; };
-var eText = function(n) { return n < 0 ? "просрочен " + Math.abs(n) + "д" : n === 0 ? "сегодня!" : n + " дн."; };
-var inits = function(n) { return (n || "").trim().split(" ").map(function(w) { return w[0] || ""; }).join("").slice(0, 2).toUpperCase() || "?"; };
-var getMonths = function(n) {
-  var r = [], d = new Date();
-  for (var i = 0; i < n; i++) {
-    var y = d.getFullYear(), m = String(d.getMonth() + 1).padStart(2, "0");
-    r.push({ val: y + "-" + m, label: d.toLocaleDateString("ru-RU", { month: "long", year: "2-digit" }) });
-    d.setMonth(d.getMonth() - 1);
-  }
-  return r;
-};
-var weekStart = function() { var d = new Date(Date.now() + OFF), day = d.getDay() || 7; d.setDate(d.getDate() - day + 1); return d.toISOString().slice(0, 10); };
-
-var SB = "https://lozieoldpkezxonrxwry.supabase.co/rest/v1";
-var KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxvemllb2xkcGtlenhvbnJ4d3J5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwMzY0MjEsImV4cCI6MjA5MzYxMjQyMX0.sS5Z8i1xFdv6YiKrpL9Y2sTWEo6Yk3K9TqQhv4HNwts";
-var H = { apikey: KEY, Authorization: "Bearer " + KEY, "Content-Type": "application/json", Prefer: "return=representation" };
-
-var sbGet = function(t, q) { return fetch(SB + "/" + t + "?" + (q || ""), { headers: H }).then(function(r) { return r.json(); }); };
-var sbPost = function(t, b) { return fetch(SB + "/" + t, { method: "POST", headers: H, body: JSON.stringify(b) }).then(function(r) { return r.json(); }); };
-var sbPatch = function(t, id, b) { return fetch(SB + "/" + t + "?id=eq." + id, { method: "PATCH", headers: H, body: JSON.stringify(b) }); };
-var sbDel = function(t, id) { return fetch(SB + "/" + t + "?id=eq." + id, { method: "DELETE", headers: H }); };
-
-var DB = { suppliers: [], deliveries: [], delivery_items: [], products: [], revisions: [], revision_items: [], expenses: [], revenue: [], cash_movements: [], debt_people: [], debt_transactions: [] };
-var _subs = [];
-var pub = function() { _subs.forEach(function(f) { return f(); }); };
-var sub = function(f) { _subs.push(f); return function() { _subs = _subs.filter(function(x) { return x !== f; }); }; };
-
-function dbGet(k) { return DB[k] || []; }
-
-async function dbInsert(table, row) {
-  var res = await sbPost(table, row);
-  var ins = Array.isArray(res) ? res[0] : res;
-  DB[table] = [ins].concat(DB[table]);
-  pub();
-  return ins;
+  return all;
 }
 
-async function dbInsertMany(table, rows) {
-  if (!rows.length) return;
-  var res = await sbPost(table, rows);
-  DB[table] = [].concat(Array.isArray(res) ? res : [], DB[table]);
-  pub();
-}
-
-async function dbDelete(table, id) {
-  await sbDel(table, id);
-  DB[table] = DB[table].filter(function(r) { return r.id !== id; });
-  pub();
-}
-
-async function initDB() {
-  var PAGE = 1000;
-  var prods = [];
-  var p = 0;
-  while (true) {
-    var b = await sbGet("products", "select=*&order=name.asc&limit=" + PAGE + "&offset=" + p * PAGE);
-    if (!Array.isArray(b) || !b.length) break;
-    prods = prods.concat(b);
-    if (b.length < PAGE) break;
-    p++;
-  }
-  
-  var sup, del, di, rev, ri, exp, rvn, cm;
-  try {
-    var res = await Promise.all([
-      sbGet("suppliers", "select=*&order=created_at.desc"),
-      sbGet("deliveries", "select=*&order=created_at.desc"),
-      sbGet("delivery_items", "select=*&order=created_at.desc"),
-      sbGet("revisions", "select=*&order=created_at.desc"),
-      sbGet("revision_items", "select=*"),
-      sbGet("expenses", "select=*&order=created_at.desc"),
-      sbGet("revenue", "select=*&order=created_at.desc"),
-      sbGet("cash_movements", "select=*&order=created_at.desc")
+async function initDB(){
+  try{
+    const [sup,del,di,prod,rev,ri,exp,rvn,cm]=await Promise.all([
+      sbGet('suppliers','select=*&order=created_at.desc'),
+      sbGet('deliveries','select=*&order=created_at.desc'),
+      sbGet('delivery_items','select=*&order=created_at.desc'),
+      fetchAllProducts(),
+      sbGet('revisions','select=*&order=created_at.desc'),
+      sbGet('revision_items','select=*'),
+      sbGet('expenses','select=*&order=created_at.desc'),
+      sbGet('revenue','select=*&order=created_at.desc'),
+      sbGet('cash_movements','select=*&order=created_at.desc'),
     ]);
-    sup = res[0]; del = res[1]; di = res[2]; rev = res[3]; ri = res[4]; exp = res[5]; rvn = res[6]; cm = res[7];
-    DB.suppliers = Array.isArray(sup) ? sup : [];
-    DB.deliveries = Array.isArray(del) ? del : [];
-    DB.delivery_items = Array.isArray(di) ? di : [];
-    DB.products = prods;
-    DB.revisions = Array.isArray(rev) ? rev : [];
-    DB.revision_items = Array.isArray(ri) ? ri : [];
-    DB.expenses = Array.isArray(exp) ? exp : [];
-    DB.revenue = Array.isArray(rvn) ? rvn : [];
-    DB.cash_movements = Array.isArray(cm) ? cm : [];
-  } catch(e) { console.error(e); }
-  
-  try {
-    var res2 = await Promise.all([
-      sbGet("debt_people", "select=*&order=created_at.desc"),
-      sbGet("debt_transactions", "select=*&order=created_at.desc")
+    DB.suppliers=Array.isArray(sup)?sup:[];
+    DB.deliveries=Array.isArray(del)?del:[];
+    DB.delivery_items=Array.isArray(di)?di:[];
+    DB.products=Array.isArray(prod)?prod:[];
+    DB.revisions=Array.isArray(rev)?rev:[];
+    DB.revision_items=Array.isArray(ri)?ri:[];
+    DB.expenses=Array.isArray(exp)?exp:[];
+    DB.revenue=Array.isArray(rvn)?rvn:[];
+    DB.cash_movements=Array.isArray(cm)?cm:[];
+  }catch(e){ console.error('initDB error:',e); }
+  try{
+    const [dp,dtx]=await Promise.all([
+      sbGet('debt_people','select=*&order=created_at.desc'),
+      sbGet('debt_transactions','select=*&order=created_at.desc'),
     ]);
-    DB.debt_people = Array.isArray(res2[0]) ? res2[0] : [];
-    DB.debt_transactions = Array.isArray(res2[1]) ? res2[1] : [];
-  } catch(e) {
-    DB.debt_people = [];
-    DB.debt_transactions = [];
-  }
+    DB.debt_people=Array.isArray(dp)?dp:[];
+    DB.debt_transactions=Array.isArray(dtx)?dtx:[];
+  }catch(e){ DB.debt_people=[]; DB.debt_transactions=[]; }
+  _ready=true; pub();
 }
 
-function calcFifo(items, products) {
-  var byB = {};
-  items.filter(function(i) { return i.expiry_date && i.barcode && (+i.quantity || 0) > 0; }).forEach(function(i) {
-    if (!byB[i.barcode]) byB[i.barcode] = [];
-    byB[i.barcode].push({ quantity: i.quantity, delivery_id: i.delivery_id, expiry_date: i.expiry_date, barcode: i.barcode, product_name: i.product_name, unit: i.unit, id: i.id });
-  });
-  var result = [];
-  Object.entries(byB).forEach(function(entry) {
-    var bc = entry[0], batches = entry[1];
-    var prod = products.find(function(p) { return p.barcode === bc; });
-    var stock = prod ? prod.stock || 0 : null;
-    var dels = dbGet("deliveries");
-    var sorted = batches.slice().sort(function(a, b) {
-      var da = dels.find(function(d) { return d.id === a.delivery_id; });
-      var db2 = dels.find(function(d) { return d.id === b.delivery_id; });
-      return (da && da.date || "").localeCompare(db2 && db2.date || "");
-    });
-    if (stock === null) {
-      sorted.forEach(function(b) { result.push({ quantity: b.quantity, remaining: b.quantity, expiry_date: b.expiry_date, product_name: b.product_name, unit: b.unit, id: b.id }); });
-      return;
+function dbGet(k){ return DB[k]||[]; }
+async function dbInsert(table,row){
+  const res=await sbPost(table,row);
+  const inserted=Array.isArray(res)?res[0]:res;
+  DB[table]=[inserted,...DB[table]];
+  pub(); return inserted;
+}
+async function dbInsertMany(table,rows){
+  if(!rows.length)return;
+  const res=await sbPost(table,rows);
+  const inserted=Array.isArray(res)?res:[];
+  DB[table]=[...inserted,...DB[table]]; pub();
+}
+async function dbDelete(table,id){
+  await sbDel(table,id);
+  DB[table]=DB[table].filter(r=>r.id!==id); pub();
+}
+
+const TZ='Asia/Dushanbe';
+const OFFSET=5*60*60*1000;
+const uid=()=>'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0;return(c==='x'?r:(r&0x3|0x8)).toString(16);});
+const tod=()=>{ const d=new Date(Date.now()+OFFSET); return d.toISOString().slice(0,10); };
+const monStr=()=>{ const d=new Date(Date.now()+OFFSET); return d.toISOString().slice(0,7); };
+const fmt=n=>(+n||0).toLocaleString('ru-RU',{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmtD=d=>{ if(!d)return''; return new Date(d+'T00:00:00').toLocaleDateString('ru-RU',{day:'2-digit',month:'short',year:'numeric'}); };
+const fmtDs=d=>{ if(!d)return{day:'?',mon:'?'}; const dt=new Date(d+'T00:00:00'); return{day:dt.getDate(),mon:dt.toLocaleDateString('ru-RU',{month:'short'}).replace('.','')}; };
+const fmtT=s=>{
+  if(!s)return'';
+  try{
+    let ts=String(s).replace(' ','T');
+    if(!/[Z+]/.test(ts.slice(10))) ts+='Z';
+    const ms=new Date(ts).getTime();
+    if(isNaN(ms))return'';
+    const d=new Date(ms+5*3600000);
+    return String(d.getUTCHours()).padStart(2,'0')+':'+String(d.getUTCMinutes()).padStart(2,'0');
+  }catch(e){return'';}
+};
+const fmtDT=s=>{
+  if(!s)return'';
+  try{
+    let ts=String(s).replace(' ','T');
+    if(!/[Z+]/.test(ts.slice(10))) ts+='Z';
+    const ms=new Date(ts).getTime();
+    if(isNaN(ms))return'';
+    const d=new Date(ms+OFFSET);
+    return new Date(d.getTime()).toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric',timeZone:'UTC'})+' '+String(d.getUTCHours()).padStart(2,'0')+':'+String(d.getUTCMinutes()).padStart(2,'0');
+  }catch(e){return'';}
+};
+const dLeft=d=>{ if(!d)return 999; return Math.ceil((new Date(d)-new Date(tod()))/86400000); };
+const eColor=n=>n<0?'#f04f5a':n<=3?'#f09040':n<=7?'#e8c040':'#3ecf8e';
+const eText=n=>n<0?`просрочен ${Math.abs(n)}д`:n===0?'сегодня!':n+' дн.';
+const inits=n=>n.trim().split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase()||'?';
+const getMonths=n=>{ const r=[],d=new Date(); for(let i=0;i<n;i++){ const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'); r.push({val:`${y}-${m}`,label:d.toLocaleDateString('ru-RU',{month:'long',year:'2-digit'})}); d.setMonth(d.getMonth()-1); } return r; };
+const weekStart=()=>{ const d=new Date(Date.now()+OFFSET),day=d.getDay()||7; d.setDate(d.getDate()-day+1); return d.toISOString().slice(0,10); };
+
+const C={bg:'#09090f',bg2:'#111120',bg3:'#18182e',border:'#1e1e38',text:'#eeeeff',muted:'#6868a0',dim:'#32324a',green:'#3ecf8e',red:'#f04f5a',orange:'#f09040',blue:'#4466ff',yellow:'#e8c040'};
+const css=`*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}@keyframes su{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}@keyframes spin{to{transform:rotate(360deg)}}.fu{animation:su .18s ease}input,select,button{font-family:inherit}input::placeholder{color:#32324a}::-webkit-scrollbar{display:none}`;
+
+const Card=({children,style,ac})=><div style={{background:C.bg2,border:`1px solid ${ac||C.border}`,borderRadius:18,padding:16,marginBottom:10,...style}}>{children}</div>;
+const FL=({children})=><div style={{fontSize:9,fontWeight:800,letterSpacing:2,textTransform:'uppercase',color:C.dim,marginBottom:6}}>{children}</div>;
+const TI=({label,value,onChange,type,placeholder,autoFocus,style})=>(
+  <div style={{marginBottom:12}}>
+    {label&&<FL>{label}</FL>}
+    <input autoFocus={autoFocus} type={type||'text'} value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder}
+      style={{width:'100%',background:C.bg,border:`1px solid ${C.border}`,borderRadius:12,padding:'13px 16px',color:C.text,fontSize:15,fontWeight:500,outline:'none',WebkitAppearance:'none',...style}}/>
+  </div>
+);
+const Btn=({children,onClick,bg,color,outline,disabled,style})=>(
+  <button onClick={onClick} disabled={disabled} style={{width:'100%',padding:'14px 20px',borderRadius:13,fontSize:15,fontWeight:800,cursor:disabled?'not-allowed':'pointer',border:outline?`1.5px solid ${C.border}`:'none',background:disabled?C.bg3:outline?'transparent':(bg||C.blue),color:disabled?C.dim:color||(outline?C.muted:'#fff'),opacity:disabled?.6:1,...style}}>{children}</button>
+);
+const SecLabel=({children})=><div style={{fontSize:9,fontWeight:800,letterSpacing:2,textTransform:'uppercase',color:C.dim,margin:'14px 0 8px 2px'}}>{children}</div>;
+const Badge=({children,color})=><span style={{fontSize:11,fontWeight:700,padding:'3px 9px',borderRadius:7,background:(color||C.blue)+'18',color:color||C.blue,display:'inline-block'}}>{children}</span>;
+const Empty=({icon,text})=><div style={{textAlign:'center',padding:'48px 20px',color:C.dim}}><div style={{fontSize:48,marginBottom:12,opacity:.5}}>{icon}</div><div style={{fontSize:14,lineHeight:1.6,fontWeight:500}}>{text}</div></div>;
+const Hdr=({title,sub,onBack,onAdd,children})=>(
+  <div style={{padding:'14px 16px 12px',background:'rgba(9,9,15,.97)',backdropFilter:'blur(20px)',borderBottom:`1px solid ${C.border}`,position:'sticky',top:0,zIndex:50,display:'flex',alignItems:'center',gap:10}}>
+    {onBack&&<button onClick={onBack} style={{width:38,height:38,borderRadius:11,background:C.bg2,border:`1px solid ${C.border}`,color:C.muted,fontSize:22,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>←</button>}
+    <div style={{flex:1}}><div style={{fontSize:9,fontWeight:800,letterSpacing:2.5,textTransform:'uppercase',color:C.dim}}>{sub||'KASSACONTROL'}</div><div style={{fontSize:20,fontWeight:900,letterSpacing:-.5}}>{title}</div></div>
+    {onAdd&&<button onClick={onAdd} style={{width:40,height:40,borderRadius:12,background:C.blue,border:'none',color:'#fff',fontSize:28,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,lineHeight:1,paddingBottom:2}}>+</button>}
+    {children}
+  </div>
+);
+const Toast=({msg,color})=>msg?<div style={{position:'fixed',bottom:90,left:'50%',transform:'translateX(-50%)',background:C.bg2,border:`1.5px solid ${color||C.green}`,borderRadius:14,padding:'12px 22px',fontSize:14,fontWeight:700,color:C.text,zIndex:999,whiteSpace:'nowrap',boxShadow:'0 8px 40px rgba(0,0,0,.6)',pointerEvents:'none'}}>{msg}</div>:null;
+
+function Home({tick}){
+  const [period,setPeriod]=useState('day');
+  const t=tod(),ws=weekStart(),ms=monStr();
+  const filterD=d=>period==='day'?d===t:period==='week'?d>=ws:period==='month'?d.startsWith(ms):true;
+  const rev=dbGet('revenue'),exp=dbGet('expenses'),cash=dbGet('cash_movements');
+  const diItems=dbGet('delivery_items'),revisions=dbGet('revisions'),riItems=dbGet('revision_items');
+  const totalRev=rev.filter(r=>filterD(r.date)).reduce((s,r)=>s+ +r.amount,0);
+  const totalGbs=rev.filter(r=>filterD(r.date)).reduce((s,r)=>s+ +(r.profit||0),0);
+  const totalExp=exp.filter(e=>filterD(e.date)).reduce((s,e)=>s+ +e.amount,0);
+  const cleanP=totalGbs-totalExp;
+  const gbsPct=totalRev>0?Math.round((totalGbs/totalRev)*100):0;
+  const cleanPct=totalRev>0?Math.round((cleanP/totalRev)*100):0;
+  let cashBal=0; cash.forEach(m=>{ if(m.type==='add'||m.type==='revenue') cashBal+= +m.amount; else cashBal-= +m.amount; });
+  const products=dbGet('products');
+  const allExpItems=diItems.filter(i=>i.expiry_date&&(+i.quantity||0)>0);
+  const fifoItems=calcFifoRemaining(allExpItems,products);
+  const withExp=fifoItems.filter(i=>i.remaining>0);
+  const expired=withExp.filter(i=>dLeft(i.expiry_date)<0);
+  const critical=withExp.filter(i=>{ const d=dLeft(i.expiry_date); return d>=0&&d<=3; });
+  const soon=withExp.filter(i=>{ const d=dLeft(i.expiry_date); return d>3&&d<=7; });
+  const periodRevs=revisions.filter(r=>filterD(r.date));
+  const lastRev=[...revisions].sort((a,b)=>b.created_at.localeCompare(a.created_at))[0];
+  const activeRevs=periodRevs.length>0?periodRevs:[lastRev].filter(Boolean);
+  const lrItems=riItems.filter(i=>activeRevs.some(r=>r.id===i.revision_id));
+  const lrChecked=lrItems.filter(i=>i.actual!==null);
+  const lrShort=lrChecked.filter(i=>i.actual<i.expected);
+  const lrSumExp=lrChecked.reduce((s,i)=>s+i.expected*(i.price||0),0);
+  const lrSumAct=lrChecked.reduce((s,i)=>s+i.actual*(i.price||0),0);
+  const lrLoss=lrSumExp-lrSumAct;
+  const dateLabel=new Date(Date.now()+OFFSET).toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long'});
+  const hasAlert=(expired.length+critical.length)>0;
+  return(
+    <>
+      <div style={{padding:'16px 16px 12px',background:'rgba(9,9,15,.97)',backdropFilter:'blur(20px)',borderBottom:`1px solid ${C.border}`,position:'sticky',top:0,zIndex:50}}>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
+          <div><div style={{fontSize:9,fontWeight:800,letterSpacing:2,color:C.dim,textTransform:'uppercase',marginBottom:3}}>{dateLabel}</div><div style={{fontSize:22,fontWeight:900,letterSpacing:-.5}}>🏪 KassaControl</div></div>
+          {hasAlert&&<div style={{background:'#f04f5a18',border:'1px solid #f04f5a50',borderRadius:14,padding:'6px 14px',textAlign:'center'}}><div style={{fontSize:9,color:C.red,fontWeight:800}}>ВНИМАНИЕ</div><div style={{fontSize:18,fontWeight:900,color:C.red}}>☠ {expired.length+critical.length}</div></div>}
+        </div>
+        <div style={{display:'flex',gap:6}}>
+          {[['day','День'],['week','Неделя'],['month','Месяц'],['all','Всё']].map(([id,l])=>(
+            <button key={id} onClick={()=>setPeriod(id)} style={{flex:1,padding:'8px 4px',borderRadius:10,cursor:'pointer',fontFamily:'inherit',fontSize:12,fontWeight:800,border:`1.5px solid ${period===id?C.blue+'60':C.border}`,background:period===id?C.blue+'18':C.bg2,color:period===id?C.blue:C.dim}}>{l}</button>
+          ))}
+        </div>
+      </div>
+      <div style={{padding:14,paddingBottom:30}}>
+        <div style={{background:`linear-gradient(135deg,${cleanP>=0?'#0d2d1a':'#2d0d12'},${C.bg2})`,border:`1.5px solid ${cleanP>=0?C.green+'50':C.red+'50'}`,borderRadius:20,padding:'20px',marginBottom:12,textAlign:'center'}}>
+          <div style={{fontSize:9,fontWeight:800,letterSpacing:2.5,color:C.dim,marginBottom:8}}>ЧИСТАЯ ПРИБЫЛЬ</div>
+          <div style={{fontSize:48,fontWeight:900,color:cleanP>=0?C.green:C.red,letterSpacing:-2,lineHeight:1}}>{cleanP>=0?'+':''}{fmt(cleanP)}</div>
+          <div style={{fontSize:13,color:C.dim,marginTop:5}}>SM · {cleanPct}% от выручки</div>
+          <div style={{fontSize:11,color:C.dim,marginTop:4}}>Прибыль GBS ({fmt(totalGbs)} SM) − Расходы ({fmt(totalExp)} SM)</div>
+        </div>
+        <div style={{display:'flex',gap:8,marginBottom:12}}>
+          <div style={{flex:1,background:C.bg2,border:`1px solid ${C.green}30`,borderRadius:16,padding:'14px 12px'}}><div style={{fontSize:9,fontWeight:800,letterSpacing:1.5,color:C.dim,textTransform:'uppercase',marginBottom:6}}>Выручка</div><div style={{fontSize:20,fontWeight:900,color:C.green}}>{fmt(totalRev)}</div><div style={{fontSize:10,color:C.dim,marginTop:3}}>SM · маржа {gbsPct}%</div></div>
+          <div style={{flex:1,background:C.bg2,border:`1px solid ${C.red}30`,borderRadius:16,padding:'14px 12px'}}><div style={{fontSize:9,fontWeight:800,letterSpacing:1.5,color:C.dim,textTransform:'uppercase',marginBottom:6}}>Расходы</div><div style={{fontSize:20,fontWeight:900,color:C.red}}>−{fmt(totalExp)}</div><div style={{fontSize:10,color:C.dim,marginTop:3}}>SM</div></div>
+        </div>
+        <div style={{background:C.bg2,border:`1.5px solid ${cashBal>=0?C.blue+'40':C.red+'40'}`,borderRadius:16,padding:'14px 16px',marginBottom:12,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+          <div><div style={{fontSize:9,fontWeight:800,letterSpacing:2,color:C.dim,marginBottom:4}}>🏧 НАЛИЧНЫЕ В КАССЕ</div><div style={{fontSize:28,fontWeight:900,color:cashBal>=0?C.blue:C.red}}>{fmt(Math.abs(cashBal))} SM</div></div>
+          <div style={{fontSize:40,opacity:.35}}>🏧</div>
+        </div>
+        <div style={{background:C.bg2,border:`1px solid ${(expired.length+critical.length)>0?C.red+'40':C.border}`,borderRadius:16,overflow:'hidden',marginBottom:12}}>
+          <div style={{padding:'10px 16px',background:C.bg3,borderBottom:`1px solid ${C.border}`,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+            <div style={{fontSize:10,fontWeight:800,letterSpacing:2,color:C.dim}}>☠️ СРОКИ ГОДНОСТИ</div>
+            {(expired.length+critical.length)>0&&<div style={{fontSize:11,fontWeight:800,color:C.red}}>Требует внимания!</div>}
+          </div>
+          <div style={{display:'flex'}}>
+            {[['Просрочено',expired.length,C.red,'☠'],['Критично',critical.length,C.orange,'⚠'],['Скоро',soon.length,C.yellow,'!']].map(([l,n,c,ic])=>(
+              <div key={l} style={{flex:1,padding:'13px 10px',textAlign:'center',borderRight:l!=='Скоро'?`1px solid ${C.border}`:'none'}}>
+                <div style={{fontSize:9,fontWeight:800,color:C.dim,marginBottom:4}}>{l}</div>
+                <div style={{fontSize:24,fontWeight:900,color:n>0?c:C.dim}}>{n}</div>
+                <div style={{fontSize:12,marginTop:2}}>{n>0?ic:'✓'}</div>
+              </div>
+            ))}
+          </div>
+          {expired.slice(0,2).map(item=>(
+            <div key={item.id} style={{display:'flex',justifyContent:'space-between',padding:'8px 16px',borderTop:`1px solid ${C.red}25`}}>
+              <div style={{fontSize:13}}>{item.product_name}</div>
+              <div style={{fontSize:11,fontWeight:800,color:C.red}}>☠ {Math.abs(dLeft(item.expiry_date))}д назад</div>
+            </div>
+          ))}
+        </div>
+        {activeRevs.length>0&&(
+          <div style={{background:C.bg2,border:`1px solid ${lrShort.length>0?C.red+'35':C.border}`,borderRadius:16,overflow:'hidden',marginBottom:12}}>
+            <div style={{padding:'10px 16px',background:C.bg3,borderBottom:`1px solid ${C.border}`}}><div style={{fontSize:10,fontWeight:800,letterSpacing:2,color:C.dim}}>📦 РЕВИЗИЯ</div></div>
+            <div style={{display:'flex'}}>
+              {[['Позиций',lrItems.length,C.blue],['Недостача',lrShort.length,lrShort.length>0?C.red:C.green],['Потери',lrLoss>0?`-${fmt(lrLoss)} SM`:'✓ 0',lrLoss>0?C.red:C.green]].map(([l,v,c])=>(
+                <div key={l} style={{flex:1,padding:'13px 10px',textAlign:'center',borderRight:l!=='Потери'?`1px solid ${C.border}`:'none'}}>
+                  <div style={{fontSize:9,fontWeight:800,color:C.dim,marginBottom:4}}>{l}</div>
+                  <div style={{fontSize:l==='Потери'?14:22,fontWeight:900,color:c}}>{v}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        {exp.filter(e=>filterD(e.date)).length>0&&(()=>{
+          const byR={}; exp.filter(e=>filterD(e.date)).forEach(e=>{ byR[e.reason]=(byR[e.reason]||0)+ +e.amount; });
+          return(
+            <div style={{background:C.bg2,border:`1px solid ${C.border}`,borderRadius:16,overflow:'hidden'}}>
+              <div style={{padding:'10px 16px',background:C.bg3,borderBottom:`1px solid ${C.border}`}}><div style={{fontSize:10,fontWeight:800,letterSpacing:2,color:C.dim}}>💸 РАСХОДЫ ПО СТАТЬЯМ</div></div>
+              {Object.entries(byR).sort((a,b)=>b[1]-a[1]).map(([r,a])=>(
+                <div key={r} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'11px 16px',borderBottom:`1px solid ${C.border}`}}>
+                  <div style={{fontSize:13,color:C.muted}}>{r}</div>
+                  <div style={{fontSize:14,fontWeight:800,color:C.red}}>−{fmt(a)} SM</div>
+                </div>
+              ))}
+            </div>
+          );
+        })()}
+        {(()=>{
+          const events=[];
+          rev.filter(r=>filterD(r.date)).forEach(r=>events.push({id:'rv'+r.id,time:r.created_at,icon:'💰',color:C.green,title:`+${fmt(r.amount)} SM`,sub:'Выручка'+(r.profit?` · GBS: ${fmt(r.profit)} SM`:''),date:r.date}));
+          exp.filter(e=>filterD(e.date)).forEach(e=>events.push({id:'ex'+e.id,time:e.created_at,icon:'💸',color:C.red,title:`−${fmt(e.amount)} SM`,sub:e.reason,date:e.date}));
+          cash.filter(m=>filterD(m.date)&&(m.type==='add'||m.type==='remove')).forEach(m=>events.push({id:'cs'+m.id,time:m.created_at,icon:m.type==='add'?'➕':'➖',color:m.type==='add'?C.blue:C.orange,title:`${m.type==='add'?'+':'−'}${fmt(m.amount)} SM`,sub:(m.type==='add'?'Внесено':'Снято')+(m.description?` · ${m.description}`:''),date:m.date}));
+          events.sort((a,b)=>b.time.localeCompare(a.time));
+          if(!events.length) return null;
+          return(
+            <div style={{background:C.bg2,border:`1px solid ${C.border}`,borderRadius:16,overflow:'hidden',marginTop:12}}>
+              <div style={{padding:'10px 16px',background:C.bg3,borderBottom:`1px solid ${C.border}`}}><div style={{fontSize:10,fontWeight:800,letterSpacing:2,color:C.dim}}>📋 ИСТОРИЯ ОПЕРАЦИЙ · {events.length}</div></div>
+              {events.map((ev,i)=>(
+                <div key={ev.id} style={{display:'flex',alignItems:'center',gap:12,padding:'11px 16px',borderBottom:i<events.length-1?`1px solid ${C.border}`:'none'}}>
+                  <div style={{width:38,height:38,borderRadius:11,background:ev.color+'18',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,flexShrink:0}}>{ev.icon}</div>
+                  <div style={{flex:1,minWidth:0}}><div style={{fontSize:14,fontWeight:800,color:ev.color}}>{ev.title}</div><div style={{fontSize:11,color:C.dim,marginTop:2}}>{ev.sub}</div></div>
+                  <div style={{fontSize:10,color:C.dim,flexShrink:0,textAlign:'right'}}>{fmtD(ev.date)}<br/>{fmtT(ev.time)}</div>
+                </div>
+              ))}
+            </div>
+          );
+        })()}
+      </div>
+    </>
+  );
+}
+
+function Suppliers({tick,toast}){
+  const [sc,setSc]=useState('list');
+  const [curS,setCurS]=useState(null);
+  const [curDel,setCurDel]=useState(null);
+  const [curDelNum,setCurDelNum]=useState(null);
+  if(sc==='add') return <AddSupplier onBack={()=>setSc('list')} onSaved={name=>{ toast('✓ '+name+' добавлен'); setSc('list'); }}/>;
+  if(sc==='edit'&&curS) return <EditSupplier supplier={curS} onBack={()=>setSc('supplier')} onSaved={s=>{ setCurS(s); toast('✓ Сохранено'); setSc('supplier'); }}/>;
+  if(sc==='supplier'&&curS) return <SupplierPage supplier={curS} onBack={()=>setSc('list')} onPosting={()=>setSc('posting')} onEdit={()=>setSc('edit')} onDeleted={()=>{ toast('Поставщик удалён'); setSc('list'); }} onViewDel={(d,n)=>{ setCurDel(d); setCurDelNum(n); setSc('delivery'); }}/>;
+  if(sc==='posting'&&curS) return <Posting supplier={curS} onBack={()=>setSc('supplier')} onSaved={n=>{ toast(`✓ Поставка сохранена · ${n} товаров`); setSc('supplier'); }}/>;
+  if(sc==='delivery'&&curDel) return <DeliveryDetail delivery={curDel} num={curDelNum} onBack={()=>setSc('supplier')} onDeleted={()=>{ toast('Партия удалена'); setSc('supplier'); }}/>;
+  const suppliers=dbGet('suppliers');
+  const deliveries=dbGet('deliveries');
+  const cntMap={}; deliveries.forEach(d=>{ cntMap[d.supplier_id]=(cntMap[d.supplier_id]||0)+1; });
+  return(
+    <>
+      <Hdr title="Поставщики" onAdd={()=>setSc('add')}/>
+      <div style={{padding:14,paddingBottom:30}}>
+        {!suppliers.length?<Empty icon="🚚" text="Нажми + чтобы добавить поставщика"/>:
+        suppliers.map(s=>(
+          <div key={s.id} className="fu" onClick={()=>{ setCurS(s); setSc('supplier'); }} style={{display:'flex',alignItems:'center',gap:12,padding:'14px 16px',background:C.bg2,border:`1px solid ${C.border}`,borderRadius:16,marginBottom:8,cursor:'pointer'}}>
+            <div style={{width:46,height:46,borderRadius:13,background:'linear-gradient(135deg,#4466ff,#8844ff)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:17,fontWeight:900,color:'#fff',flexShrink:0}}>{inits(s.name)}</div>
+            <div style={{flex:1,minWidth:0}}><div style={{fontSize:15,fontWeight:700,marginBottom:2}}>{s.name}</div><div style={{fontSize:12,color:C.dim}}>📞 {s.phone||'Нет номера'}</div></div>
+            {cntMap[s.id]>0&&<span style={{fontSize:11,fontWeight:700,padding:'3px 10px',borderRadius:20,background:'rgba(68,102,255,.12)',color:C.blue,flexShrink:0}}>{cntMap[s.id]} пост.</span>}
+            <div style={{color:C.dim,fontSize:20}}>›</div>
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
+function AddSupplier({onBack,onSaved}){
+  const [name,setName]=useState(''), [phone,setPhone]=useState(''), [err,setErr]=useState('');
+  const save=async()=>{ if(!name.trim()){setErr('Введите имя');return;} await dbInsert('suppliers',{name:name.trim(),phone:phone.trim()}); onSaved(name.trim()); };
+  return(
+    <><Hdr title="Новый поставщик" sub="ПОСТАВКИ" onBack={onBack}/>
+    <div style={{padding:14}}>
+      <Card><TI label="ИМЯ / НАЗВАНИЕ" placeholder="Имя поставщика" value={name} onChange={v=>{setName(v);setErr('');}} autoFocus/>
+      {err&&<div style={{color:C.red,fontSize:12,marginTop:-6,marginBottom:8}}>⚠ {err}</div>}
+      <TI label="ТЕЛЕФОН" type="tel" placeholder="+992 XX XXX XXXX" value={phone} onChange={setPhone}/>
+      <div style={{display:'flex',gap:8,marginTop:4}}><Btn outline onClick={onBack} style={{width:52,flex:'none',padding:'14px 0'}}>←</Btn><Btn bg={C.green} color="#051a0e" onClick={save} style={{flex:1}}>Сохранить</Btn></div>
+      </Card>
+    </div></>
+  );
+}
+
+function EditSupplier({supplier,onBack,onSaved}){
+  const [name,setName]=useState(supplier.name);
+  const [phone,setPhone]=useState(supplier.phone||'');
+  const [saving,setSaving]=useState(false);
+  const save=async()=>{
+    if(!name.trim())return; setSaving(true);
+    await fetch(`${SB}/suppliers?id=eq.${supplier.id}`,{method:'PATCH',headers:H,body:JSON.stringify({name:name.trim(),phone:phone.trim()})});
+    const updated={...supplier,name:name.trim(),phone:phone.trim()};
+    DB.suppliers=DB.suppliers.map(s=>s.id===supplier.id?updated:s); pub();
+    onSaved(updated); setSaving(false);
+  };
+  return(
+    <><Hdr title="Редактировать" sub="ПОСТАВЩИК" onBack={onBack}/>
+    <div style={{padding:14}}>
+      <Card>
+        <TI label="ИМЯ / НАЗВАНИЕ" placeholder="Имя поставщика" value={name} onChange={setName} autoFocus/>
+        <TI label="ТЕЛЕФОН" type="tel" placeholder="+992 XX XXX XXXX" value={phone} onChange={setPhone}/>
+        <div style={{display:'flex',gap:8,marginTop:4}}>
+          <Btn outline onClick={onBack} style={{width:52,flex:'none',padding:'14px 0'}}>←</Btn>
+          <Btn bg={C.green} color="#051a0e" onClick={save} disabled={!name.trim()||saving} style={{flex:1}}>{saving?'Сохранение...':'✓ Сохранить'}</Btn>
+        </div>
+      </Card>
+    </div></>
+  );
+}
+
+function SupplierPage({supplier,onBack,onPosting,onEdit,onDeleted,onViewDel}){
+  const [confirmDel,setConfirmDel]=useState(false);
+  const deliveries=dbGet('deliveries').filter(d=>d.supplier_id===supplier.id).sort((a,b)=>b.created_at.localeCompare(a.created_at));
+  const diItems=dbGet('delivery_items');
+  const doDelete=async()=>{ await sbDel('suppliers',supplier.id); DB.suppliers=DB.suppliers.filter(s=>s.id!==supplier.id); pub(); onDeleted(); };
+  return(
+    <><Hdr title={supplier.name} sub="ПОСТАВЩИК" onBack={onBack} onAdd={onPosting}/>
+    <div style={{padding:14,paddingBottom:30}}>
+      <Card style={{marginBottom:14}}>
+        <div style={{display:'flex',alignItems:'center',gap:14,marginBottom:14}}>
+          <div style={{width:54,height:54,borderRadius:15,background:'linear-gradient(135deg,#4466ff,#8844ff)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:20,fontWeight:900,color:'#fff'}}>{inits(supplier.name)}</div>
+          <div style={{flex:1}}><div style={{fontSize:18,fontWeight:800}}>{supplier.name}</div><div style={{fontSize:13,color:C.dim,marginTop:2}}>📞 {supplier.phone||'Нет номера'}</div></div>
+        </div>
+        <div style={{display:'flex',gap:8}}>
+          {supplier.phone&&<a href={`tel:${supplier.phone}`} style={{flex:1}}><Btn outline style={{padding:'11px 0'}}>📞 Позвонить</Btn></a>}
+          <Btn outline onClick={onEdit} style={{flex:1,padding:'11px 0',color:C.blue,borderColor:C.blue+'40'}}>✏ Изменить</Btn>
+          <Btn outline onClick={()=>setConfirmDel(true)} style={{width:48,flex:'none',padding:'11px 0',color:C.red,borderColor:C.red+'40'}}>🗑</Btn>
+        </div>
+        {confirmDel&&(
+          <div style={{marginTop:12,background:'#f04f5a15',border:`1px solid ${C.red}40`,borderRadius:12,padding:14}}>
+            <div style={{fontSize:14,fontWeight:700,marginBottom:12,color:C.red}}>Удалить поставщика «{supplier.name}»?</div>
+            <div style={{display:'flex',gap:8}}>
+              <Btn outline onClick={()=>setConfirmDel(false)} style={{flex:1,padding:'10px 0'}}>Отмена</Btn>
+              <Btn bg={C.red} onClick={doDelete} style={{flex:1,padding:'10px 0'}}>Удалить</Btn>
+            </div>
+          </div>
+        )}
+      </Card>
+      <button onClick={onPosting} style={{width:'100%',padding:15,borderRadius:14,background:'linear-gradient(135deg,#4466ff,#6644ff)',border:'none',color:'#fff',fontSize:16,fontWeight:900,cursor:'pointer',marginBottom:14}}>📦 Поступление товара</button>
+      {!deliveries.length?<Empty icon="📋" text="Поставок пока нет"/>:
+      <>
+        <SecLabel>История поставок · {deliveries.length}</SecLabel>
+        {deliveries.map((d,idx)=>{
+          const items=diItems.filter(i=>i.delivery_id===d.id);
+          const exp=items.filter(i=>i.expiry_date&&dLeft(i.expiry_date)<0).length;
+          const crit=items.filter(i=>i.expiry_date&&dLeft(i.expiry_date)>=0&&dLeft(i.expiry_date)<=3).length;
+          const num=deliveries.length-idx;
+          return(
+            <div key={d.id} onClick={()=>onViewDel(d,num)} className="fu" style={{display:'flex',alignItems:'center',gap:12,padding:'14px 16px',background:C.bg2,border:`1px solid ${exp>0?C.red+'40':crit>0?C.orange+'40':C.border}`,borderRadius:16,marginBottom:8,cursor:'pointer'}}>
+              <div style={{background:C.bg3,borderRadius:12,padding:'8px 12px',textAlign:'center',flexShrink:0,minWidth:54}}><div style={{fontSize:9,fontWeight:800,letterSpacing:1,color:C.dim,marginBottom:1}}>ПАРТИЯ</div><div style={{fontSize:20,fontWeight:900}}>№{num}</div></div>
+              <div style={{flex:1,minWidth:0}}><div style={{fontSize:15,fontWeight:700,marginBottom:4}}>{fmtD(d.date)}</div><div style={{display:'flex',gap:6,flexWrap:'wrap'}}><Badge color={C.blue}>{items.length} товаров</Badge>{exp>0&&<Badge color={C.red}>☠ {exp} просрочено</Badge>}{crit>0&&<Badge color={C.orange}>⚠ {crit} критично</Badge>}</div></div>
+              <div style={{color:C.dim,fontSize:22}}>›</div>
+            </div>
+          );
+        })}
+      </>}
+    </div></>
+  );
+}
+
+function DeliveryDetail({delivery,num,onBack,onDeleted}){
+  const [confirmDel,setConfirmDel]=useState(false);
+  const [editMode,setEditMode]=useState(false);
+  const [editVals,setEditVals]=useState({});
+  const [saving,setSaving]=useState(false);
+  const items=dbGet('delivery_items').filter(i=>i.delivery_id===delivery.id);
+  const exp=items.filter(i=>i.expiry_date&&dLeft(i.expiry_date)<0).length;
+  const crit=items.filter(i=>i.expiry_date&&dLeft(i.expiry_date)>=0&&dLeft(i.expiry_date)<=3).length;
+  const startEdit=()=>{ const v={}; items.forEach(i=>{ v[i.id]={qty:String(i.quantity),expiry:i.expiry_date||''}; }); setEditVals(v); setEditMode(true); };
+  const saveEdit=async()=>{
+    setSaving(true);
+    for(const item of items){
+      const v=editVals[item.id]; if(!v) continue;
+      await fetch(`${SB}/delivery_items?id=eq.${item.id}`,{method:'PATCH',headers:H,body:JSON.stringify({quantity:+v.qty,expiry_date:v.expiry||null})});
+      const idx=DB.delivery_items.findIndex(i=>i.id===item.id);
+      if(idx>=0) DB.delivery_items[idx]={...DB.delivery_items[idx],quantity:+v.qty,expiry_date:v.expiry||null};
     }
-    var left = Math.max(0, sorted.reduce(function(s, b) { return s + b.quantity; }, 0) - stock);
-    sorted.forEach(function(batch) {
-      var rem = batch.quantity;
-      if (left > 0) {
-        var d = Math.min(left, batch.quantity);
-        rem = batch.quantity - d;
-        left -= d;
-      }
-      result.push({ quantity: batch.quantity, remaining: rem, expiry_date: batch.expiry_date, product_name: batch.product_name, unit: batch.unit, id: batch.id });
+    pub(); setEditMode(false); setSaving(false);
+  };
+  const doDelete=async()=>{
+    for(const item of items) await sbDel('delivery_items',item.id);
+    await sbDel('deliveries',delivery.id);
+    DB.delivery_items=DB.delivery_items.filter(i=>i.delivery_id!==delivery.id);
+    DB.deliveries=DB.deliveries.filter(d=>d.id!==delivery.id);
+    pub(); onDeleted();
+  };
+  return(
+    <><Hdr title={`Партия №${num}`} sub={fmtD(delivery.date).toUpperCase()} onBack={onBack}>
+      <div style={{display:'flex',gap:6}}>
+        {!editMode&&<button onClick={startEdit} style={{width:38,height:38,borderRadius:11,background:'#4466ff18',border:`1px solid #4466ff40`,color:C.blue,fontSize:16,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>✏️</button>}
+        <button onClick={()=>setConfirmDel(true)} style={{width:38,height:38,borderRadius:11,background:'#f04f5a18',border:`1px solid #f04f5a40`,color:C.red,fontSize:16,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>🗑</button>
+      </div>
+    </Hdr>
+    {confirmDel&&(
+      <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,.75)',zIndex:200,display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
+        <div style={{background:C.bg2,border:`1px solid ${C.red}50`,borderRadius:20,padding:24,width:'100%',maxWidth:380}}>
+          <div style={{fontSize:18,fontWeight:800,marginBottom:8}}>Удалить партию №{num}?</div>
+          <div style={{fontSize:13,color:C.dim,marginBottom:20}}>Партия от {fmtD(delivery.date)} · {items.length} товаров будет удалена безвозвратно</div>
+          <div style={{display:'flex',gap:10}}><Btn outline onClick={()=>setConfirmDel(false)} style={{flex:1,padding:'12px 0'}}>Отмена</Btn><Btn bg={C.red} onClick={doDelete} style={{flex:1,padding:'12px 0'}}>Удалить</Btn></div>
+        </div>
+      </div>
+    )}
+    <div style={{padding:14,paddingBottom:editMode?160:30}}>
+      <div style={{display:'flex',gap:8,marginBottom:14}}>
+        <div style={{flex:1,background:C.bg2,border:`1px solid ${C.border}`,borderRadius:14,padding:'13px 10px',textAlign:'center'}}><div style={{fontSize:9,color:C.dim,fontWeight:800,letterSpacing:1.5,textTransform:'uppercase',marginBottom:4}}>Товаров</div><div style={{fontSize:20,fontWeight:900,color:C.blue}}>{items.length}</div></div>
+        {exp>0&&<div style={{flex:1,background:C.bg2,border:`1px solid ${C.red}40`,borderRadius:14,padding:'13px 10px',textAlign:'center'}}><div style={{fontSize:9,color:C.dim,fontWeight:800,letterSpacing:1.5,textTransform:'uppercase',marginBottom:4}}>Просрочено</div><div style={{fontSize:20,fontWeight:900,color:C.red}}>{exp}</div></div>}
+        {crit>0&&<div style={{flex:1,background:C.bg2,border:`1px solid ${C.orange}40`,borderRadius:14,padding:'13px 10px',textAlign:'center'}}><div style={{fontSize:9,color:C.dim,fontWeight:800,letterSpacing:1.5,textTransform:'uppercase',marginBottom:4}}>Критично</div><div style={{fontSize:20,fontWeight:900,color:C.orange}}>{crit}</div></div>}
+      </div>
+      <Card>
+        {items.map((item,i)=>{
+          const dl=item.expiry_date?dLeft(item.expiry_date):null;
+          const ec=dl!==null?eColor(dl):C.dim;
+          const v=editVals[item.id]||{qty:String(item.quantity),expiry:item.expiry_date||''};
+          return(
+            <div key={item.id} style={{padding:'12px 0',borderBottom:i<items.length-1?`1px solid ${C.border}`:'none'}}>
+              <div style={{fontSize:15,fontWeight:800,marginBottom:4}}>{item.product_name}</div>
+              {item.barcode&&<div style={{fontSize:11,color:C.dim,marginBottom:6}}>🏷 {item.barcode}</div>}
+              {editMode?(
+                <div style={{display:'flex',gap:8,marginTop:8}}>
+                  <div style={{flex:1}}><div style={{fontSize:9,color:C.dim,fontWeight:800,letterSpacing:1.5,marginBottom:4}}>КОЛ-ВО ({item.unit})</div><input type="number" value={v.qty} onChange={e=>setEditVals(prev=>({...prev,[item.id]:{...prev[item.id],qty:e.target.value}}))} style={{width:'100%',background:C.bg,border:`1px solid ${C.border}`,borderRadius:10,padding:'9px 12px',color:C.text,fontSize:16,fontWeight:800,outline:'none',boxSizing:'border-box'}}/></div>
+                  <div style={{flex:1}}><div style={{fontSize:9,color:C.dim,fontWeight:800,letterSpacing:1.5,marginBottom:4}}>СРОК ГОДНОСТИ</div><input type="date" value={v.expiry} onChange={e=>setEditVals(prev=>({...prev,[item.id]:{...prev[item.id],expiry:e.target.value}}))} style={{width:'100%',background:C.bg,border:`1px solid ${C.border}`,borderRadius:10,padding:'9px 10px',color:C.text,fontSize:13,outline:'none',boxSizing:'border-box'}}/></div>
+                </div>
+              ):(
+                <>
+                  <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:8}}><Badge color={C.blue}>{item.quantity} {item.unit}</Badge>{item.category&&<Badge color={C.muted}>{item.category}</Badge>}{item.price>0&&<Badge color={C.blue}>{item.price} SM</Badge>}</div>
+                  <div style={{borderTop:`1px solid ${C.border}`,paddingTop:8,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                    <div style={{fontSize:10,fontWeight:800,letterSpacing:1.5,color:C.dim}}>ПАРТИЯ</div>
+                    {item.expiry_date?<div style={{display:'flex',alignItems:'center',gap:8}}><span style={{fontSize:12,color:C.muted}}>до {fmtD(item.expiry_date)}</span><span style={{fontSize:11,fontWeight:800,padding:'3px 9px',borderRadius:7,background:ec+'20',color:ec}}>{dl<0?`☠ просрочена`:dl===0?'⚠ сегодня!':dl<=3?`⚠ ${dl}д`:dl<=7?`! ${dl}д`:`✓ ${dl}д`}</span></div>:<span style={{fontSize:12,color:C.dim}}>Не указана</span>}
+                  </div>
+                </>
+              )}
+            </div>
+          );
+        })}
+      </Card>
+    </div>
+    {editMode&&(
+      <div style={{position:'fixed',bottom:64,left:'50%',transform:'translateX(-50%)',width:'100%',maxWidth:430,padding:'10px 14px',background:'rgba(9,9,15,.97)',borderTop:`1px solid ${C.border}`,zIndex:150,display:'flex',gap:8}}>
+        <Btn outline onClick={()=>setEditMode(false)} style={{width:52,flex:'none',padding:'14px 0'}}>✕</Btn>
+        <Btn bg={C.green} color="#051a0e" onClick={saveEdit} disabled={saving} style={{flex:1}}>{saving?'Сохранение...':'✓ Сохранить изменения'}</Btn>
+      </div>
+    )}
+    </>
+  );
+}
+
+function Posting({supplier,onBack,onSaved}){
+  const [date,setDate]=useState(tod());
+  const [search,setSearch]=useState('');
+  const [selected,setSelected]=useState(null);
+  const [qty,setQty]=useState('');
+  const [expiry,setExpiry]=useState('');
+  const [addedItems,setAddedItems]=useState([]);
+  const [editId,setEditId]=useState(null);
+  const [editQty,setEditQty]=useState('');
+  const [editExp,setEditExp]=useState('');
+  const [err,setErr]=useState('');
+  const catalog=dbGet('products');
+  const results=search.trim().length>=1?(()=>{
+    const q=search.trim(),ql=q.toLowerCase(),isNum=/^\d+$/.test(q);
+    const all=catalog.filter(p=>p.name.toLowerCase().includes(ql)||(p.barcode&&p.barcode.includes(q)));
+    all.sort((a,b)=>{
+      const score=p=>{ const bar=p.barcode||'',nm=p.name.toLowerCase();
+        if(isNum){ if(bar===q)return 0; if(bar.endsWith(q))return 1; if(bar.startsWith(q))return 2; if(bar.includes(q))return 3; if(nm.includes(ql))return 4; return 5; }
+        else{ if(nm===ql)return 0; if(nm.startsWith(ql))return 1; if(nm.includes(ql))return 2; if(bar.includes(q))return 3; return 4; }
+      };
+      return score(a)-score(b);
     });
+    return all.slice(0,10);
+  })():[];
+  const addToList=()=>{ if(!qty||+qty<=0){setErr('Введите количество');return;} setAddedItems(prev=>[...prev,{id:uid(),product_id:selected.id,name:selected.name,barcode:selected.barcode,qty:+qty,unit:selected.unit,category:selected.category,expiry:expiry||null}]); setSelected(null);setQty('');setExpiry('');setErr(''); };
+  const saveAll=async()=>{
+    if(!addedItems.length)return;
+    const del=await dbInsert('deliveries',{supplier_id:supplier.id,supplier_name:supplier.name,date});
+    await dbInsertMany('delivery_items',addedItems.map(item=>({delivery_id:del.id,product_name:item.name,barcode:item.barcode,quantity:item.qty,unit:item.unit,category:item.category,expiry_date:item.expiry||null})));
+    onSaved(addedItems.length);
+  };
+  return(
+    <><Hdr title="Поступление" sub={supplier.name.toUpperCase()} onBack={onBack}/>
+    <div style={{padding:14,paddingBottom:30}}>
+      <Card><TI label="ДАТА ПОСТАВКИ" type="date" value={date} onChange={setDate}/></Card>
+      {!selected?(
+        <Card style={{background:C.bg3,border:`1px solid #4466ff30`}}>
+          <div style={{fontSize:11,fontWeight:800,letterSpacing:2,color:C.blue,marginBottom:10}}>🔍 ПОИСК ТОВАРА</div>
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Введи название или штрихкод..." autoFocus style={{width:'100%',background:C.bg,border:`1.5px solid #4466ff40`,borderRadius:12,padding:'14px 16px',color:C.text,fontSize:15,fontWeight:500,outline:'none',WebkitAppearance:'none'}}/>
+          {search.trim().length>=1&&(results.length?results.map(p=>(
+            <div key={p.id} onClick={()=>{setSelected(p);setSearch('');setQty('');setExpiry('');setErr('');}} style={{display:'flex',alignItems:'center',gap:10,padding:'11px 12px',background:C.bg2,borderRadius:11,marginTop:6,cursor:'pointer',border:`1px solid ${C.border}`}}>
+              <div style={{flex:1}}><div style={{fontSize:14,fontWeight:700,marginBottom:3}}>{p.name}</div><div style={{display:'flex',gap:6,flexWrap:'wrap'}}><span style={{fontSize:11,color:C.dim}}>{p.category}</span>{p.barcode&&<span style={{fontSize:11,color:C.dim}}>· 🏷 {p.barcode}</span>}{p.price>0&&<span style={{fontSize:11,fontWeight:700,color:C.blue}}>· {p.price} SM</span>}{p.stock>0&&<span style={{fontSize:11,color:C.green}}>· остаток: {p.stock} {p.unit}</span>}</div></div>
+              <div style={{color:C.blue,fontSize:20,fontWeight:300}}>+</div>
+            </div>
+          )):<div style={{fontSize:12,color:C.dim,textAlign:'center',padding:'10px 0 4px'}}>Товар не найден</div>)}
+          {!search.trim()&&<div style={{marginTop:8,fontSize:12,color:C.dim,textAlign:'center'}}>Начни вводить название или штрихкод</div>}
+        </Card>
+      ):(
+        <Card style={{border:`1.5px solid #4466ff50`,background:C.bg3}}>
+          <div style={{display:'flex',alignItems:'center',gap:10,paddingBottom:14,borderBottom:`1px solid ${C.border}`,marginBottom:14}}>
+            <div style={{width:44,height:44,borderRadius:12,background:'#4466ff20',display:'flex',alignItems:'center',justifyContent:'center',fontSize:22,flexShrink:0}}>📦</div>
+            <div style={{flex:1}}><div style={{fontSize:15,fontWeight:800}}>{selected.name}</div><div style={{fontSize:11,color:C.dim,marginTop:2}}>{selected.category} · 🏷 {selected.barcode}</div></div>
+            <button onClick={()=>setSelected(null)} style={{background:'none',border:'none',color:C.dim,fontSize:22,cursor:'pointer',padding:4}}>✕</button>
+          </div>
+          <div style={{display:'flex',gap:8}}>
+            <div style={{flex:1}}><FL>КОЛ-ВО ({selected.unit})</FL><input type="number" autoFocus placeholder="0" value={qty} onChange={e=>{setQty(e.target.value);setErr('');}} style={{width:'100%',background:C.bg,border:`1px solid ${C.border}`,borderRadius:12,padding:'13px 16px',color:C.text,fontSize:20,fontWeight:800,outline:'none',WebkitAppearance:'none'}}/></div>
+            <div style={{flex:1}}><FL>СРОК ГОДНОСТИ</FL><input type="date" value={expiry} onChange={e=>setExpiry(e.target.value)} style={{width:'100%',background:C.bg,border:`1px solid ${C.border}`,borderRadius:12,padding:'13px 14px',color:C.text,fontSize:14,outline:'none',WebkitAppearance:'none'}}/></div>
+          </div>
+          {expiry&&<div style={{fontSize:12,color:eColor(dLeft(expiry)),fontWeight:600,marginTop:6}}>{dLeft(expiry)<0?'⚠ Уже просрочен!':dLeft(expiry)===0?'⚠ Истекает сегодня':'✓ До истечения: '+dLeft(expiry)+' дней'}</div>}
+          {err&&<div style={{color:C.red,fontSize:12,marginTop:8}}>{err}</div>}
+          <div style={{display:'flex',gap:8,marginTop:12}}><Btn outline onClick={()=>setSelected(null)} style={{width:52,flex:'none',padding:'14px 0'}}>←</Btn><Btn bg={C.blue} onClick={addToList} style={{flex:1}}>+ Добавить</Btn></div>
+        </Card>
+      )}
+      {addedItems.length>0&&(
+        <>
+          <SecLabel>Добавлено · {addedItems.length} товаров</SecLabel>
+          {addedItems.map((item,i)=>{
+            const d=item.expiry?dLeft(item.expiry):null,c=d!==null?eColor(d):C.dim;
+            const isEditing=editId===item.id;
+            return(
+              <div key={item.id} className="fu" style={{background:C.bg2,border:`1.5px solid ${isEditing?C.blue+'60':C.border}`,borderRadius:14,marginBottom:8,overflow:'hidden'}}>
+                <div style={{display:'flex',alignItems:'center',gap:10,padding:'12px 14px'}} onClick={()=>{ if(!isEditing){setEditId(item.id);setEditQty(String(item.qty));setEditExp(item.expiry||'');} else setEditId(null); }}>
+                  <div style={{flex:1}}><div style={{fontSize:14,fontWeight:700,marginBottom:4}}>{item.name}</div><div style={{display:'flex',gap:6,flexWrap:'wrap'}}><Badge color={C.blue}>{item.qty} {item.unit}</Badge>{item.expiry?<Badge color={c}>до {fmtD(item.expiry)}</Badge>:<span style={{fontSize:11,color:C.dim}}>Срок не указан</span>}<span style={{fontSize:11,color:C.blue}}>✏</span></div></div>
+                  <button onClick={e=>{e.stopPropagation();setAddedItems(prev=>prev.filter((_,j)=>j!==i));}} style={{background:'none',border:'none',color:C.dim,fontSize:20,cursor:'pointer',padding:4,flexShrink:0}}>✕</button>
+                </div>
+                {isEditing&&(
+                  <div style={{padding:'0 14px 14px',borderTop:`1px solid ${C.border}`,paddingTop:12}}>
+                    <div style={{display:'flex',gap:8,marginBottom:10}}>
+                      <div style={{flex:1}}><FL>КОЛ-ВО</FL><input type="number" value={editQty} onChange={e=>setEditQty(e.target.value)} autoFocus style={{width:'100%',background:C.bg,border:`1px solid ${C.border}`,borderRadius:10,padding:'10px 12px',color:C.text,fontSize:16,fontWeight:800,outline:'none',WebkitAppearance:'none'}}/></div>
+                      <div style={{flex:1}}><FL>СРОК ГОДНОСТИ</FL><input type="date" value={editExp} onChange={e=>setEditExp(e.target.value)} style={{width:'100%',background:C.bg,border:`1px solid ${C.border}`,borderRadius:10,padding:'10px 12px',color:C.text,fontSize:13,outline:'none',WebkitAppearance:'none'}}/></div>
+                    </div>
+                    <div style={{display:'flex',gap:8}}>
+                      <button onClick={()=>setEditId(null)} style={{width:48,padding:'10px 0',borderRadius:10,background:'transparent',border:`1px solid ${C.border}`,color:C.muted,cursor:'pointer',fontWeight:800}}>✕</button>
+                      <button onClick={()=>{ setAddedItems(prev=>prev.map((x,j)=>j===i?{...x,qty:+editQty||x.qty,expiry:editExp||null}:x)); setEditId(null); }} style={{flex:1,padding:'10px 0',borderRadius:10,background:C.blue,border:'none',color:'#fff',cursor:'pointer',fontSize:14,fontWeight:800}}>✓ Сохранить</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+          <Btn bg={C.green} color="#051a0e" onClick={saveAll} style={{marginTop:8}}>✓ Сохранить поставку · {addedItems.length} товаров</Btn>
+        </>
+      )}
+    </div></>
+  );
+}
+
+function calcFifoRemaining(deliveryItems,products){
+  const byBarcode={};
+  deliveryItems.filter(i=>i.expiry_date&&i.barcode&&(+i.quantity||0)>0).forEach(i=>{ if(!byBarcode[i.barcode])byBarcode[i.barcode]=[]; byBarcode[i.barcode].push({...i}); });
+  const result=[];
+  Object.entries(byBarcode).forEach(([barcode,batches])=>{
+    const prod=products.find(p=>p.barcode===barcode);
+    const currentStock=prod?(prod.stock||0):null;
+    const sorted=[...batches].sort((a,b)=>{ const da=dbGet('deliveries').find(d=>d.id===a.delivery_id); const db2=dbGet('deliveries').find(d=>d.id===b.delivery_id); return(da?.date||'').localeCompare(db2?.date||''); });
+    if(currentStock===null){ sorted.forEach(b=>result.push({...b,remaining:b.quantity})); return; }
+    let leftToSell=Math.max(0,sorted.reduce((s,b)=>s+b.quantity,0)-currentStock);
+    sorted.forEach(batch=>{ let remaining=batch.quantity; if(leftToSell>0){const deduct=Math.min(leftToSell,batch.quantity);remaining=batch.quantity-deduct;leftToSell-=deduct;} result.push({...batch,remaining,originalQty:batch.quantity}); });
   });
-  items.filter(function(i) { return i.expiry_date && !i.barcode && (+i.quantity || 0) > 0; }).forEach(function(i) {
-    result.push({ quantity: i.quantity, remaining: i.quantity, expiry_date: i.expiry_date, product_name: i.product_name, unit: i.unit, id: i.id });
-  });
+  deliveryItems.filter(i=>i.expiry_date&&!i.barcode&&(+i.quantity||0)>0).forEach(i=>{ result.push({...i,remaining:i.quantity}); });
   return result;
 }
 
-// React Components
-var Card = function(_ref) { var children = _ref.children, style = _ref.style; return React.createElement("div", { style: Object.assign({ background: C.bg2, border: "1px solid " + C.border, borderRadius: 18, padding: 16, marginBottom: 10 }, style) }, children); };
-var FL = function(_ref2) { var children = _ref2.children; return React.createElement("div", { style: { fontSize: 9, fontWeight: 800, letterSpacing: 2, textTransform: "uppercase", color: C.dim, marginBottom: 6 } }, children); };
-var TI = function(_ref3) { var label = _ref3.label, value = _ref3.value, _onChange = _ref3.onChange, type = _ref3.type, placeholder = _ref3.placeholder, autoFocus = _ref3.autoFocus; return React.createElement("div", { style: { marginBottom: 12 } }, label && React.createElement(FL, null, label), React.createElement("input", { autoFocus: autoFocus, type: type || "text", value: value, onChange: function(e) { return _onChange(e.target.value); }, placeholder: placeholder, style: { width: "100%", background: C.bg, border: "1px solid " + C.border, borderRadius: 12, padding: "13px 16px", color: C.text, fontSize: 15, fontWeight: 500, outline: "none" } })); };
-var Btn = function(_ref4) { var children = _ref4.children, onClick = _ref4.onClick, bg = _ref4.bg, color = _ref4.color, outline = _ref4.outline, disabled = _ref4.disabled, style = _ref4.style; return React.createElement("button", { onClick: onClick, disabled: disabled, style: Object.assign({ width: "100%", padding: "14px 20px", borderRadius: 13, fontSize: 15, fontWeight: 800, cursor: disabled ? "not-allowed" : "pointer", border: outline ? "1.5px solid " + C.border : "none", background: disabled ? C.bg3 : outline ? "transparent" : bg || C.blue, color: disabled ? C.dim : color || (outline ? C.muted : "#fff"), opacity: disabled ? 0.6 : 1, fontFamily: "inherit" }, style) }, children); };
-var Badge = function(_ref6) { var children = _ref6.children, color = _ref6.color; return React.createElement("span", { style: { fontSize: 11, fontWeight: 700, padding: "3px 9px", borderRadius: 7, background: (color || C.blue) + "18", color: color || C.blue, display: "inline-block" } }, children); };
-var Empty = function(_ref7) { var icon = _ref7.icon, text = _ref7.text; return React.createElement("div", { style: { textAlign: "center", padding: "48px 20px", color: C.dim } }, React.createElement("div", { style: { fontSize: 48, marginBottom: 12, opacity: 0.5 } }, icon), React.createElement("div", { style: { fontSize: 14, lineHeight: 1.6, fontWeight: 500 } }, text)); };
-var SecLabel = function(_ref5) { var children = _ref5.children; return React.createElement("div", { style: { fontSize: 9, fontWeight: 800, letterSpacing: 2, textTransform: "uppercase", color: C.dim, margin: "14px 0 8px 2px" } }, children); };
-var Toast = function(_ref9) { var msg = _ref9.msg, color = _ref9.color; return msg ? React.createElement("div", { style: { position: "fixed", bottom: 90, left: "50%", transform: "translateX(-50%)", background: C.bg2, border: "1.5px solid " + (color || C.green), borderRadius: 14, padding: "12px 22px", fontSize: 14, fontWeight: 700, color: C.text, zIndex: 999, whiteSpace: "nowrap", pointerEvents: "none" } }, msg) : null; };
-var DelConfirm = function(_ref0) { var text = _ref0.text, onConfirm = _ref0.onConfirm, onCancel = _ref0.onCancel; return React.createElement("div", { style: { position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,.75)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 } }, React.createElement("div", { style: { background: C.bg2, border: "1px solid #f04f5a50", borderRadius: 20, padding: 24, width: "100%", maxWidth: 380 } }, React.createElement("div", { style: { fontSize: 18, fontWeight: 800, marginBottom: 8 } }, "Удалить?"), React.createElement("div", { style: { fontSize: 13, color: C.dim, marginBottom: 20 } }, text), React.createElement("div", { style: { display: "flex", gap: 10 } }, React.createElement(Btn, { outline: true, onClick: onCancel, style: { flex: 1, padding: "12px 0" } }, "Отмена"), React.createElement(Btn, { bg: C.red, onClick: onConfirm, style: { flex: 1, padding: "12px 0" } }, "Удалить")))); };
-
-var Hdr = function(_ref8) { var title = _ref8.title, sub = _ref8.sub, onBack = _ref8.onBack, onAdd = _ref8.onAdd, children = _ref8.children; return React.createElement("div", { style: { padding: "14px 16px 12px", background: "rgba(9,9,15,.97)", borderBottom: "1px solid " + C.border, position: "sticky", top: 0, zIndex: 50, display: "flex", alignItems: "center", gap: 10 } }, onBack && React.createElement("button", { onClick: onBack, style: { width: 38, height: 38, borderRadius: 11, background: C.bg2, border: "1px solid " + C.border, color: C.muted, fontSize: 22, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 } }, "←"), React.createElement("div", { style: { flex: 1 } }, React.createElement("div", { style: { fontSize: 9, fontWeight: 800, letterSpacing: 2.5, textTransform: "uppercase", color: C.dim } }, sub || "KASSACONTROL"), React.createElement("div", { style: { fontSize: 20, fontWeight: 900, letterSpacing: -0.5 } }, title)), onAdd && React.createElement("button", { onClick: onAdd, style: { width: 40, height: 40, borderRadius: 12, background: C.blue, border: "none", color: "#fff", fontSize: 28, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 } }, "+"), children); };
-
-function Home(_ref) {
-  var tick = _ref.tick;
-  var _useState = React.useState("day"), period = _useState[0], setPeriod = _useState[1];
-  var t = tod(), ws = weekStart(), ms = monStr();
-  var fD = function(d) { return period === "day" ? d === t : period === "week" ? d >= ws : period === "month" ? d.startsWith(ms) : true; };
-  var rev = dbGet("revenue"), exp = dbGet("expenses"), cash = dbGet("cash_movements");
-  var diItems = dbGet("delivery_items"), products = dbGet("products");
-  var totalRev = rev.filter(function(r) { return fD(r.date); }).reduce(function(s, r) { return s + (+r.amount || 0); }, 0);
-  var totalGbs = rev.filter(function(r) { return fD(r.date); }).reduce(function(s, r) { return s + (+r.profit || 0); }, 0);
-  var totalExp = exp.filter(function(e) { return fD(e.date); }).reduce(function(s, e) { return s + (+e.amount || 0); }, 0);
-  var cleanP = totalGbs - totalExp;
-  var cashBal = 0;
-  cash.forEach(function(m) { if (m.type === "add" || m.type === "revenue") cashBal += +m.amount || 0; else cashBal -= +m.amount || 0; });
-  var allExp = diItems.filter(function(i) { return i.expiry_date && (+i.quantity || 0) > 0; });
-  var fifo = calcFifo(allExp, products).filter(function(i) { return i.remaining > 0; });
-  var expired = fifo.filter(function(i) { return dLeft(i.expiry_date) < 0; }).length;
-  var critical = fifo.filter(function(i) { var d = dLeft(i.expiry_date); return d >= 0 && d <= 3; }).length;
-  var dateLabel = new Date(Date.now() + OFF).toLocaleDateString("ru-RU", { weekday: "long", day: "numeric", month: "long" });
-  return React.createElement("div", null, React.createElement("div", { style: { padding: "16px 16px 12px", background: "rgba(9,9,15,.97)", borderBottom: "1px solid " + C.border, position: "sticky", top: 0, zIndex: 50 } }, React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 } }, React.createElement("div", null, React.createElement("div", { style: { fontSize: 9, fontWeight: 800, letterSpacing: 2, color: C.dim, textTransform: "uppercase", marginBottom: 3 } }, dateLabel), React.createElement("div", { style: { fontSize: 22, fontWeight: 900 } }, "🏪 KassaControl")), (expired + critical) > 0 && React.createElement("div", { style: { background: "#f04f5a18", border: "1px solid #f04f5a50", borderRadius: 14, padding: "6px 14px", textAlign: "center" } }, React.createElement("div", { style: { fontSize: 9, color: C.red, fontWeight: 800 } }, "ВНИМАНИЕ"), React.createElement("div", { style: { fontSize: 18, fontWeight: 900, color: C.red } }, "☠ ", expired + critical))), React.createElement("div", { style: { display: "flex", gap: 6 } }, [["day", "День"], ["week", "Неделя"], ["month", "Месяц"], ["all", "Всё"]].map(function(item) { var id = item[0], l = item[1]; return React.createElement("button", { key: id, onClick: function() { return setPeriod(id); }, style: { flex: 1, padding: "8px 4px", borderRadius: 10, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 800, border: "1.5px solid " + (period === id ? C.blue + "60" : C.border), background: period === id ? C.blue + "18" : C.bg2, color: period === id ? C.blue : C.dim } }, l); }))), React.createElement("div", { style: { padding: 14, paddingBottom: 30 } }, React.createElement("div", { style: { background: "linear-gradient(135deg," + (cleanP >= 0 ? "#0d2d1a" : "#2d0d12") + "," + C.bg2 + ")", border: "1.5px solid " + (cleanP >= 0 ? C.green + "50" : C.red + "50"), borderRadius: 20, padding: 20, marginBottom: 12, textAlign: "center" } }, React.createElement("div", { style: { fontSize: 9, fontWeight: 800, letterSpacing: 2.5, color: C.dim, marginBottom: 8 } }, "ЧИСТАЯ ПРИБЫЛЬ"), React.createElement("div", { style: { fontSize: 44, fontWeight: 900, color: cleanP >= 0 ? C.green : C.red, letterSpacing: -2 } }, cleanP >= 0 ? "+" : "", fmt(cleanP), " SM"), React.createElement("div", { style: { fontSize: 12, color: C.dim, marginTop: 6 } }, "GBS ", fmt(totalGbs), " SM − Расходы ", fmt(totalExp), " SM")), React.createElement("div", { style: { display: "flex", gap: 8, marginBottom: 12 } }, React.createElement("div", { style: { flex: 1, background: C.bg2, border: "1px solid " + C.green + "30", borderRadius: 16, padding: "14px 12px" } }, React.createElement("div", { style: { fontSize: 9, fontWeight: 800, color: C.dim, marginBottom: 6 } }, "ВЫРУЧКА"), React.createElement("div", { style: { fontSize: 20, fontWeight: 900, color: C.green } }, fmt(totalRev), " SM")), React.createElement("div", { style: { flex: 1, background: C.bg2, border: "1px solid " + C.red + "30", borderRadius: 16, padding: "14px 12px" } }, React.createElement("div", { style: { fontSize: 9, fontWeight: 800, color: C.dim, marginBottom: 6 } }, "РАСХОДЫ"), React.createElement("div", { style: { fontSize: 20, fontWeight: 900, color: C.red } }, "−", fmt(totalExp), " SM"))), React.createElement("div", { style: { background: C.bg2, border: "1.5px solid " + (cashBal >= 0 ? C.blue + "40" : C.red + "40"), borderRadius: 16, padding: "14px 16px", display: "flex", alignItems: "center", justifyContent: "space-between" } }, React.createElement("div", null, React.createElement("div", { style: { fontSize: 9, fontWeight: 800, color: C.dim, marginBottom: 4 } }, "🏧 НАЛИЧНЫЕ В КАССЕ"), React.createElement("div", { style: { fontSize: 28, fontWeight: 900, color: cashBal >= 0 ? C.blue : C.red } }, fmt(Math.abs(cashBal)), " SM")), React.createElement("div", { style: { fontSize: 40, opacity: 0.35 } }, "🏧"))));
+function Expiry({tick}){
+  const [filter,setFilter]=useState('all');
+  const [refreshing,setRefreshing]=useState(false);
+  const [writeOff,setWriteOff]=useState({});
+  const doRefresh=async()=>{ setRefreshing(true); const prod=await fetchAllProducts(); DB.products=Array.isArray(prod)?prod:[]; pub(); setRefreshing(false); };
+  const doWriteOff=async(item,qty)=>{ const newQty=Math.max(0,(+item.quantity||0)-(+qty||0)); await fetch(`${SB}/delivery_items?id=eq.${item.id}`,{method:'PATCH',headers:H,body:JSON.stringify({quantity:newQty})}); const idx=DB.delivery_items.findIndex(i=>i.id===item.id); if(idx>=0) DB.delivery_items[idx]={...DB.delivery_items[idx],quantity:newQty}; setWriteOff(p=>({...p,[item.id]:''})); pub(); };
+  const allItems=dbGet('delivery_items').filter(i=>i.expiry_date&&(+i.quantity||0)>0);
+  const products=dbGet('products');
+  const dels=dbGet('deliveries');
+  const delMap=Object.fromEntries(dels.map(d=>[d.id,d]));
+  const itemsWithRemaining=calcFifoRemaining(allItems,products);
+  const enriched=itemsWithRemaining.filter(i=>i.remaining>0).map(i=>({...i,days:dLeft(i.expiry_date),delivery:delMap[i.delivery_id]||null}));
+  const counts={all:enriched.length,expired:enriched.filter(i=>i.days<0).length,critical:enriched.filter(i=>i.days>=0&&i.days<=3).length,week:enriched.filter(i=>i.days>=0&&i.days<=7).length,month:enriched.filter(i=>i.days>=0&&i.days<=30).length};
+  const filtered=enriched.filter(i=>filter==='all'?true:filter==='expired'?i.days<0:filter==='critical'?i.days>=0&&i.days<=3:filter==='week'?i.days>=0&&i.days<=7:i.days>=0&&i.days<=30).sort((a,b)=>a.days-b.days);
+  const FILTERS=[{id:'all',l:'Все'},{id:'expired',l:`☠ Просрочено${counts.expired?` (${counts.expired})`:''}`},{id:'critical',l:`⚠ До 3 дней${counts.critical?` (${counts.critical})`:''}`},{id:'week',l:'До 7 дней'},{id:'month',l:'До 30 дней'}];
+  return(
+    <>
+      <Hdr title="Сроки годности">
+        <button onClick={doRefresh} style={{width:38,height:38,borderRadius:11,background:C.bg2,border:`1px solid ${C.border}`,color:refreshing?C.blue:C.muted,fontSize:18,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',animation:refreshing?'spin .7s linear infinite':'none'}}>↻</button>
+      </Hdr>
+      <div style={{padding:14,paddingBottom:30}}>
+        <div style={{display:'flex',gap:7,overflowX:'auto',paddingBottom:4,marginBottom:14}}>
+          {FILTERS.map(f=>(<button key={f.id} onClick={()=>setFilter(f.id)} style={{padding:'8px 14px',borderRadius:22,cursor:'pointer',fontFamily:'inherit',fontSize:12,fontWeight:800,whiteSpace:'nowrap',flexShrink:0,border:`1.5px solid ${filter===f.id?C.blue+'80':C.border}`,background:filter===f.id?C.blue+'18':C.bg2,color:filter===f.id?C.blue:C.dim}}>{f.l}</button>))}
+        </div>
+        {!filtered.length?<Empty icon="✅" text="Всё в норме"/>:
+        filtered.map(item=>{
+          const st={icon:item.days<0?'☠️':item.days<=3?'⚠️':item.days<=7?'❗':'✅',color:eColor(item.days),label:eText(item.days)};
+          return(
+            <div key={item.id} className="fu" style={{background:C.bg2,border:`1px solid ${item.days<0?C.red+'35':item.days<=3?C.orange+'35':C.border}`,borderRadius:18,marginBottom:10,overflow:'hidden',display:'flex'}}>
+              <div style={{width:4,background:st.color+'cc',flexShrink:0}}/>
+              <div style={{flex:1,padding:'14px 16px'}}>
+                <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:10,marginBottom:8}}>
+                  <div style={{flex:1}}><div style={{fontSize:16,fontWeight:800,marginBottom:3}}>{item.product_name}</div>{item.barcode&&<div style={{fontSize:11,color:C.dim}}>🏷 {item.barcode}</div>}</div>
+                  <div style={{flexShrink:0,textAlign:'right'}}><div style={{fontSize:22,marginBottom:2}}>{st.icon}</div><div style={{fontSize:13,fontWeight:900,color:st.color}}>{item.days<0?Math.abs(item.days):item.days} дн.</div></div>
+                </div>
+                <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:10}}>
+                  {item.originalQty&&item.remaining<item.originalQty?(<span style={{fontSize:12,fontWeight:800,padding:'3px 9px',borderRadius:7,background:C.orange+'18',color:C.orange}}>{item.remaining} из {item.originalQty} {item.unit}</span>):(<Badge color={C.blue}>{item.remaining||item.quantity} {item.unit}</Badge>)}
+                  {item.category&&<Badge color={C.muted}>{item.category}</Badge>}
+                  {item.delivery&&<Badge color={C.muted}>от {item.delivery.supplier_name}</Badge>}
+                </div>
+                <div style={{background:C.bg3,borderRadius:12,padding:'10px 14px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                  <div><div style={{fontSize:9,fontWeight:800,letterSpacing:1.5,color:C.dim,marginBottom:3}}>ПАРТИЯ</div><div style={{fontSize:13,fontWeight:700,color:C.muted}}>до {fmtD(item.expiry_date)}</div></div>
+                  <div style={{fontSize:12,fontWeight:900,padding:'4px 12px',borderRadius:10,background:st.color+'20',color:st.color,border:`1px solid ${st.color}40`}}>{st.label}</div>
+                </div>
+                {item.days<0&&(
+                  <div style={{marginTop:10,display:'flex',gap:8,alignItems:'center'}}>
+                    <div style={{flex:1}}>
+                      <div style={{fontSize:9,fontWeight:800,letterSpacing:1.5,color:C.dim,marginBottom:4}}>УБРАЛ СО СКЛАДА</div>
+                      <input type="number" placeholder={`макс. ${item.remaining||item.quantity}`} value={writeOff[item.id]||''} onChange={e=>setWriteOff(p=>({...p,[item.id]:e.target.value}))} style={{width:'100%',background:C.bg,border:`1.5px solid ${C.red}40`,borderRadius:10,padding:'9px 12px',color:C.text,fontSize:15,fontWeight:800,outline:'none',fontFamily:'inherit'}}/>
+                    </div>
+                    <button onClick={()=>{ const qty=+writeOff[item.id]||0; if(qty<=0)return; doWriteOff(item,qty); }} style={{flexShrink:0,marginTop:18,padding:'10px 16px',borderRadius:10,background:C.red+'20',border:`1px solid ${C.red}40`,color:C.red,fontSize:13,fontWeight:800,cursor:'pointer',fontFamily:'inherit'}}>🗑 Списать</button>
+                    <button onClick={()=>doWriteOff(item,item.remaining||item.quantity)} style={{flexShrink:0,marginTop:18,padding:'10px 14px',borderRadius:10,background:'#f04f5a30',border:`1px solid ${C.red}60`,color:C.red,fontSize:12,fontWeight:800,cursor:'pointer',fontFamily:'inherit'}}>Всё</button>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </>
+  );
 }
 
-function Suppliers(_ref) {
-  var tick = _ref.tick, toast = _ref.toast;
-  var _useState = React.useState("list"), sc = _useState[0], setSc = _useState[1];
-  var _useState2 = React.useState(null), curS = _useState2[0], setCurS = _useState2[1];
-  var _useState3 = React.useState(null), curDel = _useState3[0], setCurDel = _useState3[1];
-  var _useState4 = React.useState(null), curDelNum = _useState4[0], setCurDelNum = _useState4[1];
-  
-  if (sc === "add") return React.createElement(AddSupplier, { onBack: function() { return setSc("list"); }, onSaved: function(n) { toast("✓ " + n + " добавлен"); setSc("list"); } });
-  if (sc === "supplier" && curS) return React.createElement(SupplierPage, { supplier: curS, onBack: function() { return setSc("list"); }, onPosting: function() { return setSc("posting"); }, onDeleted: function() { toast("Удалён"); setSc("list"); }, onViewDel: function(d, n) { setCurDel(d); setCurDelNum(n); setSc("delivery"); } });
-  if (sc === "posting" && curS) return React.createElement(Posting, { supplier: curS, onBack: function() { return setSc("supplier"); }, onSaved: function(n) { toast("✓ Поставка сохранена"); setSc("supplier"); } });
-  if (sc === "delivery" && curDel) return React.createElement(DeliveryDetail, { delivery: curDel, num: curDelNum, onBack: function() { return setSc("supplier"); }, onDeleted: function() { toast("Партия удалена"); setSc("supplier"); } });
-  
-  var suppliers = dbGet("suppliers");
-  var deliveries = dbGet("deliveries");
-  var cntMap = {};
-  deliveries.forEach(function(d) { cntMap[d.supplier_id] = (cntMap[d.supplier_id] || 0) + 1; });
-  return React.createElement("div", null, React.createElement(Hdr, { title: "Поставщики", onAdd: function() { return setSc("add"); } }), React.createElement("div", { style: { padding: 14, paddingBottom: 30 } }, !suppliers.length ? React.createElement(Empty, { icon: "🚚", text: "Нажми + чтобы добавить поставщика" }) : suppliers.map(function(s) { return React.createElement("div", { key: s.id, onClick: function() { setCurS(s); setSc("supplier"); }, style: { display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", background: C.bg2, border: "1px solid " + C.border, borderRadius: 16, marginBottom: 8, cursor: "pointer" } }, React.createElement("div", { style: { width: 46, height: 46, borderRadius: 13, background: "linear-gradient(135deg,#4466ff,#8844ff)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17, fontWeight: 900, color: "#fff", flexShrink: 0 } }, inits(s.name)), React.createElement("div", { style: { flex: 1 } }, React.createElement("div", { style: { fontSize: 15, fontWeight: 700, marginBottom: 2 } }, s.name), React.createElement("div", { style: { fontSize: 12, color: C.dim } }, s.phone || "Нет номера")), cntMap[s.id] > 0 && React.createElement(Badge, { color: C.blue }, cntMap[s.id], " пост."), React.createElement("div", { style: { color: C.dim, fontSize: 20 } }, "›")); })));
+function Revision({tick,toast}){
+  const [sc,setSc]=useState('list');
+  const [curRev,setCurRev]=useState(null);
+  if(sc==='new') return <NewRevision onBack={()=>setSc('list')} onSaved={()=>{ toast('✓ Ревизия сохранена'); setSc('list'); }}/>;
+  if(sc==='view'&&curRev) return <RevisionView revision={curRev} onBack={()=>setSc('list')} onDeleted={()=>{ toast('Ревизия удалена'); setSc('list'); }}/>;
+  const revisions=[...dbGet('revisions')].sort((a,b)=>b.created_at.localeCompare(a.created_at));
+  const riAll=dbGet('revision_items');
+  return(
+    <>
+      <Hdr title="Ревизия" onAdd={()=>setSc('new')}/>
+      <div style={{padding:14,paddingBottom:30}}>
+        {!revisions.length?<Empty icon="📦" text="Ревизий нет. Нажми + чтобы начать."/>:
+        revisions.map(rev=>{
+          const items=riAll.filter(i=>i.revision_id===rev.id);
+          const short=items.filter(i=>i.actual!==null&&i.actual<i.expected).length;
+          return(
+            <div key={rev.id} className="fu" onClick={()=>{setCurRev(rev);setSc('view');}} style={{display:'flex',alignItems:'center',gap:12,padding:'14px 16px',background:C.bg2,border:`1px solid ${short>0?C.red+'35':C.border}`,borderRadius:16,marginBottom:8,cursor:'pointer'}}>
+              <div style={{width:46,height:46,borderRadius:13,background:'linear-gradient(135deg,#4466ff,#3ecf8e)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:17,fontWeight:900,color:'#fff',flexShrink:0}}>{fmtDs(rev.date).day}</div>
+              <div style={{flex:1}}><div style={{fontSize:15,fontWeight:700,marginBottom:2}}>{fmtD(rev.date)}</div><div style={{fontSize:12,color:C.dim}}>{rev.category||'Все'} · {items.length} поз.</div></div>
+              <div style={{display:'flex',gap:6}}>{short>0?<Badge color={C.red}>↓ {short}</Badge>:<Badge color={C.green}>✓ OK</Badge>}</div>
+              <div style={{color:C.dim,fontSize:20}}>›</div>
+            </div>
+          );
+        })}
+      </div>
+    </>
+  );
 }
 
-function AddSupplier(_ref) {
-  var onBack = _ref.onBack, onSaved = _ref.onSaved;
-  var _useState = React.useState(""), name = _useState[0], setName = _useState[1];
-  var _useState2 = React.useState(""), phone = _useState2[0], setPhone = _useState2[1];
-  var save = async function() { if (!name.trim()) return; await dbInsert("suppliers", { name: name.trim(), phone: phone.trim() }); onSaved(name.trim()); };
-  return React.createElement("div", null, React.createElement(Hdr, { title: "Новый поставщик", sub: "ПОСТАВКИ", onBack: onBack }), React.createElement("div", { style: { padding: 14 } }, React.createElement(Card, null, React.createElement(TI, { label: "ИМЯ", placeholder: "Имя поставщика", value: name, onChange: setName, autoFocus: true }), React.createElement(TI, { label: "ТЕЛЕФОН", type: "tel", placeholder: "+992 XX XXX XXXX", value: phone, onChange: setPhone }), React.createElement(Btn, { bg: C.green, color: "#051a0e", onClick: save, disabled: !name.trim() }, "Сохранить"))));
+function NewRevision({onBack,onSaved}){
+  const [step,setStep]=useState('setup');
+  const [selCats,setSelCats]=useState([]);
+  const [date,setDate]=useState(tod());
+  const [items,setItems]=useState([]);
+  const [search,setSearch]=useState('');
+  const [saved,setSaved]=useState(false);
+  const [page,setPage]=useState(1);
+  const PAGE=50;
+  const products=dbGet('products');
+  const cats=[...new Set(products.map(p=>p.category).filter(Boolean))].sort();
+  const toggleCat=cat=>setSelCats(prev=>prev.includes(cat)?prev.filter(c=>c!==cat):[...prev,cat]);
+  const getProdByCats=cList=>{ const filtered=cList.length===0?products:products.filter(p=>cList.includes(p.category)); return filtered.map(p=>({id:p.id,product_name:p.name,barcode:p.barcode||'',unit:p.unit||'шт',category:p.category,price:p.price||0,totalQty:p.stock||0})).sort((a,b)=>a.product_name.localeCompare(b.product_name)); };
+  const catLabel=selCats.length===0?'Все':selCats.length===1?selCats[0]:`${selCats.length} катег.`;
+  const startRev=()=>{ const prods=getProdByCats(selCats); setItems(prods.map(p=>({id:uid(),product:p,actual:null}))); setPage(1); setStep('revision'); };
+  const updActual=(id,val)=>setItems(prev=>prev.map(i=>i.id===id?{...i,actual:val===''?null:+val}:i));
+  const checked=items.filter(i=>i.actual!==null).length;
+  const sumExp=items.filter(i=>i.actual!==null).reduce((s,i)=>s+i.product.totalQty*(i.product.price||0),0);
+  const sumAct=items.filter(i=>i.actual!==null).reduce((s,i)=>s+i.actual*(i.product.price||0),0);
+  const saveRev=async()=>{ const rev=await dbInsert('revisions',{category:catLabel,date}); await dbInsertMany('revision_items',items.map(it=>({id:uid(),revision_id:rev.id,product_name:it.product.product_name,barcode:it.product.barcode,unit:it.product.unit,expected:it.product.totalQty,actual:it.actual,price:it.product.price||0}))); setSaved(true); setTimeout(()=>onSaved(),1000); };
+  const searchProds=search.trim().length>=1?products.filter(p=>{ const q=search.trim().toLowerCase(); return(p.name||'').toLowerCase().includes(q)||(p.barcode&&p.barcode.includes(search.trim())); }).slice(0,6).map(p=>({id:p.id,product_name:p.name,barcode:p.barcode||'',unit:p.unit||'шт',category:p.category,price:p.price||0,totalQty:p.stock||0})):[];
+  const addFromSearch=p=>{ if(!items.find(i=>i.product.barcode===p.barcode)) setItems(prev=>[...prev,{id:uid(),product:p,actual:null}]); setSearch(''); };
+  if(step==='setup') return(
+    <><Hdr title="Новая ревизия" onBack={onBack}/>
+    <div style={{padding:14,paddingBottom:30}}>
+      <Card><TI label="ДАТА" type="date" value={date} onChange={setDate}/></Card>
+      <Card>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}><FL>КАТЕГОРИИ</FL>{selCats.length>0&&<button onClick={()=>setSelCats([])} style={{fontSize:11,color:C.dim,background:'none',border:'none',cursor:'pointer',fontFamily:'inherit'}}>✕ Сбросить</button>}</div>
+        <div style={{display:'flex',flexWrap:'wrap',gap:7}}>
+          <button onClick={()=>setSelCats(selCats.length===cats.length?[]:cats)} style={{padding:'8px 14px',borderRadius:22,cursor:'pointer',fontFamily:'inherit',fontSize:12,fontWeight:800,border:`1.5px solid ${selCats.length===cats.length?C.orange+'80':C.border}`,background:selCats.length===cats.length?C.orange+'18':C.bg3,color:selCats.length===cats.length?C.orange:C.dim}}>{selCats.length===cats.length?'✓ Все':'Выбрать все'}</button>
+          {cats.map(cat=>(<button key={cat} onClick={()=>toggleCat(cat)} style={{padding:'8px 14px',borderRadius:22,cursor:'pointer',fontFamily:'inherit',fontSize:12,fontWeight:700,border:`1.5px solid ${selCats.includes(cat)?C.blue+'80':C.border}`,background:selCats.includes(cat)?C.blue+'18':C.bg3,color:selCats.includes(cat)?C.blue:C.muted}}>{selCats.includes(cat)?'✓ ':''}{cat}</button>))}
+        </div>
+        {selCats.length>0&&<div style={{marginTop:12,fontSize:12,color:C.dim}}>Выбрано {selCats.length} катег. · {getProdByCats(selCats).length} товаров</div>}
+      </Card>
+      <Btn bg={C.blue} onClick={startRev} disabled={selCats.length===0}>{selCats.length>0?`📦 Начать · ${getProdByCats(selCats).length} товаров`:'Выбери хотя бы одну категорию'}</Btn>
+    </div></>
+  );
+  const visItems=items.slice(0,page*PAGE);
+  return(
+    <><Hdr title={catLabel} sub="РЕВИЗИЯ" onBack={()=>setStep('setup')}>
+      <div style={{background:C.bg3,borderRadius:10,padding:'5px 12px',textAlign:'center',flexShrink:0}}><div style={{fontSize:9,color:C.dim,fontWeight:700}}>Проверено</div><div style={{fontSize:15,fontWeight:900,color:checked===items.length&&checked>0?C.green:C.blue}}>{checked}/{items.length}</div></div>
+    </Hdr>
+    <div style={{padding:14,paddingBottom:160}}>
+      {checked>0&&(
+        <div style={{background:C.bg2,border:`1px solid ${C.border}`,borderRadius:16,overflow:'hidden',marginBottom:12}}>
+          <div style={{display:'flex',borderBottom:`1px solid ${C.border}`}}>
+            <div style={{flex:1,padding:'14px 16px',borderRight:`1px solid ${C.border}`,textAlign:'center'}}><div style={{fontSize:9,fontWeight:800,color:C.dim,marginBottom:4}}>БЫЛО</div><div style={{fontSize:18,fontWeight:900,color:C.muted}}>{fmt(sumExp)} SM</div></div>
+            <div style={{flex:1,padding:'14px 16px',textAlign:'center'}}><div style={{fontSize:9,fontWeight:800,color:C.dim,marginBottom:4}}>ОСТАЛОСЬ</div><div style={{fontSize:18,fontWeight:900,color:sumExp-sumAct>0?C.red:C.green}}>{fmt(sumAct)} SM</div></div>
+          </div>
+          <div style={{padding:'12px 16px',background:sumExp-sumAct>0?'#f04f5a10':'#3ecf8e10',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+            <div style={{fontSize:10,fontWeight:800,color:C.dim}}>{sumExp-sumAct>0?'ПОТЕРИ':'РЕЗУЛЬТАТ'}</div>
+            <div style={{fontSize:20,fontWeight:900,color:sumExp-sumAct>0?C.red:C.green}}>{sumExp-sumAct>0?'-':''}{fmt(Math.abs(sumExp-sumAct))} SM</div>
+          </div>
+        </div>
+      )}
+      <Card style={{background:C.bg3,border:`1px solid #4466ff25`}}>
+        <div style={{fontSize:10,fontWeight:800,letterSpacing:2,color:C.blue,marginBottom:8}}>🔍 ДОБАВИТЬ ПО ШТРИХКОДУ</div>
+        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Введи название или штрихкод..." style={{width:'100%',background:C.bg,border:`1.5px solid #4466ff40`,borderRadius:11,padding:'12px 14px',color:C.text,fontSize:14,outline:'none',WebkitAppearance:'none'}}/>
+        {search.trim()&&searchProds.map(p=>(<div key={p.id} onClick={()=>addFromSearch(p)} style={{display:'flex',alignItems:'center',gap:10,padding:'10px 12px',background:C.bg2,borderRadius:10,marginTop:6,cursor:'pointer'}}><div style={{flex:1}}><div style={{fontSize:13,fontWeight:700}}>{p.product_name}</div><div style={{fontSize:11,color:C.dim}}>🏷 {p.barcode} · {p.totalQty} {p.unit}</div></div><div style={{color:C.blue,fontSize:20,fontWeight:300}}>+</div></div>))}
+      </Card>
+      {visItems.map(ri=>{
+        const diff=ri.actual!==null?ri.actual-ri.product.totalQty:null;
+        const dc=diff===null?C.dim:diff<0?C.red:diff>0?C.orange:C.green;
+        return(
+          <div key={ri.id} className="fu" style={{background:C.bg2,border:`1px solid ${diff===null?C.border:diff<0?C.red+'40':C.green+'30'}`,borderRadius:16,marginBottom:8,overflow:'hidden',display:'flex'}}>
+            <div style={{width:4,background:diff===null?C.border:dc+'cc',flexShrink:0}}/>
+            <div style={{flex:1,padding:'12px 14px 12px 10px'}}>
+              <div style={{display:'flex',alignItems:'flex-start',gap:10}}>
+                <div style={{flex:1,minWidth:0}}><div style={{fontSize:14,fontWeight:800,marginBottom:3}}>{ri.product.product_name}</div><div style={{fontSize:11,color:C.dim,marginBottom:4}}>🏷 {ri.product.barcode}</div><div style={{fontSize:12,color:C.dim}}>Ожидается: <b style={{color:C.muted}}>{ri.product.totalQty} {ri.product.unit}</b>{ri.product.price>0&&<> · <b style={{color:C.blue}}>{ri.product.price} SM</b></>}</div></div>
+                <div style={{flexShrink:0,textAlign:'right'}}><div style={{fontSize:9,fontWeight:800,letterSpacing:1.5,color:C.dim,marginBottom:4}}>ФАКТ</div><input type="number" placeholder={String(ri.product.totalQty)} value={ri.actual??''} onChange={e=>updActual(ri.id,e.target.value)} style={{width:72,padding:'9px 6px',borderRadius:11,textAlign:'center',background:C.bg,border:`1.5px solid ${diff===null?C.border:dc}`,color:diff===null?C.text:dc,fontSize:18,fontWeight:900,fontFamily:'inherit',outline:'none',boxSizing:'border-box'}}/>{diff!==null&&<div style={{fontSize:13,fontWeight:900,color:dc,marginTop:4}}>{diff>0?'+':''}{diff}</div>}</div>
+              </div>
+              {diff!==null&&(<div style={{marginTop:8,padding:'7px 10px',borderRadius:9,background:dc+'12',display:'flex',justifyContent:'space-between'}}><span style={{fontSize:12,fontWeight:800,color:dc}}>{diff<0?`↓ Недостача ${Math.abs(diff)} ${ri.product.unit}`:diff>0?`↑ Излишек ${diff} ${ri.product.unit}`:'✓ Совпадает'}</span>{ri.product.price>0&&diff!==0&&<span style={{fontSize:13,fontWeight:900,color:dc}}>{diff<0?'-':'+'}{(Math.abs(diff)*ri.product.price).toFixed(2)} SM</span>}</div>)}
+            </div>
+          </div>
+        );
+      })}
+      {items.length>page*PAGE&&(<button onClick={()=>setPage(p=>p+1)} style={{width:'100%',padding:'14px',borderRadius:14,background:C.bg2,border:`1px solid ${C.blue}40`,color:C.blue,fontSize:14,fontWeight:800,cursor:'pointer',fontFamily:'inherit',marginBottom:8}}>Загрузить ещё {Math.min(PAGE,items.length-page*PAGE)} ({page*PAGE} из {items.length})</button>)}
+    </div>
+    <div style={{position:'fixed',bottom:64,left:'50%',transform:'translateX(-50%)',width:'100%',maxWidth:430,padding:'10px 14px',background:'rgba(9,9,15,.97)',borderTop:`1px solid ${C.border}`,zIndex:150}}>
+      {saved?<div style={{textAlign:'center',padding:14,fontSize:16,fontWeight:800,color:C.green}}>✓ Ревизия сохранена!</div>:
+      <Btn bg={checked>0?C.green:C.bg3} color={checked>0?'#051a0e':C.dim} onClick={saveRev} disabled={checked===0}>{checked===0?'Введи данные для сохранения':`✓ Сохранить · ${checked}/${items.length} проверено`}</Btn>}
+    </div></>
+  );
 }
 
-function SupplierPage(_ref) {
-  var supplier = _ref.supplier, onBack = _ref.onBack, onPosting = _ref.onPosting, onDeleted = _ref.onDeleted, onViewDel = _ref.onViewDel;
-  var _useState = React.useState(false), confirmDel = _useState[0], setConfirmDel = _useState[1];
-  var deliveries = dbGet("deliveries").filter(function(d) { return d.supplier_id === supplier.id; }).sort(function(a, b) { return b.created_at.localeCompare(a.created_at); });
-  var diItems = dbGet("delivery_items");
-  var doDelete = async function() { await sbDel("suppliers", supplier.id); DB.suppliers = DB.suppliers.filter(function(s) { return s.id !== supplier.id; }); pub(); onDeleted(); };
-  return React.createElement("div", null, React.createElement(Hdr, { title: supplier.name, sub: "ПОСТАВЩИК", onBack: onBack, onAdd: onPosting }), React.createElement("div", { style: { padding: 14, paddingBottom: 30 } }, React.createElement("button", { onClick: onPosting, style: { width: "100%", padding: 15, borderRadius: 14, background: "linear-gradient(135deg,#4466ff,#6644ff)", border: "none", color: "#fff", fontSize: 16, fontWeight: 900, cursor: "pointer", marginBottom: 14, fontFamily: "inherit" } }, "📦 Поступление товара"), confirmDel && React.createElement(DelConfirm, { text: "Удалить «" + supplier.name + "»?", onConfirm: doDelete, onCancel: function() { return setConfirmDel(false); } }), React.createElement(Btn, { outline: true, onClick: function() { return setConfirmDel(true); }, style: { color: C.red, borderColor: C.red + "40", marginBottom: 14 } }, "🗑 Удалить поставщика"), !deliveries.length ? React.createElement(Empty, { icon: "📋", text: "Поставок пока нет" }) : deliveries.map(function(d, idx) { var items = diItems.filter(function(i) { return i.delivery_id === d.id; }); var expI = items.filter(function(i) { return i.expiry_date && dLeft(i.expiry_date) < 0; }).length; var num = deliveries.length - idx; return React.createElement("div", { key: d.id, onClick: function() { return onViewDel(d, num); }, style: { display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", background: C.bg2, border: "1px solid " + (expI > 0 ? C.red + "40" : C.border), borderRadius: 16, marginBottom: 8, cursor: "pointer" } }, React.createElement("div", { style: { background: C.bg3, borderRadius: 12, padding: "8px 12px", textAlign: "center", flexShrink: 0 } }, React.createElement("div", { style: { fontSize: 9, fontWeight: 800, color: C.dim } }, "ПАРТИЯ"), React.createElement("div", { style: { fontSize: 20, fontWeight: 900 } }, "№" + num)), React.createElement("div", { style: { flex: 1 } }, React.createElement("div", { style: { fontSize: 15, fontWeight: 700, marginBottom: 4 } }, fmtD(d.date)), React.createElement(Badge, { color: C.blue }, items.length, " товаров"), expI > 0 && React.createElement(Badge, { color: C.red, style: { marginLeft: 6 } }, "☠ ", expI)), React.createElement("div", { style: { color: C.dim, fontSize: 22 } }, "›")); })));
+function RevisionView({revision,onBack,onDeleted}){
+  const [confirmDel,setConfirmDel]=useState(false);
+  const [editMode,setEditMode]=useState(false);
+  const [editValues,setEditValues]=useState({});
+  const [saving,setSaving]=useState(false);
+  const items=dbGet('revision_items').filter(i=>i.revision_id===revision.id);
+  const short=items.filter(i=>i.actual!==null&&i.actual<i.expected);
+  const sumExp=items.filter(i=>i.actual!==null).reduce((s,i)=>s+i.expected*(i.price||0),0);
+  const sumAct=items.filter(i=>i.actual!==null).reduce((s,i)=>s+i.actual*(i.price||0),0);
+  const loss=sumExp-sumAct;
+  const startEdit=()=>{ const vals={}; items.forEach(i=>{ vals[i.id]=i.actual!==null?String(i.actual):''; }); setEditValues(vals); setEditMode(true); };
+  const saveEdit=async()=>{ setSaving(true); for(const item of items){ const val=editValues[item.id]; const actual=val===''?null:+val; await fetch(`${SB}/revision_items?id=eq.${item.id}`,{method:'PATCH',headers:H,body:JSON.stringify({actual})}); const idx=DB.revision_items.findIndex(i=>i.id===item.id); if(idx>=0)DB.revision_items[idx]={...DB.revision_items[idx],actual}; } pub(); setEditMode(false); setSaving(false); };
+  const doDelete=async()=>{ for(const item of items) await sbDel('revision_items',item.id); await sbDel('revisions',revision.id); DB.revision_items=DB.revision_items.filter(i=>i.revision_id!==revision.id); DB.revisions=DB.revisions.filter(r=>r.id!==revision.id); pub(); onDeleted(); };
+  return(
+    <><Hdr title={fmtD(revision.date)} sub={(revision.category||'РЕВИЗИЯ').toUpperCase()} onBack={onBack}>
+      <div style={{display:'flex',gap:6}}>
+        {!editMode&&<button onClick={startEdit} style={{width:38,height:38,borderRadius:11,background:'#4466ff18',border:`1px solid #4466ff40`,color:C.blue,fontSize:16,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>✏️</button>}
+        <button onClick={()=>setConfirmDel(true)} style={{width:38,height:38,borderRadius:11,background:'#f04f5a18',border:`1px solid #f04f5a40`,color:C.red,fontSize:16,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>🗑</button>
+      </div>
+    </Hdr>
+    {confirmDel&&(<div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,.7)',zIndex:200,display:'flex',alignItems:'center',justifyContent:'center',padding:20}}><div style={{background:C.bg2,border:`1px solid ${C.red}50`,borderRadius:20,padding:24,width:'100%',maxWidth:380}}><div style={{fontSize:18,fontWeight:800,marginBottom:8}}>Удалить ревизию?</div><div style={{fontSize:13,color:C.dim,marginBottom:20}}>Ревизия от {fmtD(revision.date)} · {items.length} позиций будет удалена безвозвратно</div><div style={{display:'flex',gap:10}}><Btn outline onClick={()=>setConfirmDel(false)} style={{flex:1,padding:'12px 0'}}>Отмена</Btn><Btn bg={C.red} onClick={doDelete} style={{flex:1,padding:'12px 0'}}>Удалить</Btn></div></div></div>)}
+    <div style={{padding:14,paddingBottom:editMode?160:30}}>
+      <div style={{display:'flex',gap:8,marginBottom:12}}>
+        {[['Позиций',items.length,C.blue],['Недостача',short.length,short.length>0?C.red:C.green]].map(([l,v,c])=>(<div key={l} style={{flex:1,background:C.bg2,border:`1px solid ${C.border}`,borderRadius:14,padding:'13px 10px',textAlign:'center'}}><div style={{fontSize:9,color:C.dim,fontWeight:800,letterSpacing:1,textTransform:'uppercase',marginBottom:4}}>{l}</div><div style={{fontSize:20,fontWeight:900,color:c}}>{v}</div></div>))}
+      </div>
+      {items.filter(i=>i.actual!==null).length>0&&(<div style={{background:C.bg2,border:`1px solid ${C.border}`,borderRadius:16,overflow:'hidden',marginBottom:12}}><div style={{display:'flex',borderBottom:`1px solid ${C.border}`}}><div style={{flex:1,padding:'14px 16px',borderRight:`1px solid ${C.border}`,textAlign:'center'}}><div style={{fontSize:9,fontWeight:800,color:C.dim,marginBottom:4}}>БЫЛО</div><div style={{fontSize:18,fontWeight:900,color:C.muted}}>{fmt(sumExp)} SM</div></div><div style={{flex:1,padding:'14px 16px',textAlign:'center'}}><div style={{fontSize:9,fontWeight:800,color:C.dim,marginBottom:4}}>ОСТАЛОСЬ</div><div style={{fontSize:18,fontWeight:900,color:loss>0?C.red:C.green}}>{fmt(sumAct)} SM</div></div></div><div style={{padding:'12px 16px',background:loss>0?'#f04f5a10':'#3ecf8e10',display:'flex',justifyContent:'space-between'}}><div style={{fontSize:10,fontWeight:800,color:C.dim}}>{loss>0?'ПОТЕРИ':'РЕЗУЛЬТАТ'}</div><div style={{fontSize:22,fontWeight:900,color:loss>0?C.red:C.green}}>{loss>0?'-':''}{fmt(Math.abs(loss))} SM</div></div></div>)}
+      <Card>
+        {items.map((item,i)=>{ const val=editMode?editValues[item.id]??'':null; const actual=editMode?(val===''?null:+val):item.actual; const diff=actual!==null?actual-item.expected:null; const dc=diff===null?C.dim:diff<0?C.red:diff>0?C.orange:C.green;
+          return(<div key={item.id} style={{padding:'12px 0',borderBottom:i<items.length-1?`1px solid ${C.border}`:'none'}}><div style={{display:'flex',alignItems:'center',gap:10}}><div style={{flex:1}}><div style={{fontSize:14,fontWeight:800,marginBottom:3}}>{item.product_name}</div>{item.barcode&&<div style={{fontSize:11,color:C.dim}}>🏷 {item.barcode}</div>}</div><div style={{textAlign:'right',flexShrink:0}}>{editMode?(<div><div style={{fontSize:11,color:C.dim,marginBottom:4}}>Ожид: <b>{item.expected}</b></div><input type="number" value={editValues[item.id]??''} onChange={e=>setEditValues(prev=>({...prev,[item.id]:e.target.value}))} style={{width:70,padding:'7px 6px',borderRadius:9,textAlign:'center',background:C.bg,border:`1.5px solid ${dc}`,color:dc,fontSize:16,fontWeight:900,fontFamily:'inherit',outline:'none',boxSizing:'border-box'}}/>{diff!==null&&<div style={{fontSize:12,fontWeight:800,color:dc,marginTop:3}}>{diff>0?'+':''}{diff}</div>}</div>):(<div><div style={{display:'flex',gap:6,justifyContent:'flex-end',marginBottom:4}}><span style={{fontSize:11,color:C.dim}}>Ожид: <b style={{color:C.muted}}>{item.expected}</b></span>{item.actual!==null&&<span style={{fontSize:11,color:C.dim}}>Факт: <b style={{color:dc}}>{item.actual}</b></span>}</div>{diff!==null&&<span style={{fontSize:13,fontWeight:900,padding:'3px 10px',borderRadius:8,background:dc+'18',color:dc,display:'inline-block'}}>{diff>0?'+':''}{diff} {item.unit}</span>}</div>)}</div></div></div>);
+        })}
+      </Card>
+    </div>
+    {editMode&&(<div style={{position:'fixed',bottom:64,left:'50%',transform:'translateX(-50%)',width:'100%',maxWidth:430,padding:'10px 14px',background:'rgba(9,9,15,.97)',borderTop:`1px solid ${C.border}`,zIndex:150,display:'flex',gap:8}}><Btn outline onClick={()=>setEditMode(false)} style={{width:52,flex:'none',padding:'14px 0'}}>✕</Btn><Btn bg={C.green} color="#051a0e" onClick={saveEdit} disabled={saving} style={{flex:1}}>{saving?'Сохранение...':'✓ Сохранить изменения'}</Btn></div>)}
+    </>
+  );
 }
 
-function DeliveryDetail(_ref) {
-  var delivery = _ref.delivery, num = _ref.num, onBack = _ref.onBack, onDeleted = _ref.onDeleted;
-  var _useState = React.useState(false), confirmDel = _useState[0], setConfirmDel = _useState[1];
-  var items = dbGet("delivery_items").filter(function(i) { return i.delivery_id === delivery.id; });
-  var doDelete = async function() { for (var i = 0; i < items.length; i++) { await sbDel("delivery_items", items[i].id); } await sbDel("deliveries", delivery.id); DB.delivery_items = DB.delivery_items.filter(function(i) { return i.delivery_id !== delivery.id; }); DB.deliveries = DB.deliveries.filter(function(d) { return d.id !== delivery.id; }); pub(); onDeleted(); };
-  return React.createElement("div", null, React.createElement(Hdr, { title: "Партия №" + num, sub: fmtD(delivery.date).toUpperCase(), onBack: onBack }, React.createElement("button", { onClick: function() { return setConfirmDel(true); }, style: { width: 38, height: 38, borderRadius: 11, background: "#f04f5a18", border: "1px solid #f04f5a40", color: C.red, fontSize: 16, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" } }, "🗑")), confirmDel && React.createElement(DelConfirm, { text: "Партия · " + items.length + " товаров", onConfirm: doDelete, onCancel: function() { return setConfirmDel(false); } }), React.createElement("div", { style: { padding: 14, paddingBottom: 30 } }, React.createElement(Card, null, items.map(function(item, i) { var dl = item.expiry_date ? dLeft(item.expiry_date) : null; var ec = dl !== null ? eColor(dl) : C.dim; return React.createElement("div", { key: item.id, style: { padding: "12px 0", borderBottom: i < items.length - 1 ? "1px solid " + C.border : "none" } }, React.createElement("div", { style: { fontSize: 15, fontWeight: 800, marginBottom: 6 } }, item.product_name), React.createElement("div", { style: { display: "flex", gap: 6, flexWrap: "wrap" } }, React.createElement(Badge, { color: C.blue }, item.quantity, " ", item.unit), item.expiry_date && React.createElement(Badge, { color: ec }, "до ", fmtD(item.expiry_date))); }))));
+function Finance({tick}){
+  const [tab,setTab]=useState('expenses');
+  const exp=dbGet('expenses'),rev=dbGet('revenue'),cash=dbGet('cash_movements');
+  let cashBal=0; cash.forEach(m=>{ if(m.type==='add'||m.type==='revenue') cashBal+= +m.amount; else cashBal-= +m.amount; });
+  const t=tod();
+  const todayRev=rev.filter(r=>r.date===t).reduce((s,r)=>s+ +r.amount,0);
+  const todayExp=exp.filter(e=>e.date===t).reduce((s,e)=>s+ +e.amount,0);
+  return(
+    <>
+      <div style={{padding:'14px 16px 12px',background:'rgba(9,9,15,.97)',backdropFilter:'blur(20px)',borderBottom:`1px solid ${C.border}`,position:'sticky',top:0,zIndex:50}}>
+        <div style={{fontSize:9,fontWeight:800,letterSpacing:2.5,textTransform:'uppercase',color:C.dim}}>ФИНАНСЫ</div>
+        <div style={{fontSize:20,fontWeight:900,letterSpacing:-.5,marginBottom:12}}>💰 Финансы</div>
+        <div style={{display:'flex',gap:8,marginBottom:12}}>
+          {[['Выручка',`+${fmt(todayRev)}`,C.green],['Расходы',`−${fmt(todayExp)}`,C.red],['Касса',`${fmt(Math.abs(cashBal))}`,cashBal>=0?C.blue:C.red]].map(([l,v,c])=>(<div key={l} style={{flex:1,background:C.bg3,borderRadius:10,padding:'8px 10px'}}><div style={{fontSize:8,fontWeight:800,letterSpacing:1,color:C.dim,marginBottom:3}}>{l.toUpperCase()}</div><div style={{fontSize:13,fontWeight:900,color:c}}>{v}</div></div>))}
+        </div>
+        <div style={{display:'flex',gap:6}}>
+          {[['expenses','💸 Расходы'],['revenue','💰 Выручка'],['cash','🏧 Касса']].map(([id,l])=>(<button key={id} onClick={()=>setTab(id)} style={{flex:1,padding:'9px 4px',borderRadius:11,cursor:'pointer',fontFamily:'inherit',fontSize:11,fontWeight:800,border:`1.5px solid ${tab===id?C.blue+'60':C.border}`,background:tab===id?C.blue+'18':C.bg2,color:tab===id?C.blue:C.dim}}>{l}</button>))}
+        </div>
+      </div>
+      {tab==='expenses'&&<ExpensesTab tick={tick}/>}
+      {tab==='revenue'&&<RevenueTab tick={tick}/>}
+      {tab==='cash'&&<CashTab tick={tick}/>}
+    </>
+  );
 }
 
-function Posting(_ref) {
-  var supplier = _ref.supplier, onBack = _ref.onBack, onSaved = _ref.onSaved;
-  var _useState = React.useState(tod()), date = _useState[0], setDate = _useState[1];
-  var _useState2 = React.useState(""), search = _useState2[0], setSearch = _useState2[1];
-  var _useState3 = React.useState(null), selected = _useState3[0], setSelected = _useState3[1];
-  var _useState4 = React.useState(""), qty = _useState4[0], setQty = _useState4[1];
-  var _useState5 = React.useState(""), expiry = _useState5[0], setExpiry = _useState5[1];
-  var _useState6 = React.useState([]), addedItems = _useState6[0], setAddedItems = _useState6[1];
-  var _useState7 = React.useState(""), err = _useState7[0], setErr = _useState7[1];
-  var catalog = dbGet("products");
-  var results = search.trim().length >= 1 ? catalog.filter(function(p) { return p.name.toLowerCase().includes(search.toLowerCase()) || (p.barcode && p.barcode.includes(search)); }).slice(0, 8) : [];
-  var addToList = function() { if (!qty || +qty <= 0) { setErr("Введите количество"); return; } setAddedItems(function(p) { return p.concat([{ id: uid(), product_id: selected.id, name: selected.name, barcode: selected.barcode, qty: +qty, unit: selected.unit, category: selected.category, expiry: expiry || null }]); }); setSelected(null); setQty(""); setExpiry(""); setErr(""); };
-  var saveAll = async function() { if (!addedItems.length) return; var del = await dbInsert("deliveries", { supplier_id: supplier.id, supplier_name: supplier.name, date: date }); await dbInsertMany("delivery_items", addedItems.map(function(item) { return { delivery_id: del.id, product_name: item.name, barcode: item.barcode, quantity: item.qty, unit: item.unit, category: item.category, expiry_date: item.expiry || null }; })); onSaved(addedItems.length); };
-  return React.createElement("div", null, React.createElement(Hdr, { title: "Поступление", sub: supplier.name.toUpperCase(), onBack: onBack }), React.createElement("div", { style: { padding: 14, paddingBottom: 30 } }, React.createElement(Card, null, React.createElement(TI, { label: "ДАТА", type: "date", value: date, onChange: setDate })), !selected ? React.createElement(Card, { style: { background: C.bg3, border: "1px solid #4466ff30" } }, React.createElement("div", { style: { fontSize: 11, fontWeight: 800, letterSpacing: 2, color: C.blue, marginBottom: 10 } }, "🔍 ПОИСК ТОВАРА"), React.createElement("input", { value: search, onChange: function(e) { return setSearch(e.target.value); }, placeholder: "Название или штрихкод...", autoFocus: true, style: { width: "100%", background: C.bg, border: "1.5px solid #4466ff40", borderRadius: 12, padding: "14px 16px", color: C.text, fontSize: 15, outline: "none" } }), search.trim().length >= 1 && (results.length ? results.map(function(p) { return React.createElement("div", { key: p.id, onClick: function() { setSelected(p); setSearch(""); }, style: { display: "flex", alignItems: "center", gap: 10, padding: "11px 12px", background: C.bg2, borderRadius: 11, marginTop: 6, cursor: "pointer", border: "1px solid " + C.border } }, React.createElement("div", { style: { flex: 1 } }, React.createElement("div", { style: { fontSize: 14, fontWeight: 700 } }, p.name), React.createElement("div", { style: { fontSize: 11, color: C.dim } }, p.category, p.barcode ? " · " + p.barcode : "")), React.createElement("div", { style: { color: C.blue, fontSize: 20 } }, "+")); }) : React.createElement("div", { style: { fontSize: 12, color: C.dim, textAlign: "center", padding: "10px 0" } }, "Не найден"))) : React.createElement(Card, { style: { border: "1.5px solid #4466ff50", background: C.bg3 } }, React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 10, paddingBottom: 14, borderBottom: "1px solid " + C.border, marginBottom: 14 } }, React.createElement("div", { style: { flex: 1 } }, React.createElement("div", { style: { fontSize: 15, fontWeight: 800 } }, selected.name)), React.createElement("button", { onClick: function() { return setSelected(null); }, style: { background: "none", border: "none", color: C.dim, fontSize: 22, cursor: "pointer" } }, "✕")), React.createElement("div", { style: { display: "flex", gap: 8 } }, React.createElement("div", { style: { flex: 1 } }, React.createElement(FL, null, "КОЛ-ВО"), React.createElement("input", { type: "number", autoFocus: true, placeholder: "0", value: qty, onChange: function(e) { setQty(e.target.value); setErr(""); }, style: { width: "100%", background: C.bg, border: "1px solid " + C.border, borderRadius: 12, padding: "13px 16px", color: C.text, fontSize: 20, fontWeight: 800, outline: "none" } })), React.createElement("div", { style: { flex: 1 } }, React.createElement(FL, null, "СРОК ГОДНОСТИ"), React.createElement("input", { type: "date", value: expiry, onChange: function(e) { return setExpiry(e.target.value); }, style: { width: "100%", background: C.bg, border: "1px solid " + C.border, borderRadius: 12, padding: "13px 14px", color: C.text, fontSize: 14, outline: "none" } }))), err && React.createElement("div", { style: { color: C.red, fontSize: 12, marginTop: 8 } }, err), React.createElement("div", { style: { display: "flex", gap: 8, marginTop: 12 } }, React.createElement(Btn, { outline: true, onClick: function() { return setSelected(null); }, style: { width: 52, flex: "none", padding: "14px 0" } }, "←"), React.createElement(Btn, { bg: C.blue, onClick: addToList, style: { flex: 1 } }, "+ Добавить"))), addedItems.length > 0 && React.createElement("div", null, React.createElement(SecLabel, null, "Добавлено · ", addedItems.length), addedItems.map(function(item, i) { return React.createElement("div", { key: item.id, style: { display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", background: C.bg2, border: "1px solid " + C.border, borderRadius: 14, marginBottom: 8 } }, React.createElement("div", { style: { flex: 1 } }, React.createElement("div", { style: { fontSize: 14, fontWeight: 700 } }, item.name), React.createElement(Badge, { color: C.blue }, item.qty, " ", item.unit)), React.createElement("button", { onClick: function() { return setAddedItems(function(p) { return p.filter(function(_, j) { return j !== i; }); }); }, style: { background: "none", border: "none", color: C.dim, fontSize: 20, cursor: "pointer" } }, "✕")); }), React.createElement(Btn, { bg: C.green, color: "#051a0e", onClick: saveAll, style: { marginTop: 8 } }, "✓ Сохранить поставку · ", addedItems.length, " товаров"))));
+function DelConfirm({text,onConfirm,onCancel}){
+  return(
+    <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,.75)',zIndex:200,display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
+      <div style={{background:C.bg2,border:`1px solid #f04f5a50`,borderRadius:20,padding:24,width:'100%',maxWidth:380}}>
+        <div style={{fontSize:18,fontWeight:800,marginBottom:8}}>Удалить?</div>
+        <div style={{fontSize:13,color:C.dim,marginBottom:20}}>{text}</div>
+        <div style={{display:'flex',gap:10}}><Btn outline onClick={onCancel} style={{flex:1,padding:'12px 0'}}>Отмена</Btn><Btn bg={C.red} onClick={onConfirm} style={{flex:1,padding:'12px 0'}}>Удалить</Btn></div>
+      </div>
+    </div>
+  );
 }
 
-function Expiry(_ref) {
-  var tick = _ref.tick;
-  var _useState = React.useState("all"), filter = _useState[0], setFilter = _useState[1];
-  var _useState2 = React.useState({}), writeOff = _useState2[0], setWriteOff = _useState2[1];
-  var doWriteOff = async function(item, qty) { var nq = Math.max(0, (+item.quantity || 0) - (+qty || 0)); await sbPatch("delivery_items", item.id, { quantity: nq }); var idx = DB.delivery_items.findIndex(function(i) { return i.id === item.id; }); if (idx >= 0) DB.delivery_items[idx] = Object.assign({}, DB.delivery_items[idx], { quantity: nq }); setWriteOff(function(p) { return Object.assign({}, p, { [item.id]: "" }); }); pub(); };
-  var allItems = dbGet("delivery_items").filter(function(i) { return i.expiry_date && (+i.quantity || 0) > 0; });
-  var products = dbGet("products");
-  var enriched = calcFifo(allItems, products).filter(function(i) { return i.remaining > 0; }).map(function(i) { return Object.assign({}, i, { days: dLeft(i.expiry_date) }); });
-  var counts = { all: enriched.length, expired: enriched.filter(function(i) { return i.days < 0; }).length, critical: enriched.filter(function(i) { return i.days >= 0 && i.days <= 3; }).length };
-  var filtered = enriched.filter(function(i) { return filter === "all" ? true : filter === "expired" ? i.days < 0 : filter === "critical" ? i.days >= 0 && i.days <= 3 : filter === "week" ? i.days >= 0 && i.days <= 7 : true; }).sort(function(a, b) { return a.days - b.days; });
-  var FILTERS = [{ id: "all", l: "Все (" + counts.all + ")" }, { id: "expired", l: "☠ Просрочено" + (counts.expired ? " (" + counts.expired + ")" : "") }, { id: "critical", l: "⚠ До 3 дней" + (counts.critical ? " (" + counts.critical + ")" : " ") }, { id: "week", l: "До 7 дней" }];
-  return React.createElement("div", null, React.createElement(Hdr, { title: "Сроки годности" }), React.createElement("div", { style: { padding: 14, paddingBottom: 30 } }, React.createElement("div", { style: { display: "flex", gap: 7, overflowX: "auto", paddingBottom: 4, marginBottom: 14 } }, FILTERS.map(function(f) { return React.createElement("button", { key: f.id, onClick: function() { return setFilter(f.id); }, style: { padding: "8px 14px", borderRadius: 22, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 800, whiteSpace: "nowrap", flexShrink: 0, border: "1.5px solid " + (filter === f.id ? C.blue + "80" : C.border), background: filter === f.id ? C.blue + "18" : C.bg2, color: filter === f.id ? C.blue : C.dim } }, f.l); })), !filtered.length ? React.createElement(Empty, { icon: "✅", text: "Всё в норме" }) : filtered.map(function(item) { var st = { color: eColor(item.days), label: eText(item.days) }; return React.createElement("div", { key: item.id, style: { background: C.bg2, border: "1px solid " + (item.days < 0 ? C.red + "35" : item.days <= 3 ? C.orange + "35" : C.border), borderRadius: 18, marginBottom: 10, overflow: "hidden", display: "flex" } }, React.createElement("div", { style: { width: 4, background: st.color + "cc", flexShrink: 0 } }), React.createElement("div", { style: { flex: 1, padding: "14px 16px" } }, React.createElement("div", { style: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10, marginBottom: 8 } }, React.createElement("div", { style: { flex: 1 } }, React.createElement("div", { style: { fontSize: 16, fontWeight: 800, marginBottom: 3 } }, item.product_name), item.barcode && React.createElement("div", { style: { fontSize: 11, color: C.dim } }, item.barcode)), React.createElement("div", { style: { flexShrink: 0, textAlign: "right" } }, React.createElement("div", { style: { fontSize: 13, fontWeight: 900, color: st.color } }, Math.abs(item.days), " дн."))), React.createElement("div", { style: { display: "flex", gap: 6, marginBottom: 10 } }, React.createElement(Badge, { color: C.blue }, item.remaining || item.quantity, " ", item.unit)), React.createElement("div", { style: { background: C.bg3, borderRadius: 12, padding: "10px 14px", display: "flex", justifyContent: "space-between", alignItems: "center" } }, React.createElement("div", { style: { fontSize: 13, fontWeight: 700, color: C.muted } }, "до ", fmtD(item.expiry_date)), React.createElement("div", { style: { fontSize: 12, fontWeight: 900, padding: "4px 12px", borderRadius: 10, background: st.color + "20", color: st.color, border: "1px solid " + st.color + "40" } }, st.label)), item.days < 0 && React.createElement("div", { style: { marginTop: 10, display: "flex", gap: 8, alignItems: "center" } }, React.createElement("input", { type: "number", placeholder: "макс. " + (item.remaining || item.quantity), value: writeOff[item.id] || "", onChange: function(e) { return setWriteOff(function(p) { return Object.assign({}, p, { [item.id]: e.target.value }); }); }, style: { flex: 1, background: C.bg, border: "1.5px solid " + C.red + "40", borderRadius: 10, padding: "9px 12px", color: C.text, fontSize: 15, fontWeight: 800, outline: "none", fontFamily: "inherit" } }), React.createElement("button", { onClick: function() { var q = +(writeOff[item.id] || 0); if (q > 0) doWriteOff(item, q); }, style: { flexShrink: 0, padding: "10px 16px", borderRadius: 10, background: C.red + "20", border: "1px solid " + C.red + "40", color: C.red, fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" } }, "Списать"), React.createElement("button", { onClick: function() { return doWriteOff(item, item.remaining || item.quantity); }, style: { flexShrink: 0, padding: "10px 14px", borderRadius: 10, background: "#f04f5a30", border: "1px solid " + C.red + "60", color: C.red, fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" } }, "Всё")))); })));
+function ExpensesTab({tick}){
+  const [curMonth,setCurMonth]=useState(monStr());
+  const [amount,setAmount]=useState('');
+  const [reason,setReason]=useState('');
+  const [delItem,setDelItem]=useState(null);
+  const months=getMonths(4);
+  const monthExp=dbGet('expenses').filter(e=>e.month_year===curMonth).sort((a,b)=>b.created_at.localeCompare(a.created_at));
+  const total=monthExp.reduce((s,e)=>s+ +e.amount,0);
+  const save=async()=>{ if(!amount||!reason.trim())return; await dbInsert('expenses',{amount:+amount,reason:reason.trim(),month_year:monStr(),date:tod()}); await dbInsert('cash_movements',{type:'expense',amount:+amount,description:reason.trim(),date:tod()}); setAmount(''); setReason(''); };
+  return(
+    <div style={{padding:14,paddingBottom:30}}>
+      {delItem&&<DelConfirm text={`Расход «${delItem.reason}» удалится, а ${fmt(delItem.amount)} SM вернётся в кассу`} onConfirm={async()=>{ await dbDelete('expenses',delItem.id); await dbInsert('cash_movements',{type:'add',amount:+delItem.amount,description:'Возврат расхода: '+delItem.reason,date:tod()}); setDelItem(null); }} onCancel={()=>setDelItem(null)}/>}
+      <div style={{display:'flex',gap:6,overflowX:'auto',paddingBottom:4,marginBottom:12}}>
+        {months.map(m=><button key={m.val} onClick={()=>setCurMonth(m.val)} style={{padding:'7px 14px',borderRadius:20,cursor:'pointer',fontFamily:'inherit',fontSize:11,fontWeight:700,whiteSpace:'nowrap',flexShrink:0,border:`1.5px solid ${curMonth===m.val?C.red+'70':C.border}`,background:curMonth===m.val?C.red+'18':C.bg2,color:curMonth===m.val?C.red:C.dim}}>{m.label}</button>)}
+      </div>
+      <div style={{background:C.bg2,border:`1px solid ${C.border}`,borderRadius:16,overflow:'hidden',marginBottom:14}}>
+        <div style={{padding:'10px 16px',background:C.bg3,borderBottom:`1px solid ${C.border}`}}><div style={{fontSize:9,fontWeight:800,letterSpacing:2,color:C.dim}}>ИТОГО ЗА МЕСЯЦ</div></div>
+        <div style={{padding:'16px 20px',display:'flex',alignItems:'center',justifyContent:'space-between'}}><div><div style={{fontSize:36,fontWeight:900,color:C.red}}>{fmt(total)} SM</div><div style={{fontSize:12,color:C.dim,marginTop:4}}>{monthExp.length} записей</div></div><div style={{fontSize:44,opacity:.35}}>💸</div></div>
+      </div>
+      <Card>
+        <div style={{fontSize:11,fontWeight:800,letterSpacing:2,color:C.dim,marginBottom:12}}>НОВЫЙ РАСХОД</div>
+        <TI label="СУММА (SM)" type="number" placeholder="0.00" value={amount} onChange={setAmount} autoFocus/>
+        <TI label="ПРИЧИНА" placeholder="Аренда, зарплата, закупка..." value={reason} onChange={setReason}/>
+        <Btn bg={C.red} onClick={save} disabled={!amount||!reason.trim()}>− Записать расход → спишется с кассы</Btn>
+      </Card>
+      <SecLabel>История · {months.find(m=>m.val===curMonth)?.label}</SecLabel>
+      {!monthExp.length?<Empty icon="💸" text="Расходов нет"/>:
+      monthExp.map(e=>(
+        <div key={e.id} style={{display:'flex',alignItems:'center',gap:12,padding:'13px 16px',background:C.bg2,border:`1px solid ${C.border}`,borderRadius:14,marginBottom:8}}>
+          <div style={{width:44,height:44,borderRadius:12,background:'#f04f5a18',display:'flex',alignItems:'center',justifyContent:'center',fontSize:20,flexShrink:0}}>💸</div>
+          <div style={{flex:1,minWidth:0}}><div style={{fontSize:16,fontWeight:800,color:C.red,marginBottom:3}}>−{fmt(e.amount)} SM</div><div style={{fontSize:13,color:C.muted,marginBottom:2}}>{e.reason}</div><div style={{fontSize:11,color:C.dim}}>{fmtD(e.date)} · {fmtT(e.created_at)}</div></div>
+          <button onClick={()=>setDelItem(e)} style={{background:'none',border:'none',color:C.dim,fontSize:20,cursor:'pointer',padding:4,flexShrink:0}}>🗑</button>
+        </div>
+      ))}
+    </div>
+  );
 }
 
-function App() {
-  var _useState = React.useState("home"), tab = _useState[0], setTab = _useState[1];
-  var _useState2 = React.useState(0), tick = _useState2[0], setTick = _useState2[1];
-  var _useState3 = React.useState(null), toastMsg = _useState3[0], setToastMsg = _useState3[1];
-  var _useState4 = React.useState(true), loading = _useState4[0], setLoading = _useState4[1];
-  
-  React.useEffect(function() { var unsub = sub(function() { return setTick(function(t) { return t + 1; }); }); initDB().then(function() { return setLoading(false); }); return unsub; }, []);
-  
-  var showToast = function(msg, color) { setToastMsg({ msg: msg, color: color }); setTimeout(function() { return setToastMsg(null); }, 2500); };
-  
-  var diItems = dbGet("delivery_items");
-  var products2 = dbGet("products");
-  var allExp2 = diItems.filter(function(i) { return i.expiry_date && (+i.quantity || 0) > 0; });
-  var fifo2 = calcFifo(allExp2, products2);
-  var alertCount = fifo2.filter(function(i) { return i.remaining > 0 && dLeft(i.expiry_date) < 0; }).length + fifo2.filter(function(i) { return i.remaining > 0 && dLeft(i.expiry_date) >= 0 && dLeft(i.expiry_date) <= 3; }).length;
-  
-  var debtTxs = dbGet("debt_transactions");
-  var debtPpl = dbGet("debt_people");
-  var debtAlert = debtPpl.filter(function(p) { var b = debtTxs.filter(function(t) { return t.person_id === p.id; }).reduce(function(s, t) { return s + (+t.amount || 0); }, 0); return b !== 0; }).length;
-  
-  var NAV = [{ id: "home", icon: "🏠", label: "Главная" }, { id: "supply", icon: "🚚", label: "Поставки" }, { id: "expiry", icon: "☠️", label: "Сроки" }, { id: "revision", icon: "📦", label: "Ревизия" }, { id: "finance", icon: "💰", label: "Финансы" }, { id: "debts", icon: "🤝", label: "Долги" }];
-  
-  if (loading) return React.createElement("div", { style: { height: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: C.bg, color: C.text } }, React.createElement("div", { style: { fontSize: 48, marginBottom: 20 } }, "🏪"), React.createElement("div", { style: { fontSize: 18, fontWeight: 800, marginBottom: 8 } }, "KassaControl"), React.createElement("div", { style: { fontSize: 13, color: C.dim } }, "Загрузка..."));
-  
-  return React.createElement("div", { style: { background: C.bg, color: C.text, minHeight: "100vh", fontFamily: "system-ui,-apple-system,sans-serif", maxWidth: 430, margin: "0 auto", paddingBottom: 80 } }, React.createElement(Toast, { msg: toastMsg ? toastMsg.msg : null, color: toastMsg ? toastMsg.color : null }), tab === "home" && React.createElement(Home, { tick: tick }), tab === "supply" && React.createElement(Suppliers, { tick: tick, toast: showToast }), tab === "expiry" && React.createElement(Expiry, { tick: tick }), React.createElement("div", { style: { position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 430, background: "rgba(9,9,15,.97)", borderTop: "1px solid " + C.border, display: "flex", zIndex: 100 } }, NAV.map(function(n) { return React.createElement("button", { key: n.id, onClick: function() { return setTab(n.id); }, style: { flex: 1, padding: "10px 0 11px", background: "none", border: "none", borderTop: "2px solid " + (tab === n.id ? C.blue : "transparent"), cursor: "pointer", color: tab === n.id ? C.blue : C.dim, display: "flex", flexDirection: "column", alignItems: "center", gap: 2, fontFamily: "inherit", position: "relative" } }, React.createElement("span", { style: { fontSize: 19 } }, n.icon), React.createElement("span", { style: { fontSize: 8, fontWeight: 800, textTransform: "uppercase" } }, n.label), n.id === "expiry" && alertCount > 0 && React.createElement("span", { style: { position: "absolute", top: 4, right: "50%", transform: "translateX(8px)", background: C.red, borderRadius: 10, minWidth: 16, height: 16, fontSize: 10, fontWeight: 900, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", padding: "0 4px" } }, alertCount), n.id === "debts" && debtAlert > 0 && React.createElement("span", { style: { position: "absolute", top: 4, right: "50%", transform: "translateX(8px)", background: C.orange, borderRadius: 10, minWidth: 16, height: 16, fontSize: 10, fontWeight: 900, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", padding: "0 4px" } }, debtAlert)); })));
+function RevenueTab({tick}){
+  const [amount,setAmount]=useState('');
+  const [gbsProfit,setGbsProfit]=useState('');
+  const [date,setDate]=useState(tod());
+  const [delItem,setDelItem]=useState(null);
+  const all=dbGet('revenue').sort((a,b)=>b.created_at.localeCompare(a.created_at));
+  const totalRev=all.reduce((s,r)=>s+ +r.amount,0);
+  const totalProfit=all.reduce((s,r)=>s+ +(r.profit||0),0);
+  const todayRev=all.filter(r=>r.date===tod()).reduce((s,r)=>s+ +r.amount,0);
+  const save=async()=>{ if(!amount)return; await dbInsert('revenue',{amount:+amount,profit:gbsProfit?+gbsProfit:null,date,source:'manual'}); await dbInsert('cash_movements',{type:'revenue',amount:+amount,description:'Выручка',date}); setAmount(''); setGbsProfit(''); };
+  return(
+    <div style={{padding:14,paddingBottom:30}}>
+      {delItem&&<DelConfirm text={`Выручка ${fmt(delItem.amount)} SM удалится и касса уменьшится`} onConfirm={async()=>{ await dbDelete('revenue',delItem.id); await dbInsert('cash_movements',{type:'remove',amount:+delItem.amount,description:'Удаление выручки',date:tod()}); setDelItem(null); }} onCancel={()=>setDelItem(null)}/>}
+      <div style={{background:C.bg2,border:`1px solid ${C.border}`,borderRadius:16,overflow:'hidden',marginBottom:14}}>
+        <div style={{padding:'10px 16px',background:C.bg3,borderBottom:`1px solid ${C.border}`}}><div style={{fontSize:9,fontWeight:800,letterSpacing:2,color:C.dim}}>ФИНАНСОВЫЕ ИТОГИ</div></div>
+        <div style={{padding:'16px 20px',borderBottom:`1px solid ${C.border}`}}><div style={{fontSize:10,color:C.dim,marginBottom:4}}>ВЫРУЧКА СЕГОДНЯ</div><div style={{fontSize:32,fontWeight:900,color:C.green}}>{fmt(todayRev)} SM</div></div>
+        <div style={{display:'flex'}}><div style={{flex:1,padding:'14px 16px',borderRight:`1px solid ${C.border}`}}><div style={{fontSize:9,fontWeight:800,color:C.dim,marginBottom:4}}>ВЫРУЧКА ВСЕГО</div><div style={{fontSize:18,fontWeight:900,color:C.green}}>{fmt(totalRev)} SM</div></div><div style={{flex:1,padding:'14px 16px'}}><div style={{fontSize:9,fontWeight:800,color:C.dim,marginBottom:4}}>ПРИБЫЛЬ GBS</div><div style={{fontSize:18,fontWeight:900,color:C.blue}}>{fmt(totalProfit)} SM</div></div></div>
+      </div>
+      <Card>
+        <div style={{fontSize:11,fontWeight:800,letterSpacing:2,color:C.dim,marginBottom:12}}>ДОБАВИТЬ ВЫРУЧКУ</div>
+        <TI label="ВЫРУЧКА (SM)" type="number" placeholder="0.00" value={amount} onChange={setAmount} autoFocus/>
+        <TI label="ПРИБЫЛЬ GBS (SM) — необязательно" type="number" placeholder="из GBS.Market" value={gbsProfit} onChange={setGbsProfit}/>
+        <div style={{marginBottom:12}}><FL>ДАТА</FL><input type="date" value={date} onChange={e=>setDate(e.target.value)} style={{width:'100%',background:C.bg,border:`1px solid ${C.border}`,borderRadius:12,padding:'13px 16px',color:C.text,fontSize:15,outline:'none',WebkitAppearance:'none'}}/></div>
+        <Btn bg={C.green} color="#051a0e" onClick={save} disabled={!amount}>+ Добавить выручку</Btn>
+      </Card>
+      <SecLabel>История выручки</SecLabel>
+      {!all.length?<Empty icon="💰" text="Записей нет"/>:
+      all.map(r=>(
+        <div key={r.id} style={{display:'flex',alignItems:'center',gap:12,padding:'13px 16px',background:C.bg2,border:`1px solid ${C.border}`,borderRadius:14,marginBottom:8}}>
+          <div style={{width:44,height:44,borderRadius:12,background:'#3ecf8e18',display:'flex',alignItems:'center',justifyContent:'center',fontSize:20,flexShrink:0}}>💰</div>
+          <div style={{flex:1,minWidth:0}}><div style={{fontSize:16,fontWeight:800,color:C.green,marginBottom:3}}>+{fmt(r.amount)} SM</div><div style={{fontSize:12,color:C.dim}}>Прибыль GBS: <b style={{color:C.blue}}>{fmt(r.profit||0)} SM</b></div><div style={{fontSize:11,color:C.dim,marginTop:2}}>{fmtD(r.date)} · {fmtT(r.created_at)}</div></div>
+          <button onClick={()=>setDelItem(r)} style={{background:'none',border:'none',color:C.dim,fontSize:20,cursor:'pointer',padding:4,flexShrink:0}}>🗑</button>
+        </div>
+      ))}
+    </div>
+  );
 }
 
-ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App, null));
+const DENOMS=[{val:500,label:'500 SM',type:'bill'},{val:200,label:'200 SM',type:'bill'},{val:100,label:'100 SM',type:'bill'},{val:50,label:'50 SM',type:'bill'},{val:20,label:'20 SM',type:'bill'},{val:10,label:'10 SM',type:'bill'},{val:5,label:'5 SM',type:'bill'},{val:1,label:'1 SM',type:'coin'},{val:0.5,label:'50 д',type:'coin'},{val:0.25,label:'25 д',type:'coin'},{val:0.1,label:'10 д',type:'coin'},{val:0.05,label:'5 д',type:'coin'}];
+
+function CashCounter({onClose,onSave}){
+  const [counts,setCounts]=useState({});
+  const set=(v,n)=>setCounts(p=>({...p,[v]:n===''?'':+n<0?0:n}));
+  const totalBills=DENOMS.filter(d=>d.type==='bill').reduce((s,d)=>s+(+counts[d.val]||0)*d.val,0);
+  const totalCoins=DENOMS.filter(d=>d.type==='coin').reduce((s,d)=>s+(+counts[d.val]||0)*d.val,0);
+  const total=totalBills+totalCoins;
+  const hasAny=Object.values(counts).some(v=>+v>0);
+  return(
+    <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,.85)',zIndex:300,overflowY:'auto',paddingBottom:100}}>
+      <div style={{maxWidth:430,margin:'0 auto'}}>
+        <div style={{padding:'16px 16px 12px',background:C.bg2,borderBottom:`1px solid ${C.border}`,position:'sticky',top:0,zIndex:10,display:'flex',alignItems:'center',gap:10}}>
+          <button onClick={onClose} style={{width:38,height:38,borderRadius:11,background:C.bg3,border:`1px solid ${C.border}`,color:C.muted,fontSize:22,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>←</button>
+          <div style={{flex:1}}><div style={{fontSize:9,fontWeight:800,letterSpacing:2,color:C.dim}}>КАССА</div><div style={{fontSize:18,fontWeight:900}}>🪙 Пересчёт наличных</div></div>
+        </div>
+        <div style={{margin:'14px 14px 0',background:`linear-gradient(135deg,#0d2d1a,${C.bg2})`,border:`1.5px solid ${C.green}40`,borderRadius:20,padding:'18px 20px',textAlign:'center'}}>
+          <div style={{fontSize:9,fontWeight:800,letterSpacing:2.5,color:C.dim,marginBottom:6}}>ИТОГО В КАССЕ</div>
+          <div style={{fontSize:44,fontWeight:900,color:C.green,letterSpacing:-2}}>{fmt(total)} SM</div>
+          <div style={{display:'flex',justifyContent:'center',gap:20,marginTop:10}}>
+            <div style={{textAlign:'center'}}><div style={{fontSize:9,color:C.dim,fontWeight:800,marginBottom:2}}>💵 КУПЮРЫ</div><div style={{fontSize:16,fontWeight:900,color:C.blue}}>{fmt(totalBills)} SM</div></div>
+            <div style={{width:1,background:C.border}}/>
+            <div style={{textAlign:'center'}}><div style={{fontSize:9,color:C.dim,fontWeight:800,marginBottom:2}}>🪙 МОНЕТЫ</div><div style={{fontSize:16,fontWeight:900,color:C.yellow}}>{fmt(totalCoins)} SM</div></div>
+          </div>
+        </div>
+        {['bill','coin'].map(type=>(
+          <div key={type} style={{padding:'14px 14px 0'}}>
+            <div style={{fontSize:9,fontWeight:800,letterSpacing:2,color:C.dim,marginBottom:8}}>{type==='bill'?'💵 КУПЮРЫ':'🪙 МОНЕТЫ'}</div>
+            <div style={{background:C.bg2,border:`1px solid ${C.border}`,borderRadius:16,overflow:'hidden'}}>
+              {DENOMS.filter(d=>d.type===type).map((d,i,arr)=>{
+                const cnt=+counts[d.val]||0,sub=cnt*d.val,clr=type==='bill'?C.blue:C.yellow;
+                return(
+                  <div key={d.val} style={{display:'flex',alignItems:'center',gap:10,padding:'12px 14px',borderBottom:i<arr.length-1?`1px solid ${C.border}`:'none',background:cnt>0?clr+'08':'transparent'}}>
+                    <div style={{width:52,height:34,borderRadius:8,background:cnt>0?clr+'25':C.bg3,border:`1px solid ${cnt>0?clr+'50':C.border}`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><span style={{fontSize:13,fontWeight:900,color:cnt>0?clr:C.muted}}>{d.label}</span></div>
+                    <div style={{flex:1}}>{cnt>0?<div style={{fontSize:11,color:clr,fontWeight:700}}>{cnt} шт = {fmt(sub)} SM</div>:<div style={{fontSize:11,color:C.dim}}>Количество</div>}</div>
+                    <div style={{display:'flex',alignItems:'center',gap:6}}>
+                      <button onClick={()=>set(d.val,Math.max(0,(+counts[d.val]||0)-1))} style={{width:34,height:34,borderRadius:9,background:C.bg3,border:`1px solid ${C.border}`,color:C.muted,fontSize:20,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'inherit'}}>−</button>
+                      <input type="number" value={counts[d.val]??''} onChange={e=>set(d.val,e.target.value)} placeholder="0" style={{width:52,padding:'7px 4px',borderRadius:9,textAlign:'center',background:C.bg,border:`1.5px solid ${cnt>0?clr:C.border}`,color:cnt>0?clr:C.text,fontSize:16,fontWeight:900,fontFamily:'inherit',outline:'none'}}/>
+                      <button onClick={()=>set(d.val,(+counts[d.val]||0)+1)} style={{width:34,height:34,borderRadius:9,background:clr+'20',border:`1px solid ${clr}40`,color:clr,fontSize:20,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'inherit'}}>+</button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+        <div style={{padding:14}}><Btn bg={hasAny?C.green:C.bg3} color={hasAny?'#051a0e':C.dim} disabled={!hasAny} onClick={()=>onSave(total,totalBills,totalCoins)}>{hasAny?`✓ Записать ${fmt(total)} SM в кассу`:'Введи количество купюр/монет'}</Btn></div>
+      </div>
+    </div>
+  );
+}
+
+function CashTab({tick}){
+  const [action,setAction]=useState('add');
+  const [amount,setAmount]=useState('');
+  const [desc,setDesc]=useState('');
+  const [delId,setDelId]=useState(null);
+  const [showCounter,setShowCounter]=useState(false);
+  const movements=dbGet('cash_movements').sort((a,b)=>b.created_at.localeCompare(a.created_at));
+  let balance=0; movements.forEach(m=>{ if(m.type==='add'||m.type==='revenue') balance+= +m.amount; else balance-= +m.amount; });
+  const todayMov=movements.filter(m=>m.date===tod());
+  const todayIn=todayMov.filter(m=>m.type==='add'||m.type==='revenue').reduce((s,m)=>s+ +m.amount,0);
+  const todayOut=todayMov.filter(m=>m.type!=='add'&&m.type!=='revenue').reduce((s,m)=>s+ +m.amount,0);
+  const TYPE_LABEL={remove:'Снято',expense:'Расход',revenue:'Выручка',add:'Добавлено'};
+  const TYPE_ICON={remove:'➖',expense:'💸',revenue:'💰',add:'➕'};
+  const TYPE_COLOR={remove:C.red,expense:C.red,revenue:C.green,add:C.green};
+  const isPlus=t=>t==='revenue'||t==='add';
+  const save=async()=>{ if(!amount)return; await dbInsert('cash_movements',{type:action,amount:+amount,description:desc.trim()||(action==='add'?'Внесено':'Снятие'),date:tod()}); setAmount(''); setDesc(''); };
+  const saveCounter=async(total,bills,coins)=>{ await dbInsert('cash_movements',{type:'add',amount:total,description:`Пересчёт: купюры ${fmt(bills)} SM + монеты ${fmt(coins)} SM`,date:tod()}); setShowCounter(false); };
+  return(
+    <div style={{padding:14,paddingBottom:30}}>
+      {showCounter&&<CashCounter onClose={()=>setShowCounter(false)} onSave={saveCounter}/>}
+      {delId&&<DelConfirm text="Запись движения кассы будет удалена" onConfirm={async()=>{ await dbDelete('cash_movements',delId); setDelId(null); }} onCancel={()=>setDelId(null)}/>}
+      <div style={{background:C.bg2,border:`1.5px solid ${balance>=0?C.green+'40':C.red+'40'}`,borderRadius:18,padding:'22px 20px',marginBottom:10,textAlign:'center'}}>
+        <div style={{fontSize:10,fontWeight:800,letterSpacing:2.5,color:C.dim,marginBottom:8}}>НАЛИЧНЫЕ В КАССЕ</div>
+        <div style={{fontSize:46,fontWeight:900,color:balance>=0?C.green:C.red,letterSpacing:-1}}>{fmt(Math.abs(balance))} SM</div>
+        {balance<0&&<div style={{fontSize:13,color:C.red,marginTop:8,fontWeight:700}}>⚠ Касса в минусе!</div>}
+      </div>
+      <div style={{display:'flex',gap:8,marginBottom:14}}>
+        <div style={{flex:1,background:C.bg2,border:`1px solid ${C.border}`,borderRadius:14,padding:'12px 14px'}}><div style={{fontSize:9,fontWeight:800,color:C.dim,marginBottom:4}}>ПРИХОД СЕГОДНЯ</div><div style={{fontSize:18,fontWeight:900,color:C.green}}>+{fmt(todayIn)} SM</div></div>
+        <div style={{flex:1,background:C.bg2,border:`1px solid ${C.border}`,borderRadius:14,padding:'12px 14px'}}><div style={{fontSize:9,fontWeight:800,color:C.dim,marginBottom:4}}>РАСХОД СЕГОДНЯ</div><div style={{fontSize:18,fontWeight:900,color:C.red}}>−{fmt(todayOut)} SM</div></div>
+      </div>
+      <button onClick={()=>setShowCounter(true)} style={{width:'100%',padding:15,borderRadius:14,background:'linear-gradient(135deg,#1a2a1a,#111120)',border:`1.5px solid ${C.green}40`,color:C.green,fontSize:15,fontWeight:900,cursor:'pointer',marginBottom:14,display:'flex',alignItems:'center',justifyContent:'center',gap:10,fontFamily:'inherit'}}>🪙 Пересчитать кассу по купюрам</button>
+      <Card>
+        <div style={{display:'flex',gap:8,marginBottom:14}}>
+          <button onClick={()=>setAction('add')} style={{flex:1,padding:'11px 8px',borderRadius:11,cursor:'pointer',fontFamily:'inherit',fontSize:13,fontWeight:800,border:`1.5px solid ${action==='add'?C.green+'60':C.border}`,background:action==='add'?C.green+'18':C.bg2,color:action==='add'?C.green:C.dim}}>➕ Добавить</button>
+          <button onClick={()=>setAction('remove')} style={{flex:1,padding:'11px 8px',borderRadius:11,cursor:'pointer',fontFamily:'inherit',fontSize:13,fontWeight:800,border:`1.5px solid ${action==='remove'?C.red+'60':C.border}`,background:action==='remove'?C.red+'18':C.bg2,color:action==='remove'?C.red:C.dim}}>➖ Снять</button>
+        </div>
+        <TI label="СУММА (SM)" type="number" placeholder="0.00" value={amount} onChange={setAmount} autoFocus/>
+        <TI label="ОПИСАНИЕ" placeholder={action==='add'?'Откуда...':'Куда снял...'} value={desc} onChange={setDesc}/>
+        <Btn bg={action==='add'?C.green:C.red} color={action==='add'?'#051a0e':'#fff'} onClick={save} disabled={!amount}>{action==='add'?'+ Добавить в кассу':'− Снять из кассы'}</Btn>
+      </Card>
+      <SecLabel>История движений · {movements.length}</SecLabel>
+      {!movements.length?<Empty icon="🏧" text="Движений нет"/>:
+      movements.map(m=>(
+        <div key={m.id} style={{display:'flex',alignItems:'center',gap:12,padding:'13px 16px',background:C.bg2,border:`1px solid ${C.border}`,borderRadius:14,marginBottom:8}}>
+          <div style={{width:44,height:44,borderRadius:12,background:TYPE_COLOR[m.type]+'15',display:'flex',alignItems:'center',justifyContent:'center',fontSize:20,flexShrink:0}}>{TYPE_ICON[m.type]||'💵'}</div>
+          <div style={{flex:1,minWidth:0}}><div style={{fontSize:16,fontWeight:800,color:TYPE_COLOR[m.type]||C.muted,marginBottom:3}}>{isPlus(m.type)?'+':'−'}{fmt(m.amount)} SM</div><div style={{fontSize:12,color:C.muted}}>{TYPE_LABEL[m.type]||m.type}{m.description?` · ${m.description}`:''}</div><div style={{fontSize:11,color:C.dim,marginTop:2}}>{fmtD(m.date)} · {fmtT(m.created_at)}</div></div>
+          <button onClick={()=>setDelId(m.id)} style={{background:'none',border:'none',color:C.dim,fontSize:20,cursor:'pointer',padding:4,flexShrink:0}}>🗑</button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════
+// ДОЛГИ
+// ════════════════════════════════════════════
+const DCAT={friend:{l:'Друг',i:'👤',c:'#4466ff'},company:{l:'Фирма',i:'🏢',c:'#f09040'},iowe:{l:'Я должен',i:'💳',c:'#f04f5a'}};
+
+function Debts({tick,toast}){
+  const [sc,setSc]=useState('list');
+  const [selP,setSelP]=useState(null);
+  const [fcat,setFcat]=useState('all');
+  const [srch,setSrch]=useState('');
+  const [apName,setApName]=useState('');const [apCat,setApCat]=useState('friend');const [apPhone,setApPhone]=useState('');const [apNote,setApNote]=useState('');
+  const [txAmt,setTxAmt]=useState('');const [txDir,setTxDir]=useState('give');const [txNote,setTxNote]=useState('');const [txMode,setTxMode]=useState(false);
+  const [delP,setDelP]=useState(null);const [delTx,setDelTx]=useState(null);const [sv,setSv]=useState(false);
+
+  const people=dbGet('debt_people');
+  const txs=dbGet('debt_transactions');
+  const getBal=pid=>txs.filter(t=>t.person_id===pid).reduce((s,t)=>s+(+t.amount||0),0);
+  const getPTxs=pid=>[...txs.filter(t=>t.person_id===pid)].sort((a,b)=>b.created_at.localeCompare(a.created_at));
+  const totalOwed=people.filter(p=>p.category!=='iowe').reduce((s,p)=>{ const b=getBal(p.id); return b<0?s+Math.abs(b):s; },0);
+  const totalIOwe=people.reduce((s,p)=>{ const b=getBal(p.id); return b>0?s+b:s; },0);
+  const fl=[...people].filter(p=>{ if(fcat!=='all'&&p.category!==fcat)return false; if(srch.trim()&&!(p.name||'').toLowerCase().includes(srch.toLowerCase()))return false; return true; }).sort((a,b)=>Math.abs(getBal(b.id))-Math.abs(getBal(a.id)));
+
+  const addPerson=async()=>{ if(!apName.trim())return; setSv(true); await dbInsert('debt_people',{name:apName.trim(),category:apCat,phone:apPhone.trim(),note:apNote.trim()}); toast('✓ Контакт добавлен'); setApName('');setApPhone('');setApNote('');setApCat('friend');setSv(false);setSc('list'); };
+
+  const addTx=async()=>{
+    if(!txAmt||!selP)return; setSv(true);
+    const amt=txDir==='give'?-(+txAmt):(+txAmt);
+    await dbInsert('debt_transactions',{person_id:selP.id,amount:amt,note:txNote.trim()});
+    if(txDir==='give'){ await dbInsert('cash_movements',{type:'remove',amount:+txAmt,description:`🤝 Дал в долг: ${selP.name}`,date:tod()}); toast(`💸 Дал ${fmt(+txAmt)} SM — списано с кассы`); }
+    else{ await dbInsert('cash_movements',{type:'add',amount:+txAmt,description:`🤝 Вернули: ${selP.name}`,date:tod()}); toast(`💰 Получил ${fmt(+txAmt)} SM — добавлено в кассу`); }
+    setTxAmt('');setTxNote('');setTxMode(false);setSv(false);
+  };
+
+  const doDelP=async()=>{
+    const id=delP;
+    for(const t of txs.filter(t=>t.person_id===id)) await sbDel('debt_transactions',t.id);
+    DB.debt_transactions=DB.debt_transactions.filter(t=>t.person_id!==id);
+    await sbDel('debt_people',id); DB.debt_people=DB.debt_people.filter(p=>p.id!==id);
+    pub(); setDelP(null); toast('Контакт удалён');
+  };
+
+  const doDelTx=async()=>{
+    const t=txs.find(x=>x.id===delTx);
+    if(t){
+      const nm=(people.find(p=>p.id===t.person_id)||{}).name||'';
+      if(t.amount<0) await dbInsert('cash_movements',{type:'add',amount:Math.abs(t.amount),description:`Отмена долга: ${nm}`,date:tod()});
+      else await dbInsert('cash_movements',{type:'remove',amount:t.amount,description:`Отмена возврата: ${nm}`,date:tod()});
+      await sbDel('debt_transactions',delTx);
+      DB.debt_transactions=DB.debt_transactions.filter(x=>x.id!==delTx); pub();
+    }
+    setDelTx(null); toast('Запись удалена');
+  };
+
+  // Страница персоны
+  if(sc==='person'&&selP){
+    const sp=people.find(p=>p.id===selP.id)||selP;
+    const ptxs=getPTxs(sp.id);
+    const bal=getBal(sp.id);
+    const cat=DCAT[sp.category]||DCAT.friend;
+    const tGave=ptxs.filter(t=>t.amount<0).reduce((s,t)=>s+Math.abs(t.amount),0);
+    const tGot=ptxs.filter(t=>t.amount>0).reduce((s,t)=>s+t.amount,0);
+    return(
+      <>
+        {delTx&&<DelConfirm text="Запись удалится, касса откатится" onConfirm={doDelTx} onCancel={()=>setDelTx(null)}/>}
+        <div style={{padding:'14px 16px 14px',background:'rgba(9,9,15,.97)',backdropFilter:'blur(20px)',borderBottom:`1px solid ${C.border}`,position:'sticky',top:0,zIndex:50}}>
+          <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:12}}>
+                        <button onClick={()=>{setSc('list');setTxMode(false);}} style={{width:38,height:38,borderRadius:11,background:C.bg2,border:`1px solid ${C.border}`,color:C.muted,fontSize:22,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>←</button>
+            <div style={{flex:1}}><div style={{fontSize:8,fontWeight:800,letterSpacing:2,color:C.dim}}>ДОЛГИ</div><div style={{fontSize:19,fontWeight:900}}>{sp.name}</div></div>
+            <span style={{fontSize:11,fontWeight:700,padding:'5px 12px',borderRadius:20,background:cat.c+'20',color:cat.c}}>{cat.i} {cat.l}</span>
+          </div>
+          <div style={{background:`linear-gradient(135deg,${bal<0?'#0a2018':bal>0?'#200a0e':C.bg3},${C.bg2})`,border:`1.5px solid ${bal<0?C.green+'50':bal>0?C.red+'50':C.border}`,borderRadius:14,padding:'12px 14px',marginBottom:10}}>
+            <div style={{fontSize:8,fontWeight:800,letterSpacing:2,color:C.dim,marginBottom:3}}>{bal<0?'МНЕ ДОЛЖНЫ':bal>0?'Я ДОЛЖЕН':'БАЛАНС НУЛЕВОЙ'}</div>
+            <div style={{fontSize:30,fontWeight:900,color:bal<0?C.green:bal>0?C.red:C.dim}}>{bal<0?'+':bal>0?'-':''}{fmt(Math.abs(bal))} SM</div>
+            {sp.note&&<div style={{fontSize:11,color:C.dim,marginTop:3}}>📝 {sp.note}</div>}
+          </div>
+          <div style={{display:'flex',gap:8,marginBottom:10}}>
+            <div style={{flex:1,background:C.bg3,borderRadius:11,padding:'9px 12px'}}><div style={{fontSize:8,fontWeight:800,color:C.dim,marginBottom:2}}>ВЫДАНО</div><div style={{fontSize:14,fontWeight:900,color:C.red}}>−{fmt(tGave)} SM</div></div>
+            <div style={{flex:1,background:C.bg3,borderRadius:11,padding:'9px 12px'}}><div style={{fontSize:8,fontWeight:800,color:C.dim,marginBottom:2}}>ПОЛУЧЕНО</div><div style={{fontSize:14,fontWeight:900,color:C.green}}>+{fmt(tGot)} SM</div></div>
+          </div>
+          <div style={{display:'flex',gap:8}}>
+            <button onClick={()=>{setTxDir('give');setTxMode(true);}} style={{flex:1,padding:'11px',borderRadius:11,background:C.red+'20',border:`1.5px solid ${C.red}50`,color:C.red,fontSize:12,fontWeight:800,cursor:'pointer',fontFamily:'inherit'}}>💸 Дал / Выдал</button>
+            <button onClick={()=>{setTxDir('receive');setTxMode(true);}} style={{flex:1,padding:'11px',borderRadius:11,background:C.green+'20',border:`1.5px solid ${C.green}50`,color:C.green,fontSize:12,fontWeight:800,cursor:'pointer',fontFamily:'inherit'}}>💰 Получил / Вернули</button>
+          </div>
+        </div>
+        {txMode&&(
+          <div style={{padding:'12px 14px',background:C.bg3,borderBottom:`1px solid ${C.border}`}}>
+            <div style={{fontSize:8,fontWeight:800,letterSpacing:2,color:txDir==='give'?C.red:C.green,marginBottom:8}}>{txDir==='give'?'💸 ВЫДАЮ':'💰 ПОЛУЧИЛ'} (SM)</div>
+            <div style={{display:'flex',gap:8,marginBottom:8}}>
+              <input type="number" autoFocus placeholder="Сумма..." value={txAmt} onChange={e=>setTxAmt(e.target.value)} style={{flex:2,background:C.bg,border:`1.5px solid ${txDir==='give'?C.red:C.green}40`,borderRadius:11,padding:'11px 14px',color:C.text,fontSize:16,fontWeight:800,outline:'none',fontFamily:'inherit'}}/>
+              <input type="text" placeholder="Заметка..." value={txNote} onChange={e=>setTxNote(e.target.value)} style={{flex:3,background:C.bg,border:`1px solid ${C.border}`,borderRadius:11,padding:'11px 14px',color:C.text,fontSize:13,outline:'none',fontFamily:'inherit'}}/>
+            </div>
+            <div style={{display:'flex',gap:8}}>
+              <button onClick={()=>{setTxMode(false);setTxAmt('');setTxNote('');}} style={{width:44,padding:'10px',borderRadius:10,background:'transparent',border:`1px solid ${C.border}`,color:C.dim,fontSize:18,cursor:'pointer',fontFamily:'inherit'}}>✕</button>
+              <Btn bg={txDir==='give'?C.red:C.green} color={txDir==='give'?'#fff':'#051a0e'} onClick={addTx} disabled={!txAmt||sv} style={{flex:1}}>{sv?'Сохранение...':'✓ Сохранить'}</Btn>
+            </div>
+          </div>
+        )}
+        <div style={{padding:14,paddingBottom:30}}>
+          <div style={{fontSize:9,fontWeight:800,letterSpacing:2,color:C.dim,marginBottom:10}}>ИСТОРИЯ · {ptxs.length} записей</div>
+          {!ptxs.length&&<Empty icon="📋" text="Нет записей. Нажми Дал или Получил"/>}
+          {ptxs.map(tx=>(
+            <div key={tx.id} onClick={()=>setDelTx(tx.id)} className="fu" style={{display:'flex',alignItems:'center',gap:12,padding:'12px 14px',background:tx.amount<0?C.red+'08':C.green+'08',border:`1px solid ${tx.amount<0?C.red+'30':C.green+'30'}`,borderRadius:14,marginBottom:8,cursor:'pointer'}}>
+              <div style={{width:40,height:40,borderRadius:11,background:tx.amount<0?C.red+'20':C.green+'20',display:'flex',alignItems:'center',justifyContent:'center',fontSize:20,flexShrink:0}}>{tx.amount<0?'💸':'💰'}</div>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontSize:18,fontWeight:900,color:tx.amount<0?C.red:C.green}}>{tx.amount<0?'−':'+'}{fmt(Math.abs(tx.amount))} SM</div>
+                <div style={{fontSize:11,color:C.dim,marginTop:1}}>{tx.note||'—'}</div>
+              </div>
+              <div style={{textAlign:'right',flexShrink:0}}>
+                <div style={{fontSize:11,color:C.dim}}>{fmtDT(tx.created_at)}</div>
+                <div style={{fontSize:9,color:C.dim,marginTop:2}}>нажми → удалить</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </>
+    );
+  }
+
+  // Страница добавить
+  if(sc==='addP') return(
+    <>
+      <Hdr title="Новый контакт" sub="ДОЛГИ" onBack={()=>setSc('list')}/>
+      <div style={{padding:14}}>
+        <Card>
+          <div style={{fontSize:10,fontWeight:800,letterSpacing:2,color:C.dim,marginBottom:12}}>КАТЕГОРИЯ</div>
+          <div style={{display:'flex',gap:6,marginBottom:16}}>
+            {Object.entries(DCAT).map(([id,{l,i,c}])=>(
+              <button key={id} onClick={()=>setApCat(id)} style={{flex:1,padding:'12px 6px',borderRadius:12,cursor:'pointer',fontFamily:'inherit',fontSize:11,fontWeight:800,border:`1.5px solid ${apCat===id?c+'70':C.border}`,background:apCat===id?c+'18':C.bg3,color:apCat===id?c:C.dim}}>
+                <div style={{fontSize:20,marginBottom:3}}>{i}</div>{l}
+              </button>
+            ))}
+          </div>
+          <TI label="ИМЯ / НАЗВАНИЕ *" placeholder="Алишер, Фирма Ёвон..." value={apName} onChange={setApName} autoFocus/>
+          <TI label="ТЕЛЕФОН" type="tel" placeholder="+992 XX XXX XXXX" value={apPhone} onChange={setApPhone}/>
+          <TI label="ЗАМЕТКА" placeholder="Доп. информация..." value={apNote} onChange={setApNote}/>
+          <Btn bg={C.blue} onClick={addPerson} disabled={!apName.trim()||sv}>{sv?'Сохранение...':'✓ Добавить контакт'}</Btn>
+        </Card>
+      </div>
+    </>
+  );
+
+  // Главный список
+  const cnt={all:people.length,friend:people.filter(p=>p.category==='friend').length,company:people.filter(p=>p.category==='company').length,iowe:people.filter(p=>p.category==='iowe').length};
+  return(
+    <>
+      {delP&&<DelConfirm text="Все записи долгов этого человека тоже удалятся" onConfirm={doDelP} onCancel={()=>setDelP(null)}/>}
+      <div style={{padding:'14px 14px 12px',background:'rgba(9,9,15,.97)',backdropFilter:'blur(20px)',borderBottom:`1px solid ${C.border}`,position:'sticky',top:0,zIndex:50}}>
+        <div style={{fontSize:8,fontWeight:800,letterSpacing:2.5,color:C.dim,marginBottom:3}}>KASSACONTROL</div>
+        <div style={{fontSize:20,fontWeight:900,marginBottom:12}}>🤝 Долги</div>
+        <div style={{display:'flex',gap:8,marginBottom:12}}>
+          <div style={{flex:1,background:'#0a2018',border:`1.5px solid ${C.green}40`,borderRadius:13,padding:'11px 13px'}}><div style={{fontSize:8,fontWeight:800,color:C.dim,marginBottom:2}}>💸 МНЕ ДОЛЖНЫ</div><div style={{fontSize:17,fontWeight:900,color:C.green}}>{fmt(totalOwed)} SM</div></div>
+          <div style={{flex:1,background:'#200a0e',border:`1.5px solid ${C.red}40`,borderRadius:13,padding:'11px 13px'}}><div style={{fontSize:8,fontWeight:800,color:C.dim,marginBottom:2}}>💰 Я ДОЛЖЕН</div><div style={{fontSize:17,fontWeight:900,color:C.red}}>{fmt(totalIOwe)} SM</div></div>
+        </div>
+        <input value={srch} onChange={e=>setSrch(e.target.value)} placeholder="🔍 Поиск..." style={{width:'100%',background:C.bg3,border:`1px solid ${C.border}`,borderRadius:11,padding:'9px 14px',color:C.text,fontSize:13,outline:'none',marginBottom:10,boxSizing:'border-box'}}/>
+        <div style={{display:'flex',gap:6,overflowX:'auto',paddingBottom:2}}>
+          {[['all',`Все · ${cnt.all}`],['friend',`👤 Друзья · ${cnt.friend}`],['company',`🏢 Фирмы · ${cnt.company}`],['iowe',`💳 Я должен · ${cnt.iowe}`]].map(([id,l])=>(
+            <button key={id} onClick={()=>setFcat(id)} style={{flexShrink:0,padding:'7px 12px',borderRadius:20,cursor:'pointer',fontFamily:'inherit',fontSize:10,fontWeight:800,border:`1.5px solid ${fcat===id?C.blue+'60':C.border}`,background:fcat===id?C.blue+'18':C.bg3,color:fcat===id?C.blue:C.dim,whiteSpace:'nowrap'}}>{l}</button>
+          ))}
+        </div>
+      </div>
+      <div style={{padding:12,paddingBottom:90}}>
+        {fl.length===0&&<Empty icon="🤝" text="Нет контактов. Нажми + чтобы добавить"/>}
+        {fl.map(person=>{
+          const bal=getBal(person.id);
+          const ptxs=getPTxs(person.id);
+          const cat=DCAT[person.category]||DCAT.friend;
+          const bc=bal<0?C.green:bal>0?C.red:C.dim;
+          const lastTx=ptxs[0];
+          return(
+            <div key={person.id} onClick={()=>{setSelP(person);setSc('person');}} className="fu" style={{display:'flex',alignItems:'center',gap:12,padding:'14px',background:C.bg2,border:`1.5px solid ${bc}20`,borderRadius:18,marginBottom:8,cursor:'pointer',position:'relative'}}>
+              <div style={{width:48,height:48,borderRadius:14,background:cat.c+'30',border:`2px solid ${cat.c}40`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:17,fontWeight:900,color:cat.c,flexShrink:0}}>{inits(person.name)}</div>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:2}}>
+                  <div style={{fontSize:15,fontWeight:900}}>{person.name}</div>
+                  <span style={{fontSize:9,fontWeight:700,padding:'2px 7px',borderRadius:6,background:cat.c+'20',color:cat.c}}>{cat.i}</span>
+                </div>
+                <div style={{fontSize:11,color:C.dim}}>{ptxs.length} записей{lastTx?` · ${fmtDT(lastTx.created_at).split(' ')[0]}`:''}</div>
+              </div>
+              <div style={{textAlign:'right',flexShrink:0}}>
+                <div style={{fontSize:19,fontWeight:900,color:bc}}>{bal<0?'+':bal>0?'-':''}{fmt(Math.abs(bal))}</div>
+                <div style={{fontSize:10,color:C.dim}}>SM</div>
+              </div>
+              <button onClick={e=>{e.stopPropagation();setDelP(person.id);}} style={{position:'absolute',top:8,right:10,background:'none',border:'none',color:C.dim,fontSize:14,cursor:'pointer',padding:4,opacity:.4}}>✕</button>
+            </div>
+          );
+        })}
+      </div>
+      <button onClick={()=>setSc('addP')} style={{position:'fixed',bottom:80,right:16,width:52,height:52,borderRadius:16,background:C.blue,border:'none',color:'#fff',fontSize:28,cursor:'pointer',boxShadow:'0 8px 30px rgba(68,102,255,.5)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:90}}>+</button>
+    </>
+  );
+}
+
+function App(){
+  const [ready,setReady]=useState(false);
+  const [tab,setTab]=useState('home');
+  const [tick,setTick]=useState(0);
+  const [toastMsg,setToastMsg]=useState(null);
+
+  const showToast=(msg,color)=>{ setToastMsg({msg,color}); setTimeout(()=>setToastMsg(null),3000); };
+
+  useEffect(()=>{
+    initDB().then(()=>{ setReady(true); });
+    return sub(()=>setTick(t=>t+1));
+  },[]);
+
+  if(!ready) return(
+    <div style={{background:C.bg,minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',gap:14,fontFamily:'system-ui'}}>
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+      <div style={{fontSize:56}}>🏪</div>
+      <div style={{fontSize:20,fontWeight:900,color:'#eeeeff'}}>KassaControl</div>
+      <div style={{width:28,height:28,border:'2px solid #1e1e38',borderTopColor:'#4466ff',borderRadius:'50%',animation:'spin .7s linear infinite'}}/>
+    </div>
+  );
+
+  const NAV=[{id:'home',icon:'🏠',label:'Главная'},{id:'supply',icon:'🚚',label:'Поставки'},{id:'expiry',icon:'☠️',label:'Сроки'},{id:'revision',icon:'📦',label:'Ревизия'},{id:'finance',icon:'💰',label:'Финансы'},{id:'debts',icon:'🤝',label:'Долги'}];
+  const diItems=dbGet('delivery_items');
+  const products2=dbGet('products');
+  const allExp2=diItems.filter(i=>i.expiry_date&&(+i.quantity||0)>0);
+  const fifo2=calcFifoRemaining(allExp2,products2);
+  const alertItems=fifo2.filter(i=>i.remaining>0);
+  const alertCount=alertItems.filter(i=>dLeft(i.expiry_date)<0).length+alertItems.filter(i=>dLeft(i.expiry_date)>=0&&dLeft(i.expiry_date)<=3).length;
+
+  return(
+    <div style={{background:C.bg,color:C.text,minHeight:'100vh',fontFamily:'system-ui,-apple-system,sans-serif',maxWidth:430,margin:'0 auto',paddingBottom:80}}>
+      <style>{css}</style>
+      <Toast msg={toastMsg?.msg} color={toastMsg?.color}/>
+      {tab==='home'&&<Home tick={tick}/>}
+      {tab==='supply'&&<Suppliers tick={tick} toast={showToast}/>}
+      {tab==='expiry'&&<Expiry tick={tick}/>}
+      {tab==='revision'&&<Revision tick={tick} toast={showToast}/>}
+      {tab==='finance'&&<Finance tick={tick}/>}
+      {tab==='debts'&&<Debts tick={tick} toast={showToast}/>}
+      <div style={{position:'fixed',bottom:0,left:'50%',transform:'translateX(-50%)',width:'100%',maxWidth:430,background:'rgba(9,9,15,.97)',backdropFilter:'blur(20px)',borderTop:`1px solid ${C.border}`,display:'flex',zIndex:100,paddingBottom:'env(safe-area-inset-bottom,0)'}}>
+        {NAV.map(n=>(
+          <button key={n.id} onClick={()=>setTab(n.id)} style={{flex:1,padding:'10px 0 11px',background:'none',border:'none',borderTop:`2px solid ${tab===n.id?C.blue:'transparent'}`,cursor:'pointer',color:tab===n.id?C.blue:C.dim,display:'flex',flexDirection:'column',alignItems:'center',gap:2,fontFamily:'inherit',position:'relative'}}>
+            <span style={{fontSize:19}}>{n.icon}</span>
+            <span style={{fontSize:8,fontWeight:800,letterSpacing:.5,textTransform:'uppercase'}}>{n.label}</span>
+            {n.id==='expiry'&&alertCount>0&&<span style={{position:'absolute',top:4,right:'50%',transform:'translateX(8px)',background:C.red,borderRadius:10,minWidth:16,height:16,fontSize:10,fontWeight:900,color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',padding:'0 4px'}}>{alertCount}</span>}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+const root=ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App/>);
 </script>
 </body>
 </html>

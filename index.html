@@ -1071,8 +1071,8 @@ function Debts({tick,toast}){
   const getBal=pid=>txs.filter(t=>t.person_id===pid).reduce((s,t)=>s+(+t.amount||0),0);
   const getPTxs=pid=>[...txs.filter(t=>t.person_id===pid)].sort((a,b)=>b.created_at.localeCompare(a.created_at));
 
-  // bal отриц = мы дали в долг (они должны нам)
-  // bal полож = мы взяли в долг (мы должны им)
+  // bal отриц: мы дали в долг
+  // bal полож: мы взяли в долг
   const totalOwedToUs=people.filter(p=>p.category!=='iowe').reduce((s,p)=>{ const b=getBal(p.id); return b<0?s+Math.abs(b):s; },0);
   const totalWeOwe=people.reduce((s,p)=>{ const b=getBal(p.id); return b>0?s+b:s; },0);
 
@@ -1122,4 +1122,4 @@ function Debts({tick,toast}){
         {/* Фильтры */}
         <div style={{display:'flex',gap:6}}>
           {[['all','Все'],['owed','Должны нам'],['iowe','Мы должны']].map(([id,l])=>(
-            <button key={id} onClick={()=>setFcat(id)} style={{flex:1,padd
+            <button key={id} onClick={()=>setFcat(id)} style={{flex:1,padding:'8px 4px',borderRadius:10,curs

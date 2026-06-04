@@ -1109,7 +1109,7 @@ function Debts({tick,toast}){
         {delTx&&<DelConfirm text="Запись удалится, касса откатится" onConfirm={doDelTx} onCancel={()=>setDelTx(null)}/>}
         <div style={{padding:'14px 16px 14px',background:'rgba(9,9,15,.97)',backdropFilter:'blur(20px)',borderBottom:`1px solid ${C.border}`,position:'sticky',top:0,zIndex:50}}>
           <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:12}}>
-                        <button onClick={()=>{setSc('list');setTxMode(false);}} style={{width:38,height:38,borderRadius:11,background:C.bg2,border:`1px solid ${C.border}`,color:C.muted,fontSize:22,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>←</button>
+            <button onClick={()=>{setSc('list');setTxMode(false);}} style={{width:38,height:38,borderRadius:11,background:C.bg2,border:`1px solid ${C.border}`,color:C.muted,fontSize:22,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>←</button>
             <div style={{flex:1}}><div style={{fontSize:8,fontWeight:800,letterSpacing:2,color:C.dim}}>ДОЛГИ</div><div style={{fontSize:19,fontWeight:900}}>{sp.name}</div></div>
             <span style={{fontSize:11,fontWeight:700,padding:'5px 12px',borderRadius:20,background:cat.c+'20',color:cat.c}}>{cat.i} {cat.l}</span>
           </div>

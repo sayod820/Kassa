@@ -1197,17 +1197,38 @@ function Debts({tick,toast}){
   return(
     <>
       {delP&&<DelConfirm text="Все записи долгов этого человека тоже удалятся" onConfirm={doDelP} onCancel={()=>setDelP(null)}/>}
-      <div style={{padding:'14px 14px 12px',background:'rgba(9,9,15,.97)',backdropFilter:'blur(20px)',borderBottom:`1px solid ${C.border}`,position:'sticky',top:0,zIndex:50}}>
-        <div style={{fontSize:8,fontWeight:800,letterSpacing:2.5,color:C.dim,marginBottom:3}}>KASSACONTROL</div>
-        <div style={{fontSize:20,fontWeight:900,marginBottom:12}}>🤝 Долги</div>
-        <div style={{display:'flex',gap:8,marginBottom:12}}>
-          <div style={{flex:1,background:'#0a2018',border:`1.5px solid ${C.green}40`,borderRadius:13,padding:'11px 13px'}}><div style={{fontSize:8,fontWeight:800,color:C.dim,marginBottom:2}}>💸 МНЕ ДОЛЖНЫ</div><div style={{fontSize:17,fontWeight:900,color:C.green}}>{fmt(totalOwed)} SM</div></div>
-          <div style={{flex:1,background:'#200a0e',border:`1.5px solid ${C.red}40`,borderRadius:13,padding:'11px 13px'}}><div style={{fontSize:8,fontWeight:800,color:C.dim,marginBottom:2}}>💰 Я ДОЛЖЕН</div><div style={{fontSize:17,fontWeight:900,color:C.red}}>{fmt(totalIOwe)} SM</div></div>
+      <div style={{background:'rgba(9,9,15,.97)',backdropFilter:'blur(20px)',borderBottom:`1px solid ${C.border}`,position:'sticky',top:0,zIndex:50}}>
+        <div style={{padding:'14px 14px 12px'}}>
+          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
+            <div>
+              <div style={{fontSize:8,fontWeight:800,letterSpacing:2.5,color:C.dim,marginBottom:2}}>KASSACONTROL · ДОЛГИ</div>
+              <div style={{fontSize:22,fontWeight:900,letterSpacing:-.5}}>🤝 Долги</div>
+            </div>
+            <div style={{background:C.bg3,borderRadius:12,padding:'6px 12px',textAlign:'center'}}>
+              <div style={{fontSize:8,fontWeight:800,color:C.dim}}>КОНТАКТОВ</div>
+              <div style={{fontSize:18,fontWeight:900,color:C.blue}}>{cnt.all}</div>
+            </div>
+          </div>
+          <div style={{display:'flex',gap:8,marginBottom:12}}>
+            <div style={{flex:1,background:'linear-gradient(135deg,#0a2018,#0d2820)',border:`1.5px solid ${C.green}40`,borderRadius:14,padding:'12px 14px'}}>
+              <div style={{fontSize:8,fontWeight:800,color:C.green,opacity:.7,marginBottom:4,letterSpacing:1}}>💸 МНЕ ДОЛЖНЫ</div>
+              <div style={{fontSize:18,fontWeight:900,color:C.green,letterSpacing:-.5}}>{fmt(totalOwed)}</div>
+              <div style={{fontSize:9,color:C.green,opacity:.6,fontWeight:700}}>сомони</div>
+            </div>
+            <div style={{flex:1,background:'linear-gradient(135deg,#200a0e,#28080c)',border:`1.5px solid ${C.red}40`,borderRadius:14,padding:'12px 14px'}}>
+              <div style={{fontSize:8,fontWeight:800,color:C.red,opacity:.7,marginBottom:4,letterSpacing:1}}>💰 Я ДОЛЖЕН</div>
+              <div style={{fontSize:18,fontWeight:900,color:C.red,letterSpacing:-.5}}>{fmt(totalIOwe)}</div>
+              <div style={{fontSize:9,color:C.red,opacity:.6,fontWeight:700}}>сомони</div>
+            </div>
+          </div>
+          <input value={srch} onChange={e=>setSrch(e.target.value)} placeholder="🔍 Поиск по имени..." style={{width:'100%',background:C.bg3,border:`1px solid ${C.border}`,borderRadius:12,padding:'10px 14px',color:C.text,fontSize:13,outline:'none',marginBottom:10,boxSizing:'border-box'}}/>
         </div>
-        <input value={srch} onChange={e=>setSrch(e.target.value)} placeholder="🔍 Поиск..." style={{width:'100%',background:C.bg3,border:`1px solid ${C.border}`,borderRadius:11,padding:'9px 14px',color:C.text,fontSize:13,outline:'none',marginBottom:10,boxSizing:'border-box'}}/>
-        <div style={{display:'flex',gap:6,overflowX:'auto',paddingBottom:2}}>
-          {[['all',`Все · ${cnt.all}`],['friend',`👤 Друзья · ${cnt.friend}`],['company',`🏢 Фирмы · ${cnt.company}`],['iowe',`💳 Я должен · ${cnt.iowe}`]].map(([id,l])=>(
-            <button key={id} onClick={()=>setFcat(id)} style={{flexShrink:0,padding:'7px 12px',borderRadius:20,cursor:'pointer',fontFamily:'inherit',fontSize:10,fontWeight:800,border:`1.5px solid ${fcat===id?C.blue+'60':C.border}`,background:fcat===id?C.blue+'18':C.bg3,color:fcat===id?C.blue:C.dim,whiteSpace:'nowrap'}}>{l}</button>
+        <div style={{display:'flex',borderTop:`1px solid ${C.border}`}}>
+          {[['all',`Все`,cnt.all],['friend',`👤 Друзья`,cnt.friend],['company',`🏢 Фирмы`,cnt.company],['iowe',`💳 Я должен`,cnt.iowe]].map(([id,l,n])=>(
+            <button key={id} onClick={()=>setFcat(id)} style={{flex:1,padding:'9px 4px',background:fcat===id?C.blue+'15':'none',border:'none',borderBottom:`2px solid ${fcat===id?C.blue:'transparent'}`,cursor:'pointer',fontFamily:'inherit',display:'flex',flexDirection:'column',alignItems:'center',gap:1}}>
+              <span style={{fontSize:9,fontWeight:800,color:fcat===id?C.blue:C.dim,whiteSpace:'nowrap'}}>{l}</span>
+              <span style={{fontSize:13,fontWeight:900,color:fcat===id?C.blue:C.muted}}>{n}</span>
+            </button>
           ))}
         </div>
       </div>
@@ -1220,20 +1241,26 @@ function Debts({tick,toast}){
           const bc=bal<0?C.green:bal>0?C.red:C.dim;
           const lastTx=ptxs[0];
           return(
-            <div key={person.id} onClick={()=>goTo('person',person)} className="fu" style={{display:'flex',alignItems:'center',gap:12,padding:'14px',background:C.bg2,border:`1.5px solid ${bc}20`,borderRadius:18,marginBottom:8,cursor:'pointer',position:'relative'}}>
-              <div style={{width:48,height:48,borderRadius:14,background:cat.c+'30',border:`2px solid ${cat.c}40`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:17,fontWeight:900,color:cat.c,flexShrink:0}}>{inits(person.name)}</div>
-              <div style={{flex:1,minWidth:0}}>
-                <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:2}}>
-                  <div style={{fontSize:15,fontWeight:900}}>{person.name}</div>
-                  <span style={{fontSize:9,fontWeight:700,padding:'2px 7px',borderRadius:6,background:cat.c+'20',color:cat.c}}>{cat.i}</span>
+            <div key={person.id} className="fu" style={{background:C.bg2,border:`1.5px solid ${bc}25`,borderRadius:18,marginBottom:8,overflow:'hidden'}}>
+              <div onClick={()=>goTo('person',person)} style={{display:'flex',alignItems:'center',gap:12,padding:'14px 14px 10px',cursor:'pointer'}}>
+                <div style={{width:50,height:50,borderRadius:15,background:`linear-gradient(135deg,${cat.c}40,${cat.c}20)`,border:`2px solid ${cat.c}50`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,fontWeight:900,color:cat.c,flexShrink:0}}>{inits(person.name)}</div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:3}}>
+                    <div style={{fontSize:15,fontWeight:900,letterSpacing:-.3}}>{person.name}</div>
+                    <span style={{fontSize:9,fontWeight:800,padding:'2px 7px',borderRadius:20,background:cat.c+'25',color:cat.c}}>{cat.i} {cat.l}</span>
+                  </div>
+                  <div style={{fontSize:11,color:C.dim}}>{ptxs.length} {ptxs.length===1?'запись':ptxs.length<5?'записи':'записей'}{lastTx?` · ${fmtDT(lastTx.created_at).split(' ')[0]}`:''}</div>
                 </div>
-                <div style={{fontSize:11,color:C.dim}}>{ptxs.length} записей{lastTx?` · ${fmtDT(lastTx.created_at).split(' ')[0]}`:''}</div>
+                <div style={{textAlign:'right',flexShrink:0}}>
+                  <div style={{fontSize:20,fontWeight:900,color:bc,letterSpacing:-.5}}>{bal<0?'+':bal>0?'−':''}{fmt(Math.abs(bal))}</div>
+                  <div style={{fontSize:10,fontWeight:700,color:C.dim}}>сомони</div>
+                </div>
               </div>
-              <div style={{textAlign:'right',flexShrink:0}}>
-                <div style={{fontSize:19,fontWeight:900,color:bc}}>{bal<0?'+':bal>0?'-':''}{fmt(Math.abs(bal))}</div>
-                <div style={{fontSize:10,color:C.dim}}>SM</div>
+              <div style={{display:'flex',borderTop:`1px solid ${C.border}`}}>
+                <button onClick={()=>goTo('person',person)} style={{flex:1,padding:'9px',background:'none',border:'none',color:C.blue,fontSize:12,fontWeight:800,cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:5}}>💳 Открыть</button>
+                <div style={{width:1,background:C.border}}/>
+                <button onClick={e=>{e.stopPropagation();setDelP(person.id);}} style={{width:56,padding:'9px',background:'none',border:'none',color:C.red,fontSize:13,cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',opacity:.7}}>🗑</button>
               </div>
-              <button onClick={e=>{e.stopPropagation();setDelP(person.id);}} style={{position:'absolute',top:8,right:10,background:'none',border:'none',color:C.dim,fontSize:14,cursor:'pointer',padding:4,opacity:.4}}>✕</button>
             </div>
           );
         })}
@@ -1301,4 +1328,3 @@ root.render(<App/>);
 </script>
 </body>
 </html>
-

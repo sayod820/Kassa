@@ -77,7 +77,13 @@ async function initDB(){
 function dbGet(k){ return DB[k]||[]; }
 async function dbInsert(table,row){
   const res=await sbPost(table,row);
+  console.log('dbInsert',table,'res:',JSON.stringify(res));
+  if(!res||res.code||res.error||(Array.isArray(res)&&!res.length)){
+    console.error('dbInsert failed:',res);
+    return null;
+  }
   const inserted=Array.isArray(res)?res[0]:res;
+  if(!inserted||!inserted.id){ console.error('no id in inserted:',inserted); return null; }
   DB[table]=[inserted,...DB[table]];
   pub(); return inserted;
 }
@@ -322,7 +328,7 @@ function Suppliers({tick,toast}){
 
 function AddSupplier({onBack,onSaved}){
   const [name,setName]=useState(''), [phone,setPhone]=useState(''), [err,setErr]=useState('');
-  const save=async()=>{ if(!name.trim()){setErr('Введите имя');return;} await dbInsert('suppliers',{name:name.trim(),phone:phone.trim()}); onSaved(name.trim()); };
+  const save=async()=>{ if(!name.trim()){setErr('Введите имя');return;} await dbInsert('suppliers',{id:uid(),name:name.trim(),phone:phone.trim()}); onSaved(name.trim()); };
   return(
     <><Hdr title="Новый поставщик" sub="ПОСТАВКИ" onBack={onBack}/>
     <div style={{padding:14}}>
@@ -524,7 +530,7 @@ function Posting({supplier,onBack,onSaved}){
   const addToList=()=>{ if(!qty||+qty<=0){setErr('Введите количество');return;} setAddedItems(prev=>[...prev,{id:uid(),product_id:selected.id,name:selected.name,barcode:selected.barcode,qty:+qty,unit:selected.unit,category:selected.category,expiry:expiry||null}]); setSelected(null);setQty('');setExpiry('');setErr(''); };
   const saveAll=async()=>{
     if(!addedItems.length)return;
-    const del=await dbInsert('deliveries',{supplier_id:supplier.id,supplier_name:supplier.name,date});
+    const del=await dbInsert('deliveries',{id:uid(),supplier_id:supplier.id,supplier_name:supplier.name,date});
     await dbInsertMany('delivery_items',addedItems.map(item=>({delivery_id:del.id,product_name:item.name,barcode:item.barcode,quantity:item.qty,unit:item.unit,category:item.category,expiry_date:item.expiry||null})));
     onSaved(addedItems.length);
   };
@@ -870,10 +876,10 @@ function ExpensesTab({tick}){
   const months=getMonths(4);
   const monthExp=dbGet('expenses').filter(e=>e.month_year===curMonth).sort((a,b)=>b.created_at.localeCompare(a.created_at));
   const total=monthExp.reduce((s,e)=>s+ +e.amount,0);
-  const save=async()=>{ if(!amount||!reason.trim())return; await dbInsert('expenses',{amount:+amount,reason:reason.trim(),month_year:monStr(),date:tod()}); await dbInsert('cash_movements',{type:'expense',amount:+amount,description:reason.trim(),date:tod()}); setAmount(''); setReason(''); };
+  const save=async()=>{ if(!amount||!reason.trim())return; await dbInsert('expenses',{id:uid(),amount:+amount,reason:reason.trim(),month_year:monStr(),date:tod()}); await dbInsert('cash_movements',{id:uid(),type:'expense',amount:+amount,description:reason.trim(),date:tod()}); setAmount(''); setReason(''); };
   return(
     <div style={{padding:14,paddingBottom:30}}>
-      {delItem&&<DelConfirm text={`Расход «${delItem.reason}» удалится, а ${fmt(delItem.amount)} SM вернётся в кассу`} onConfirm={async()=>{ await dbDelete('expenses',delItem.id); await dbInsert('cash_movements',{type:'add',amount:+delItem.amount,description:'Возврат расхода: '+delItem.reason,date:tod()}); setDelItem(null); }} onCancel={()=>setDelItem(null)}/>}
+      {delItem&&<DelConfirm text={`Расход «${delItem.reason}» удалится, а ${fmt(delItem.amount)} SM вернётся в кассу`} onConfirm={async()=>{ await dbDelete('expenses',delItem.id); await dbInsert('cash_movements',{id:uid(),type:'add',amount:+delItem.amount,description:'Возврат расхода: '+delItem.reason,date:tod()}); setDelItem(null); }} onCancel={()=>setDelItem(null)}/>}
       <div style={{display:'flex',gap:6,overflowX:'auto',paddingBottom:4,marginBottom:12}}>
         {months.map(m=><button key={m.val} onClick={()=>setCurMonth(m.val)} style={{padding:'7px 14px',borderRadius:20,cursor:'pointer',fontFamily:'inherit',fontSize:11,fontWeight:700,whiteSpace:'nowrap',flexShrink:0,border:`1.5px solid ${curMonth===m.val?C.red+'70':C.border}`,background:curMonth===m.val?C.red+'18':C.bg2,color:curMonth===m.val?C.red:C.dim}}>{m.label}</button>)}
       </div>
@@ -909,10 +915,10 @@ function RevenueTab({tick}){
   const totalRev=all.reduce((s,r)=>s+ +r.amount,0);
   const totalProfit=all.reduce((s,r)=>s+ +(r.profit||0),0);
   const todayRev=all.filter(r=>r.date===tod()).reduce((s,r)=>s+ +r.amount,0);
-  const save=async()=>{ if(!amount)return; await dbInsert('revenue',{amount:+amount,profit:gbsProfit?+gbsProfit:null,date,source:'manual'}); await dbInsert('cash_movements',{type:'revenue',amount:+amount,description:'Выручка',date}); setAmount(''); setGbsProfit(''); };
+  const save=async()=>{ if(!amount)return; await dbInsert('revenue',{id:uid(),amount:+amount,profit:gbsProfit?+gbsProfit:null,date,source:'manual'}); await dbInsert('cash_movements',{id:uid(),type:'revenue',amount:+amount,description:'Выручка',date}); setAmount(''); setGbsProfit(''); };
   return(
     <div style={{padding:14,paddingBottom:30}}>
-      {delItem&&<DelConfirm text={`Выручка ${fmt(delItem.amount)} SM удалится и касса уменьшится`} onConfirm={async()=>{ await dbDelete('revenue',delItem.id); await dbInsert('cash_movements',{type:'remove',amount:+delItem.amount,description:'Удаление выручки',date:tod()}); setDelItem(null); }} onCancel={()=>setDelItem(null)}/>}
+      {delItem&&<DelConfirm text={`Выручка ${fmt(delItem.amount)} SM удалится и касса уменьшится`} onConfirm={async()=>{ await dbDelete('revenue',delItem.id); await dbInsert('cash_movements',{id:uid(),type:'remove',amount:+delItem.amount,description:'Удаление выручки',date:tod()}); setDelItem(null); }} onCancel={()=>setDelItem(null)}/>}
       <div style={{background:C.bg2,border:`1px solid ${C.border}`,borderRadius:16,overflow:'hidden',marginBottom:14}}>
         <div style={{padding:'10px 16px',background:C.bg3,borderBottom:`1px solid ${C.border}`}}><div style={{fontSize:9,fontWeight:800,letterSpacing:2,color:C.dim}}>ФИНАНСОВЫЕ ИТОГИ</div></div>
         <div style={{padding:'16px 20px',borderBottom:`1px solid ${C.border}`}}><div style={{fontSize:10,color:C.dim,marginBottom:4}}>ВЫРУЧКА СЕГОДНЯ</div><div style={{fontSize:32,fontWeight:900,color:C.green}}>{fmt(todayRev)} SM</div></div>
@@ -1005,8 +1011,8 @@ function CashTab({tick}){
   const TYPE_ICON={remove:'➖',expense:'💸',revenue:'💰',add:'➕'};
   const TYPE_COLOR={remove:C.red,expense:C.red,revenue:C.green,add:C.green};
   const isPlus=t=>t==='revenue'||t==='add';
-  const save=async()=>{ if(!amount)return; await dbInsert('cash_movements',{type:action,amount:+amount,description:desc.trim()||(action==='add'?'Внесено':'Снятие'),date:tod()}); setAmount(''); setDesc(''); };
-  const saveCounter=async(total,bills,coins)=>{ await dbInsert('cash_movements',{type:'add',amount:total,description:`Пересчёт: купюры ${fmt(bills)} SM + монеты ${fmt(coins)} SM`,date:tod()}); setShowCounter(false); };
+  const save=async()=>{ if(!amount)return; await dbInsert('cash_movements',{id:uid(),type:action,amount:+amount,description:desc.trim()||(action==='add'?'Внесено':'Снятие'),date:tod()}); setAmount(''); setDesc(''); };
+  const saveCounter=async(total,bills,coins)=>{ await dbInsert('cash_movements',{id:uid(),type:'add',amount:total,description:`Пересчёт: купюры ${fmt(bills)} SM + монеты ${fmt(coins)} SM`,date:tod()}); setShowCounter(false); };
   return(
     <div style={{padding:14,paddingBottom:30}}>
       {showCounter&&<CashCounter onClose={()=>setShowCounter(false)} onSave={saveCounter}/>}
@@ -1051,6 +1057,7 @@ const DCAT={friend:{l:'Друг',i:'👤',c:'#4466ff'},company:{l:'Фирма',i
 function Debts({tick,toast}){
   const [sc,setSc]=useState('list');
   const [selP,setSelP]=useState(null);
+  const goTo=(screen,person=null)=>{ setSelP(person); setSc(screen); };
   const [fcat,setFcat]=useState('all');
   const [srch,setSrch]=useState('');
   const [apName,setApName]=useState('');const [apCat,setApCat]=useState('friend');const [apPhone,setApPhone]=useState('');const [apNote,setApNote]=useState('');
@@ -1065,14 +1072,14 @@ function Debts({tick,toast}){
   const totalIOwe=people.reduce((s,p)=>{ const b=getBal(p.id); return b>0?s+b:s; },0);
   const fl=[...people].filter(p=>{ if(fcat!=='all'&&p.category!==fcat)return false; if(srch.trim()&&!(p.name||'').toLowerCase().includes(srch.toLowerCase()))return false; return true; }).sort((a,b)=>Math.abs(getBal(b.id))-Math.abs(getBal(a.id)));
 
-  const addPerson=async()=>{ if(!apName.trim())return; document.activeElement&&document.activeElement.blur(); setSv(true); const inserted=await dbInsert('debt_people',{name:apName.trim(),category:apCat,phone:apPhone.trim(),note:apNote.trim()}); toast('✓ Контакт добавлен'); setApName('');setApPhone('');setApNote('');setApCat('friend');setSv(false); setFcat('all'); setTimeout(()=>{ if(inserted&&inserted.id){ setSelP(inserted); setSc('person'); } else { setSc('list'); } },350); };
+  const addPerson=async()=>{ if(!apName.trim())return; setSv(true); const inserted=await dbInsert('debt_people',{id:uid(),name:apName.trim(),category:apCat,phone:apPhone.trim(),note:apNote.trim()}); setSv(false); if(!inserted){ toast('❌ Ошибка сохранения — проверь интернет','#f04f5a'); return; } setApName('');setApPhone('');setApNote('');setApCat('friend');setFcat('all');toast('✓ Контакт добавлен');setSc('list'); };
 
   const addTx=async()=>{
     if(!txAmt||!selP)return; setSv(true);
     const amt=txDir==='give'?-(+txAmt):(+txAmt);
-    await dbInsert('debt_transactions',{person_id:selP.id,amount:amt,note:txNote.trim()});
-    if(txDir==='give'){ await dbInsert('cash_movements',{type:'remove',amount:+txAmt,description:`🤝 Дал в долг: ${selP.name}`,date:tod()}); toast(`💸 Дал ${fmt(+txAmt)} SM — списано с кассы`); }
-    else{ await dbInsert('cash_movements',{type:'add',amount:+txAmt,description:`🤝 Вернули: ${selP.name}`,date:tod()}); toast(`💰 Получил ${fmt(+txAmt)} SM — добавлено в кассу`); }
+    await dbInsert('debt_transactions',{id:uid(),person_id:selP.id,amount:amt,note:txNote.trim()});
+    if(txDir==='give'){ await dbInsert('cash_movements',{id:uid(),type:'remove',amount:+txAmt,description:`🤝 Дал в долг: ${selP.name}`,date:tod()}); toast(`💸 Дал ${fmt(+txAmt)} SM — списано с кассы`); }
+    else{ await dbInsert('cash_movements',{id:uid(),type:'add',amount:+txAmt,description:`🤝 Вернули: ${selP.name}`,date:tod()}); toast(`💰 Получил ${fmt(+txAmt)} SM — добавлено в кассу`); }
     setTxAmt('');setTxNote('');setTxMode(false);setSv(false);
   };
 
@@ -1088,8 +1095,8 @@ function Debts({tick,toast}){
     const t=txs.find(x=>x.id===delTx);
     if(t){
       const nm=(people.find(p=>p.id===t.person_id)||{}).name||'';
-      if(t.amount<0) await dbInsert('cash_movements',{type:'add',amount:Math.abs(t.amount),description:`Отмена долга: ${nm}`,date:tod()});
-      else await dbInsert('cash_movements',{type:'remove',amount:t.amount,description:`Отмена возврата: ${nm}`,date:tod()});
+      if(t.amount<0) await dbInsert('cash_movements',{id:uid(),type:'add',amount:Math.abs(t.amount),description:`Отмена долга: ${nm}`,date:tod()});
+      else await dbInsert('cash_movements',{id:uid(),type:'remove',amount:t.amount,description:`Отмена возврата: ${nm}`,date:tod()});
       await sbDel('debt_transactions',delTx);
       DB.debt_transactions=DB.debt_transactions.filter(x=>x.id!==delTx); pub();
     }
@@ -1097,6 +1104,7 @@ function Debts({tick,toast}){
   };
 
   // Страница персоны
+  if(sc==='person'&&!selP){ setTimeout(()=>setSc('list'),0); return null; }
   if(sc==='person'&&selP){
     const sp=people.find(p=>p.id===selP.id)||selP;
     const ptxs=getPTxs(sp.id);
@@ -1109,7 +1117,7 @@ function Debts({tick,toast}){
         {delTx&&<DelConfirm text="Запись удалится, касса откатится" onConfirm={doDelTx} onCancel={()=>setDelTx(null)}/>}
         <div style={{padding:'14px 16px 14px',background:'rgba(9,9,15,.97)',backdropFilter:'blur(20px)',borderBottom:`1px solid ${C.border}`,position:'sticky',top:0,zIndex:50}}>
           <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:12}}>
-            <button onClick={()=>{setSc('list');setTxMode(false);}} style={{width:38,height:38,borderRadius:11,background:C.bg2,border:`1px solid ${C.border}`,color:C.muted,fontSize:22,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>←</button>
+            <button onClick={()=>{goTo('list');setTxMode(false);}} style={{width:38,height:38,borderRadius:11,background:C.bg2,border:`1px solid ${C.border}`,color:C.muted,fontSize:22,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>←</button>
             <div style={{flex:1}}><div style={{fontSize:8,fontWeight:800,letterSpacing:2,color:C.dim}}>ДОЛГИ</div><div style={{fontSize:19,fontWeight:900}}>{sp.name}</div></div>
             <span style={{fontSize:11,fontWeight:700,padding:'5px 12px',borderRadius:20,background:cat.c+'20',color:cat.c}}>{cat.i} {cat.l}</span>
           </div>
@@ -1175,7 +1183,7 @@ function Debts({tick,toast}){
               </button>
             ))}
           </div>
-          <TI label="ИМЯ / НАЗВАНИЕ *" placeholder="Алишер, Фирма Ёвон..." value={apName} onChange={setApName} autoFocus/>
+          <TI label="ИМЯ / НАЗВАНИЕ *" placeholder="Алишер, Фирма Ёвон..." value={apName} onChange={setApName}/>
           <TI label="ТЕЛЕФОН" type="tel" placeholder="+992 XX XXX XXXX" value={apPhone} onChange={setApPhone}/>
           <TI label="ЗАМЕТКА" placeholder="Доп. информация..." value={apNote} onChange={setApNote}/>
           <Btn bg={C.blue} onClick={addPerson} disabled={!apName.trim()||sv}>{sv?'Сохранение...':'✓ Добавить контакт'}</Btn>
@@ -1212,7 +1220,7 @@ function Debts({tick,toast}){
           const bc=bal<0?C.green:bal>0?C.red:C.dim;
           const lastTx=ptxs[0];
           return(
-            <div key={person.id} onClick={()=>{setSelP(person);setSc('person');}} className="fu" style={{display:'flex',alignItems:'center',gap:12,padding:'14px',background:C.bg2,border:`1.5px solid ${bc}20`,borderRadius:18,marginBottom:8,cursor:'pointer',position:'relative'}}>
+            <div key={person.id} onClick={()=>goTo('person',person)} className="fu" style={{display:'flex',alignItems:'center',gap:12,padding:'14px',background:C.bg2,border:`1.5px solid ${bc}20`,borderRadius:18,marginBottom:8,cursor:'pointer',position:'relative'}}>
               <div style={{width:48,height:48,borderRadius:14,background:cat.c+'30',border:`2px solid ${cat.c}40`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:17,fontWeight:900,color:cat.c,flexShrink:0}}>{inits(person.name)}</div>
               <div style={{flex:1,minWidth:0}}>
                 <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:2}}>
@@ -1293,3 +1301,4 @@ root.render(<App/>);
 </script>
 </body>
 </html>
+

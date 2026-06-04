@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
 <title>KassaControl</title>
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <style>
@@ -22,27 +21,40 @@ input::placeholder{color:#32324a}
 <body>
 <div id="root"></div>
 <script>
-function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function (o) { return typeof o; } : function (o) { return o && "function" == typeof Symbol && o.constructor === Symbol && o !== Symbol.prototype ? "symbol" : typeof o; }, _typeof(o); }
-function _createForOfIteratorHelper(r, e) { var t = "undefined" != typeof Symbol && r[Symbol.iterator] || r["@@iterator"]; if (!t) { if (Array.isArray(r) || (t = _unsupportedIterableToArray(r)) || e && r && "number" == typeof r.length) { t && (r = t); var _n = 0, F = function F() {}; return { s: F, n: function n() { return _n >= r.length ? { done: !0 } : { done: !1, value: r[_n++] }; }, e: function e(r) { throw r; }, f: F }; } throw new TypeError("Invalid attempt to iterate non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); } var o, a = !0, u = !1; return { s: function s() { t = t.call(r); }, n: function n() { var r = t.next(); return a = r.done, r; }, e: function e(r) { u = !0, o = r; }, f: function f() { try { a || null == t.return || t.return(); } finally { if (u) throw o; } } }; }
-function _regenerator() { /*! regenerator-runtime -- Copyright (c) 2014-present, Facebook, Inc. -- license (MIT): https://github.com/babel/babel/blob/main/packages/babel-helpers/LICENSE */ var e, t, r = "function" == typeof Symbol ? Symbol : {}, n = r.iterator || "@@iterator", o = r.toStringTag || "@@toStringTag"; function i(r, n, o, i) { var c = n && n.prototype instanceof Generator ? n : Generator, u = Object.create(c.prototype); return _regeneratorDefine2(u, "_invoke", function (r, n, o) { var i, c, u, f = 0, p = o || [], y = !1, G = { p: 0, n: 0, v: e, a: d, f: d.bind(e, 4), d: function d(t, r) { return i = t, c = 0, u = e, G.n = r, a; } }; function d(r, n) { for (c = r, u = n, t = 0; !y && f && !o && t < p.length; t++) { var o, i = p[t], d = G.p, l = i[2]; r > 3 ? (o = l === n) && (u = i[(c = i[4]) ? 5 : (c = 3, 3)], i[4] = i[5] = e) : i[0] <= d && ((o = r < 2 && d < i[1]) ? (c = 0, G.v = n, G.n = i[1]) : d < l && (o = r < 3 || i[0] > n || n > l) && (i[4] = r, i[5] = n, G.n = l, c = 0)); } if (o || r > 1) return a; throw y = !0, n; } return function (o, p, l) { if (f > 1) throw TypeError("Generator is already running"); for (y && 1 === p && d(p, l), c = p, u = l; (t = c < 2 ? e : u) || !y;) { i || (c ? c < 3 ? (c > 1 && (G.n = -1), d(c, u)) : G.n = u : G.v = u); try { if (f = 2, i) { if (c || (o = "next"), t = i[o]) { if (!(t = t.call(i, u))) throw TypeError("iterator result is not an object"); if (!t.done) return t; u = t.value, c < 2 && (c = 0); } else 1 === c && (t = i.return) && t.call(i), c < 2 && (u = TypeError("The iterator does not provide a '" + o + "' method"), c = 1); i = e; } else if ((t = (y = G.n < 0) ? u : r.call(n, G)) !== a) break; } catch (t) { i = e, c = 1, u = t; } finally { f = 1; } } return { value: t, done: y }; }; }(r, o, i), !0), u; } var a = {}; function Generator() {} function GeneratorFunction() {} function GeneratorFunctionPrototype() {} t = Object.getPrototypeOf; var c = [][n] ? t(t([][n]())) : (_regeneratorDefine2(t = {}, n, function () { return this; }), t), u = GeneratorFunctionPrototype.prototype = Generator.prototype = Object.create(c); function f(e) { return Object.setPrototypeOf ? Object.setPrototypeOf(e, GeneratorFunctionPrototype) : (e.__proto__ = GeneratorFunctionPrototype, _regeneratorDefine2(e, o, "GeneratorFunction")), e.prototype = Object.create(u), e; } return GeneratorFunction.prototype = GeneratorFunctionPrototype, _regeneratorDefine2(u, "constructor", GeneratorFunctionPrototype), _regeneratorDefine2(GeneratorFunctionPrototype, "constructor", GeneratorFunction), GeneratorFunction.displayName = "GeneratorFunction", _regeneratorDefine2(GeneratorFunctionPrototype, o, "GeneratorFunction"), _regeneratorDefine2(u), _regeneratorDefine2(u, o, "Generator"), _regeneratorDefine2(u, n, function () { return this; }), _regeneratorDefine2(u, "toString", function () { return "[object Generator]"; }), (_regenerator = function _regenerator() { return { w: i, m: f }; })(); }
-function _regeneratorDefine2(e, r, n, t) { var i = Object.defineProperty; try { i({}, "", {}); } catch (e) { i = 0; } _regeneratorDefine2 = function _regeneratorDefine(e, r, n, t) { function o(r, n) { _regeneratorDefine2(e, r, function (e) { return this._invoke(r, n, e); }); } r ? i ? i(e, r, { value: n, enumerable: !t, configurable: !t, writable: !t }) : e[r] = n : (o("next", 0), o("throw", 1), o("return", 2)); }, _regeneratorDefine2(e, r, n, t); }
-function _toConsumableArray(r) { return _arrayWithoutHoles(r) || _iterableToArray(r) || _unsupportedIterableToArray(r) || _nonIterableSpread(); }
-function _nonIterableSpread() { throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
-function _iterableToArray(r) { if ("undefined" != typeof Symbol && null != r[Symbol.iterator] || null != r["@@iterator"]) return Array.from(r); }
-function _arrayWithoutHoles(r) { if (Array.isArray(r)) return _arrayLikeToArray(r); }
-function _slicedToArray(r, e) { return _arrayWithHoles(r) || _iterableToArrayLimit(r, e) || _unsupportedIterableToArray(r, e) || _nonIterableRest(); }
-function _nonIterableRest() { throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
-function _unsupportedIterableToArray(r, a) { if (r) { if ("string" == typeof r) return _arrayLikeToArray(r, a); var t = {}.toString.call(r).slice(8, -1); return "Object" === t && r.constructor && (t = r.constructor.name), "Map" === t || "Set" === t ? Array.from(r) : "Arguments" === t || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t) ? _arrayLikeToArray(r, a) : void 0; } }
-function _arrayLikeToArray(r, a) { (null == a || a > r.length) && (a = r.length); for (var e = 0, n = Array(a); e < a; e++) n[e] = r[e]; return n; }
-function _iterableToArrayLimit(r, l) { var t = null == r ? null : "undefined" != typeof Symbol && r[Symbol.iterator] || r["@@iterator"]; if (null != t) { var e, n, i, u, a = [], f = !0, o = !1; try { if (i = (t = t.call(r)).next, 0 === l) { if (Object(t) !== t) return; f = !1; } else for (; !(f = (e = i.call(t)).done) && (a.push(e.value), a.length !== l); f = !0); } catch (r) { o = !0, n = r; } finally { try { if (!f && null != t.return && (u = t.return(), Object(u) !== u)) return; } finally { if (o) throw n; } } return a; } }
-function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
-function ownKeys(e, r) { var t = Object.keys(e); if (Object.getOwnPropertySymbols) { var o = Object.getOwnPropertySymbols(e); r && (o = o.filter(function (r) { return Object.getOwnPropertyDescriptor(e, r).enumerable; })), t.push.apply(t, o); } return t; }
-function _objectSpread(e) { for (var r = 1; r < arguments.length; r++) { var t = null != arguments[r] ? arguments[r] : {}; r % 2 ? ownKeys(Object(t), !0).forEach(function (r) { _defineProperty(e, r, t[r]); }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys(Object(t)).forEach(function (r) { Object.defineProperty(e, r, Object.getOwnPropertyDescriptor(t, r)); }); } return e; }
-function _defineProperty(e, r, t) { return (r = _toPropertyKey(r)) in e ? Object.defineProperty(e, r, { value: t, enumerable: !0, configurable: !0, writable: !0 }) : e[r] = t, e; }
-function _toPropertyKey(t) { var i = _toPrimitive(t, "string"); return "symbol" == _typeof(i) ? i : i + ""; }
-function _toPrimitive(t, r) { if ("object" != _typeof(t) || !t) return t; var e = t[Symbol.toPrimitive]; if (void 0 !== e) { var i = e.call(t, r || "default"); if ("object" != _typeof(i)) return i; throw new TypeError("@@toPrimitive must return a primitive value."); } return ("string" === r ? String : Number)(t); }
-function asyncGeneratorStep(n, t, e, r, o, a, c) { try { var i = n[a](c), u = i.value; } catch (n) { return void e(n); } i.done ? t(u) : Promise.resolve(u).then(r, o); }
-function _asyncToGenerator(n) { return function () { var t = this, e = arguments; return new Promise(function (r, o) { var a = n.apply(t, e); function _next(n) { asyncGeneratorStep(a, r, o, _next, _throw, "next", n); } function _throw(n) { asyncGeneratorStep(a, r, o, _next, _throw, "throw", n); } _next(void 0); }); }; }
+// ЭМУЛЯЦИЯ TELEGRAM WEBAPP ДЛЯ GITHUB PAGES
+window.Telegram = {
+  WebApp: {
+    ready: function() { console.log('Telegram WebApp emulated: ready'); },
+    expand: function() { console.log('Telegram WebApp emulated: expand'); },
+    close: function() { console.log('Telegram WebApp emulated: close'); },
+    MainButton: {
+      show: function() {},
+      hide: function() {},
+      setText: function() {},
+      onClick: function() {}
+    },
+    HapticFeedback: {
+      impactOccurred: function() {}
+    },
+    themeParams: {
+      bg_color: '#09090f',
+      text_color: '#eeeeff',
+      hint_color: '#6868a0',
+      link_color: '#4466ff',
+      button_color: '#4466ff',
+      button_text_color: '#ffffff'
+    },
+    colorScheme: 'dark',
+    isExpanded: true,
+    viewportHeight: window.innerHeight,
+    viewportStableHeight: window.innerHeight,
+    sendData: function() {},
+    onEvent: function() {},
+    offEvent: function() {}
+  }
+};
+
+// КОНФИГУРАЦИЯ
 var C = {
   bg: "#09090f",
   bg2: "#111120",
@@ -57,33 +69,14 @@ var C = {
   blue: "#4466ff",
   yellow: "#e8c040"
 };
+
 var OFF = 5 * 3600000;
-var uid = function uid() {
-  return Math.random().toString(36).slice(2) + Date.now().toString(36);
-};
-var tod = function tod() {
-  var d = new Date(Date.now() + OFF);
-  return d.toISOString().slice(0, 10);
-};
-var monStr = function monStr() {
-  var d = new Date(Date.now() + OFF);
-  return d.toISOString().slice(0, 7);
-};
-var fmt = function fmt(n) {
-  return (+n || 0).toLocaleString("ru-RU", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  });
-};
-var fmtD = function fmtD(d) {
-  if (!d) return "";
-  return new Date(d + "T00:00:00").toLocaleDateString("ru-RU", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric"
-  });
-};
-var fmtDT = function fmtDT(s) {
+var uid = function() { return Math.random().toString(36).slice(2) + Date.now().toString(36); };
+var tod = function() { var d = new Date(Date.now() + OFF); return d.toISOString().slice(0, 10); };
+var monStr = function() { var d = new Date(Date.now() + OFF); return d.toISOString().slice(0, 7); };
+var fmt = function(n) { return (+n || 0).toLocaleString("ru-RU", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
+var fmtD = function(d) { if (!d) return ""; return new Date(d + "T00:00:00").toLocaleDateString("ru-RU", { day: "2-digit", month: "short", year: "numeric" }); };
+var fmtDT = function(s) {
   if (!s) return "";
   try {
     var ts = String(s).replace(" ", "T");
@@ -91,2932 +84,284 @@ var fmtDT = function fmtDT(s) {
     var ms = new Date(ts).getTime();
     if (isNaN(ms)) return "";
     var d = new Date(ms + OFF);
-    return new Date(d.getTime()).toLocaleDateString("ru-RU", {
-      day: "2-digit",
-      month: "2-digit",
-      timeZone: "UTC"
-    }) + " " + String(d.getUTCHours()).padStart(2, "0") + ":" + String(d.getUTCMinutes()).padStart(2, "0");
-  } catch (e) {
-    return "";
-  }
+    return new Date(d.getTime()).toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit", timeZone: "UTC" }) + " " + String(d.getUTCHours()).padStart(2, "0") + ":" + String(d.getUTCMinutes()).padStart(2, "0");
+  } catch(e) { return ""; }
 };
-var dLeft = function dLeft(d) {
-  if (!d) return 999;
-  return Math.ceil((new Date(d) - new Date(tod())) / 86400000);
-};
-var eColor = function eColor(n) {
-  return n < 0 ? C.red : n <= 3 ? C.orange : n <= 7 ? C.yellow : C.green;
-};
-var eText = function eText(n) {
-  return n < 0 ? "просрочен " + Math.abs(n) + "д" : n === 0 ? "сегодня!" : n + " дн.";
-};
-var inits = function inits(n) {
-  return (n || "").trim().split(" ").map(function (w) {
-    return w[0] || "";
-  }).join("").slice(0, 2).toUpperCase() || "?";
-};
-var getMonths = function getMonths(n) {
-  var r = [],
-    d = new Date();
+var dLeft = function(d) { if (!d) return 999; return Math.ceil((new Date(d) - new Date(tod())) / 86400000); };
+var eColor = function(n) { return n < 0 ? C.red : n <= 3 ? C.orange : n <= 7 ? C.yellow : C.green; };
+var eText = function(n) { return n < 0 ? "просрочен " + Math.abs(n) + "д" : n === 0 ? "сегодня!" : n + " дн."; };
+var inits = function(n) { return (n || "").trim().split(" ").map(function(w) { return w[0] || ""; }).join("").slice(0, 2).toUpperCase() || "?"; };
+var getMonths = function(n) {
+  var r = [], d = new Date();
   for (var i = 0; i < n; i++) {
-    var y = d.getFullYear(),
-      m = String(d.getMonth() + 1).padStart(2, "0");
-    r.push({
-      val: y + "-" + m,
-      label: d.toLocaleDateString("ru-RU", {
-        month: "long",
-        year: "2-digit"
-      })
-    });
+    var y = d.getFullYear(), m = String(d.getMonth() + 1).padStart(2, "0");
+    r.push({ val: y + "-" + m, label: d.toLocaleDateString("ru-RU", { month: "long", year: "2-digit" }) });
     d.setMonth(d.getMonth() - 1);
   }
   return r;
 };
-var weekStart = function weekStart() {
-  var d = new Date(Date.now() + OFF),
-    day = d.getDay() || 7;
-  d.setDate(d.getDate() - day + 1);
-  return d.toISOString().slice(0, 10);
-};
+var weekStart = function() { var d = new Date(Date.now() + OFF), day = d.getDay() || 7; d.setDate(d.getDate() - day + 1); return d.toISOString().slice(0, 10); };
+
 var SB = "https://lozieoldpkezxonrxwry.supabase.co/rest/v1";
 var KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxvemllb2xkcGtlenhvbnJ4d3J5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwMzY0MjEsImV4cCI6MjA5MzYxMjQyMX0.sS5Z8i1xFdv6YiKrpL9Y2sTWEo6Yk3K9TqQhv4HNwts";
-var H = {
-  apikey: KEY,
-  Authorization: "Bearer " + KEY,
-  "Content-Type": "application/json",
-  Prefer: "return=representation"
-};
-var sbGet = function sbGet(t, q) {
-  return fetch(SB + "/" + t + "?" + (q || ""), {
-    headers: H
-  }).then(function (r) {
-    return r.json();
-  });
-};
-var sbPost = function sbPost(t, b) {
-  return fetch(SB + "/" + t, {
-    method: "POST",
-    headers: H,
-    body: JSON.stringify(b)
-  }).then(function (r) {
-    return r.json();
-  });
-};
-var sbPatch = function sbPatch(t, id, b) {
-  return fetch(SB + "/" + t + "?id=eq." + id, {
-    method: "PATCH",
-    headers: H,
-    body: JSON.stringify(b)
-  });
-};
-var sbDel = function sbDel(t, id) {
-  return fetch(SB + "/" + t + "?id=eq." + id, {
-    method: "DELETE",
-    headers: H
-  });
-};
-var DB = {
-  suppliers: [],
-  deliveries: [],
-  delivery_items: [],
-  products: [],
-  revisions: [],
-  revision_items: [],
-  expenses: [],
-  revenue: [],
-  cash_movements: [],
-  debt_people: [],
-  debt_transactions: []
-};
+var H = { apikey: KEY, Authorization: "Bearer " + KEY, "Content-Type": "application/json", Prefer: "return=representation" };
+
+var sbGet = function(t, q) { return fetch(SB + "/" + t + "?" + (q || ""), { headers: H }).then(function(r) { return r.json(); }); };
+var sbPost = function(t, b) { return fetch(SB + "/" + t, { method: "POST", headers: H, body: JSON.stringify(b) }).then(function(r) { return r.json(); }); };
+var sbPatch = function(t, id, b) { return fetch(SB + "/" + t + "?id=eq." + id, { method: "PATCH", headers: H, body: JSON.stringify(b) }); };
+var sbDel = function(t, id) { return fetch(SB + "/" + t + "?id=eq." + id, { method: "DELETE", headers: H }); };
+
+var DB = { suppliers: [], deliveries: [], delivery_items: [], products: [], revisions: [], revision_items: [], expenses: [], revenue: [], cash_movements: [], debt_people: [], debt_transactions: [] };
 var _subs = [];
-var pub = function pub() {
-  return _subs.forEach(function (f) {
-    return f();
-  });
-};
-var sub = function sub(f) {
-  _subs.push(f);
-  return function () {
-    _subs = _subs.filter(function (x) {
-      return x !== f;
-    });
-  };
-};
-function dbGet(k) {
-  return DB[k] || [];
+var pub = function() { _subs.forEach(function(f) { return f(); }); };
+var sub = function(f) { _subs.push(f); return function() { _subs = _subs.filter(function(x) { return x !== f; }); }; };
+
+function dbGet(k) { return DB[k] || []; }
+
+async function dbInsert(table, row) {
+  var res = await sbPost(table, row);
+  var ins = Array.isArray(res) ? res[0] : res;
+  DB[table] = [ins].concat(DB[table]);
+  pub();
+  return ins;
 }
-function dbInsert(_x, _x2) {
-  return _dbInsert.apply(this, arguments);
+
+async function dbInsertMany(table, rows) {
+  if (!rows.length) return;
+  var res = await sbPost(table, rows);
+  DB[table] = [].concat(Array.isArray(res) ? res : [], DB[table]);
+  pub();
 }
-function _dbInsert() {
-  _dbInsert = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee16(table, row) {
-    var res, ins;
-    return _regenerator().w(function (_context16) {
-      while (1) switch (_context16.n) {
-        case 0:
-          _context16.n = 1;
-          return sbPost(table, row);
-        case 1:
-          res = _context16.v;
-          ins = Array.isArray(res) ? res[0] : res;
-          DB[table] = [ins].concat(_toConsumableArray(DB[table]));
-          pub();
-          return _context16.a(2, ins);
-      }
-    }, _callee16);
-  }));
-  return _dbInsert.apply(this, arguments);
+
+async function dbDelete(table, id) {
+  await sbDel(table, id);
+  DB[table] = DB[table].filter(function(r) { return r.id !== id; });
+  pub();
 }
-function dbInsertMany(_x3, _x4) {
-  return _dbInsertMany.apply(this, arguments);
+
+async function initDB() {
+  var PAGE = 1000;
+  var prods = [];
+  var p = 0;
+  while (true) {
+    var b = await sbGet("products", "select=*&order=name.asc&limit=" + PAGE + "&offset=" + p * PAGE);
+    if (!Array.isArray(b) || !b.length) break;
+    prods = prods.concat(b);
+    if (b.length < PAGE) break;
+    p++;
+  }
+  
+  var sup, del, di, rev, ri, exp, rvn, cm;
+  try {
+    var res = await Promise.all([
+      sbGet("suppliers", "select=*&order=created_at.desc"),
+      sbGet("deliveries", "select=*&order=created_at.desc"),
+      sbGet("delivery_items", "select=*&order=created_at.desc"),
+      sbGet("revisions", "select=*&order=created_at.desc"),
+      sbGet("revision_items", "select=*"),
+      sbGet("expenses", "select=*&order=created_at.desc"),
+      sbGet("revenue", "select=*&order=created_at.desc"),
+      sbGet("cash_movements", "select=*&order=created_at.desc")
+    ]);
+    sup = res[0]; del = res[1]; di = res[2]; rev = res[3]; ri = res[4]; exp = res[5]; rvn = res[6]; cm = res[7];
+    DB.suppliers = Array.isArray(sup) ? sup : [];
+    DB.deliveries = Array.isArray(del) ? del : [];
+    DB.delivery_items = Array.isArray(di) ? di : [];
+    DB.products = prods;
+    DB.revisions = Array.isArray(rev) ? rev : [];
+    DB.revision_items = Array.isArray(ri) ? ri : [];
+    DB.expenses = Array.isArray(exp) ? exp : [];
+    DB.revenue = Array.isArray(rvn) ? rvn : [];
+    DB.cash_movements = Array.isArray(cm) ? cm : [];
+  } catch(e) { console.error(e); }
+  
+  try {
+    var res2 = await Promise.all([
+      sbGet("debt_people", "select=*&order=created_at.desc"),
+      sbGet("debt_transactions", "select=*&order=created_at.desc")
+    ]);
+    DB.debt_people = Array.isArray(res2[0]) ? res2[0] : [];
+    DB.debt_transactions = Array.isArray(res2[1]) ? res2[1] : [];
+  } catch(e) {
+    DB.debt_people = [];
+    DB.debt_transactions = [];
+  }
 }
-function _dbInsertMany() {
-  _dbInsertMany = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee17(table, rows) {
-    var res;
-    return _regenerator().w(function (_context17) {
-      while (1) switch (_context17.n) {
-        case 0:
-          if (rows.length) {
-            _context17.n = 1;
-            break;
-          }
-          return _context17.a(2);
-        case 1:
-          _context17.n = 2;
-          return sbPost(table, rows);
-        case 2:
-          res = _context17.v;
-          DB[table] = [].concat(_toConsumableArray(Array.isArray(res) ? res : []), _toConsumableArray(DB[table]));
-          pub();
-        case 3:
-          return _context17.a(2);
-      }
-    }, _callee17);
-  }));
-  return _dbInsertMany.apply(this, arguments);
-}
-function dbDelete(_x5, _x6) {
-  return _dbDelete.apply(this, arguments);
-}
-function _dbDelete() {
-  _dbDelete = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee18(table, id) {
-    return _regenerator().w(function (_context18) {
-      while (1) switch (_context18.n) {
-        case 0:
-          _context18.n = 1;
-          return sbDel(table, id);
-        case 1:
-          DB[table] = DB[table].filter(function (r) {
-            return r.id !== id;
-          });
-          pub();
-        case 2:
-          return _context18.a(2);
-      }
-    }, _callee18);
-  }));
-  return _dbDelete.apply(this, arguments);
-}
-function initDB() {
-  return _initDB.apply(this, arguments);
-}
-function _initDB() {
-  _initDB = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee19() {
-    var PAGE, prods, p, b, _yield$Promise$all, _yield$Promise$all2, sup, del, di, rev, ri, exp, rvn, cm, _yield$Promise$all3, _yield$Promise$all4, dp, dtx, _t4, _t5;
-    return _regenerator().w(function (_context19) {
-      while (1) switch (_context19.p = _context19.n) {
-        case 0:
-          _context19.p = 0;
-          PAGE = 1000;
-          prods = [], p = 0;
-        case 1:
-          if (!true) {
-            _context19.n = 5;
-            break;
-          }
-          _context19.n = 2;
-          return sbGet("products", "select=*&order=name.asc&limit=" + PAGE + "&offset=" + p * PAGE);
-        case 2:
-          b = _context19.v;
-          if (!(!Array.isArray(b) || !b.length)) {
-            _context19.n = 3;
-            break;
-          }
-          return _context19.a(3, 5);
-        case 3:
-          prods = [].concat(_toConsumableArray(prods), _toConsumableArray(b));
-          if (!(b.length < PAGE)) {
-            _context19.n = 4;
-            break;
-          }
-          return _context19.a(3, 5);
-        case 4:
-          p++;
-          _context19.n = 1;
-          break;
-        case 5:
-          _context19.n = 6;
-          return Promise.all([sbGet("suppliers", "select=*&order=created_at.desc"), sbGet("deliveries", "select=*&order=created_at.desc"), sbGet("delivery_items", "select=*&order=created_at.desc"), sbGet("revisions", "select=*&order=created_at.desc"), sbGet("revision_items", "select=*"), sbGet("expenses", "select=*&order=created_at.desc"), sbGet("revenue", "select=*&order=created_at.desc"), sbGet("cash_movements", "select=*&order=created_at.desc")]);
-        case 6:
-          _yield$Promise$all = _context19.v;
-          _yield$Promise$all2 = _slicedToArray(_yield$Promise$all, 8);
-          sup = _yield$Promise$all2[0];
-          del = _yield$Promise$all2[1];
-          di = _yield$Promise$all2[2];
-          rev = _yield$Promise$all2[3];
-          ri = _yield$Promise$all2[4];
-          exp = _yield$Promise$all2[5];
-          rvn = _yield$Promise$all2[6];
-          cm = _yield$Promise$all2[7];
-          DB.suppliers = Array.isArray(sup) ? sup : [];
-          DB.deliveries = Array.isArray(del) ? del : [];
-          DB.delivery_items = Array.isArray(di) ? di : [];
-          DB.products = prods;
-          DB.revisions = Array.isArray(rev) ? rev : [];
-          DB.revision_items = Array.isArray(ri) ? ri : [];
-          DB.expenses = Array.isArray(exp) ? exp : [];
-          DB.revenue = Array.isArray(rvn) ? rvn : [];
-          DB.cash_movements = Array.isArray(cm) ? cm : [];
-          _context19.n = 8;
-          break;
-        case 7:
-          _context19.p = 7;
-          _t4 = _context19.v;
-          console.error(_t4);
-        case 8:
-          _context19.p = 8;
-          _context19.n = 9;
-          return Promise.all([sbGet("debt_people", "select=*&order=created_at.desc"), sbGet("debt_transactions", "select=*&order=created_at.desc")]);
-        case 9:
-          _yield$Promise$all3 = _context19.v;
-          _yield$Promise$all4 = _slicedToArray(_yield$Promise$all3, 2);
-          dp = _yield$Promise$all4[0];
-          dtx = _yield$Promise$all4[1];
-          DB.debt_people = Array.isArray(dp) ? dp : [];
-          DB.debt_transactions = Array.isArray(dtx) ? dtx : [];
-          _context19.n = 11;
-          break;
-        case 10:
-          _context19.p = 10;
-          _t5 = _context19.v;
-          DB.debt_people = [];
-          DB.debt_transactions = [];
-        case 11:
-          return _context19.a(2);
-      }
-    }, _callee19, null, [[8, 10], [0, 7]]);
-  }));
-  return _initDB.apply(this, arguments);
-}
-var Card = function Card(_ref) {
-  var children = _ref.children,
-    style = _ref.style;
-  return /*#__PURE__*/React.createElement("div", {
-    style: _objectSpread({
-      background: C.bg2,
-      border: "1px solid " + C.border,
-      borderRadius: 18,
-      padding: 16,
-      marginBottom: 10
-    }, style)
-  }, children);
-};
-var FL = function FL(_ref2) {
-  var children = _ref2.children;
-  return /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 9,
-      fontWeight: 800,
-      letterSpacing: 2,
-      textTransform: "uppercase",
-      color: C.dim,
-      marginBottom: 6
-    }
-  }, children);
-};
-var TI = function TI(_ref3) {
-  var label = _ref3.label,
-    value = _ref3.value,
-    _onChange = _ref3.onChange,
-    type = _ref3.type,
-    placeholder = _ref3.placeholder,
-    autoFocus = _ref3.autoFocus;
-  return /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginBottom: 12
-    }
-  }, label && /*#__PURE__*/React.createElement(FL, null, label), /*#__PURE__*/React.createElement("input", {
-    autoFocus: autoFocus,
-    type: type || "text",
-    value: value,
-    onChange: function onChange(e) {
-      return _onChange(e.target.value);
-    },
-    placeholder: placeholder,
-    style: {
-      width: "100%",
-      background: C.bg,
-      border: "1px solid " + C.border,
-      borderRadius: 12,
-      padding: "13px 16px",
-      color: C.text,
-      fontSize: 15,
-      fontWeight: 500,
-      outline: "none"
-    }
-  }));
-};
-var Btn = function Btn(_ref4) {
-  var children = _ref4.children,
-    onClick = _ref4.onClick,
-    bg = _ref4.bg,
-    color = _ref4.color,
-    outline = _ref4.outline,
-    disabled = _ref4.disabled,
-    style = _ref4.style;
-  return /*#__PURE__*/React.createElement("button", {
-    onClick: onClick,
-    disabled: disabled,
-    style: _objectSpread({
-      width: "100%",
-      padding: "14px 20px",
-      borderRadius: 13,
-      fontSize: 15,
-      fontWeight: 800,
-      cursor: disabled ? "not-allowed" : "pointer",
-      border: outline ? "1.5px solid " + C.border : "none",
-      background: disabled ? C.bg3 : outline ? "transparent" : bg || C.blue,
-      color: disabled ? C.dim : color || (outline ? C.muted : "#fff"),
-      opacity: disabled ? 0.6 : 1,
-      fontFamily: "inherit"
-    }, style)
-  }, children);
-};
-var SecLabel = function SecLabel(_ref5) {
-  var children = _ref5.children;
-  return /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 9,
-      fontWeight: 800,
-      letterSpacing: 2,
-      textTransform: "uppercase",
-      color: C.dim,
-      margin: "14px 0 8px 2px"
-    }
-  }, children);
-};
-var Badge = function Badge(_ref6) {
-  var children = _ref6.children,
-    color = _ref6.color;
-  return /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 11,
-      fontWeight: 700,
-      padding: "3px 9px",
-      borderRadius: 7,
-      background: (color || C.blue) + "18",
-      color: color || C.blue,
-      display: "inline-block"
-    }
-  }, children);
-};
-var Empty = function Empty(_ref7) {
-  var icon = _ref7.icon,
-    text = _ref7.text;
-  return /*#__PURE__*/React.createElement("div", {
-    style: {
-      textAlign: "center",
-      padding: "48px 20px",
-      color: C.dim
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 48,
-      marginBottom: 12,
-      opacity: 0.5
-    }
-  }, icon), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 14,
-      lineHeight: 1.6,
-      fontWeight: 500
-    }
-  }, text));
-};
-var Hdr = function Hdr(_ref8) {
-  var title = _ref8.title,
-    sub = _ref8.sub,
-    onBack = _ref8.onBack,
-    onAdd = _ref8.onAdd,
-    children = _ref8.children;
-  return /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: "14px 16px 12px",
-      background: "rgba(9,9,15,.97)",
-      borderBottom: "1px solid " + C.border,
-      position: "sticky",
-      top: 0,
-      zIndex: 50,
-      display: "flex",
-      alignItems: "center",
-      gap: 10
-    }
-  }, onBack && /*#__PURE__*/React.createElement("button", {
-    onClick: onBack,
-    style: {
-      width: 38,
-      height: 38,
-      borderRadius: 11,
-      background: C.bg2,
-      border: "1px solid " + C.border,
-      color: C.muted,
-      fontSize: 22,
-      cursor: "pointer",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      flexShrink: 0
-    }
-  }, "\u2190"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 9,
-      fontWeight: 800,
-      letterSpacing: 2.5,
-      textTransform: "uppercase",
-      color: C.dim
-    }
-  }, sub || "KASSACONTROL"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 20,
-      fontWeight: 900,
-      letterSpacing: -0.5
-    }
-  }, title)), onAdd && /*#__PURE__*/React.createElement("button", {
-    onClick: onAdd,
-    style: {
-      width: 40,
-      height: 40,
-      borderRadius: 12,
-      background: C.blue,
-      border: "none",
-      color: "#fff",
-      fontSize: 28,
-      cursor: "pointer",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      flexShrink: 0
-    }
-  }, "+"), children);
-};
-var Toast = function Toast(_ref9) {
-  var msg = _ref9.msg,
-    color = _ref9.color;
-  return msg ? /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: "fixed",
-      bottom: 90,
-      left: "50%",
-      transform: "translateX(-50%)",
-      background: C.bg2,
-      border: "1.5px solid " + (color || C.green),
-      borderRadius: 14,
-      padding: "12px 22px",
-      fontSize: 14,
-      fontWeight: 700,
-      color: C.text,
-      zIndex: 999,
-      whiteSpace: "nowrap",
-      pointerEvents: "none"
-    }
-  }, msg) : null;
-};
-var DelConfirm = function DelConfirm(_ref0) {
-  var text = _ref0.text,
-    onConfirm = _ref0.onConfirm,
-    onCancel = _ref0.onCancel;
-  return /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: "fixed",
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      background: "rgba(0,0,0,.75)",
-      zIndex: 200,
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      padding: 20
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      background: C.bg2,
-      border: "1px solid #f04f5a50",
-      borderRadius: 20,
-      padding: 24,
-      width: "100%",
-      maxWidth: 380
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 18,
-      fontWeight: 800,
-      marginBottom: 8
-    }
-  }, "\u0423\u0434\u0430\u043B\u0438\u0442\u044C?"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 13,
-      color: C.dim,
-      marginBottom: 20
-    }
-  }, text), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 10
-    }
-  }, /*#__PURE__*/React.createElement(Btn, {
-    outline: true,
-    onClick: onCancel,
-    style: {
-      flex: 1,
-      padding: "12px 0"
-    }
-  }, "\u041E\u0442\u043C\u0435\u043D\u0430"), /*#__PURE__*/React.createElement(Btn, {
-    bg: C.red,
-    onClick: onConfirm,
-    style: {
-      flex: 1,
-      padding: "12px 0"
-    }
-  }, "\u0423\u0434\u0430\u043B\u0438\u0442\u044C"))));
-};
+
 function calcFifo(items, products) {
   var byB = {};
-  items.filter(function (i) {
-    return i.expiry_date && i.barcode && (+i.quantity || 0) > 0;
-  }).forEach(function (i) {
+  items.filter(function(i) { return i.expiry_date && i.barcode && (+i.quantity || 0) > 0; }).forEach(function(i) {
     if (!byB[i.barcode]) byB[i.barcode] = [];
-    byB[i.barcode].push(_objectSpread({}, i));
+    byB[i.barcode].push({ quantity: i.quantity, delivery_id: i.delivery_id, expiry_date: i.expiry_date, barcode: i.barcode, product_name: i.product_name, unit: i.unit, id: i.id });
   });
   var result = [];
-  Object.entries(byB).forEach(function (_ref1) {
-    var _ref10 = _slicedToArray(_ref1, 2),
-      bc = _ref10[0],
-      batches = _ref10[1];
-    var prod = products.find(function (p) {
-      return p.barcode === bc;
-    });
+  Object.entries(byB).forEach(function(entry) {
+    var bc = entry[0], batches = entry[1];
+    var prod = products.find(function(p) { return p.barcode === bc; });
     var stock = prod ? prod.stock || 0 : null;
     var dels = dbGet("deliveries");
-    var sorted = _toConsumableArray(batches).sort(function (a, b) {
-      var da = dels.find(function (d) {
-        return d.id === a.delivery_id;
-      });
-      var db2 = dels.find(function (d) {
-        return d.id === b.delivery_id;
-      });
+    var sorted = batches.slice().sort(function(a, b) {
+      var da = dels.find(function(d) { return d.id === a.delivery_id; });
+      var db2 = dels.find(function(d) { return d.id === b.delivery_id; });
       return (da && da.date || "").localeCompare(db2 && db2.date || "");
     });
     if (stock === null) {
-      sorted.forEach(function (b) {
-        return result.push(_objectSpread(_objectSpread({}, b), {}, {
-          remaining: b.quantity
-        }));
-      });
+      sorted.forEach(function(b) { result.push({ quantity: b.quantity, remaining: b.quantity, expiry_date: b.expiry_date, product_name: b.product_name, unit: b.unit, id: b.id }); });
       return;
     }
-    var left = Math.max(0, sorted.reduce(function (s, b) {
-      return s + b.quantity;
-    }, 0) - stock);
-    sorted.forEach(function (batch) {
+    var left = Math.max(0, sorted.reduce(function(s, b) { return s + b.quantity; }, 0) - stock);
+    sorted.forEach(function(batch) {
       var rem = batch.quantity;
       if (left > 0) {
         var d = Math.min(left, batch.quantity);
         rem = batch.quantity - d;
         left -= d;
       }
-      result.push(_objectSpread(_objectSpread({}, batch), {}, {
-        remaining: rem,
-        originalQty: batch.quantity
-      }));
+      result.push({ quantity: batch.quantity, remaining: rem, expiry_date: batch.expiry_date, product_name: batch.product_name, unit: batch.unit, id: batch.id });
     });
   });
-  items.filter(function (i) {
-    return i.expiry_date && !i.barcode && (+i.quantity || 0) > 0;
-  }).forEach(function (i) {
-    return result.push(_objectSpread(_objectSpread({}, i), {}, {
-      remaining: i.quantity
-    }));
+  items.filter(function(i) { return i.expiry_date && !i.barcode && (+i.quantity || 0) > 0; }).forEach(function(i) {
+    result.push({ quantity: i.quantity, remaining: i.quantity, expiry_date: i.expiry_date, product_name: i.product_name, unit: i.unit, id: i.id });
   });
   return result;
 }
-function Home(_ref11) {
-  var tick = _ref11.tick;
-  var _useState = useState("day"),
-    _useState2 = _slicedToArray(_useState, 2),
-    period = _useState2[0],
-    setPeriod = _useState2[1];
-  var t = tod(),
-    ws = weekStart(),
-    ms = monStr();
-  var fD = function fD(d) {
-    return period === "day" ? d === t : period === "week" ? d >= ws : period === "month" ? d.startsWith(ms) : true;
-  };
-  var rev = dbGet("revenue"),
-    exp = dbGet("expenses"),
-    cash = dbGet("cash_movements");
-  var diItems = dbGet("delivery_items"),
-    products = dbGet("products");
-  var totalRev = rev.filter(function (r) {
-    return fD(r.date);
-  }).reduce(function (s, r) {
-    return s + (+r.amount || 0);
-  }, 0);
-  var totalGbs = rev.filter(function (r) {
-    return fD(r.date);
-  }).reduce(function (s, r) {
-    return s + (+r.profit || 0);
-  }, 0);
-  var totalExp = exp.filter(function (e) {
-    return fD(e.date);
-  }).reduce(function (s, e) {
-    return s + (+e.amount || 0);
-  }, 0);
+
+// React Components
+var Card = function(_ref) { var children = _ref.children, style = _ref.style; return React.createElement("div", { style: Object.assign({ background: C.bg2, border: "1px solid " + C.border, borderRadius: 18, padding: 16, marginBottom: 10 }, style) }, children); };
+var FL = function(_ref2) { var children = _ref2.children; return React.createElement("div", { style: { fontSize: 9, fontWeight: 800, letterSpacing: 2, textTransform: "uppercase", color: C.dim, marginBottom: 6 } }, children); };
+var TI = function(_ref3) { var label = _ref3.label, value = _ref3.value, _onChange = _ref3.onChange, type = _ref3.type, placeholder = _ref3.placeholder, autoFocus = _ref3.autoFocus; return React.createElement("div", { style: { marginBottom: 12 } }, label && React.createElement(FL, null, label), React.createElement("input", { autoFocus: autoFocus, type: type || "text", value: value, onChange: function(e) { return _onChange(e.target.value); }, placeholder: placeholder, style: { width: "100%", background: C.bg, border: "1px solid " + C.border, borderRadius: 12, padding: "13px 16px", color: C.text, fontSize: 15, fontWeight: 500, outline: "none" } })); };
+var Btn = function(_ref4) { var children = _ref4.children, onClick = _ref4.onClick, bg = _ref4.bg, color = _ref4.color, outline = _ref4.outline, disabled = _ref4.disabled, style = _ref4.style; return React.createElement("button", { onClick: onClick, disabled: disabled, style: Object.assign({ width: "100%", padding: "14px 20px", borderRadius: 13, fontSize: 15, fontWeight: 800, cursor: disabled ? "not-allowed" : "pointer", border: outline ? "1.5px solid " + C.border : "none", background: disabled ? C.bg3 : outline ? "transparent" : bg || C.blue, color: disabled ? C.dim : color || (outline ? C.muted : "#fff"), opacity: disabled ? 0.6 : 1, fontFamily: "inherit" }, style) }, children); };
+var Badge = function(_ref6) { var children = _ref6.children, color = _ref6.color; return React.createElement("span", { style: { fontSize: 11, fontWeight: 700, padding: "3px 9px", borderRadius: 7, background: (color || C.blue) + "18", color: color || C.blue, display: "inline-block" } }, children); };
+var Empty = function(_ref7) { var icon = _ref7.icon, text = _ref7.text; return React.createElement("div", { style: { textAlign: "center", padding: "48px 20px", color: C.dim } }, React.createElement("div", { style: { fontSize: 48, marginBottom: 12, opacity: 0.5 } }, icon), React.createElement("div", { style: { fontSize: 14, lineHeight: 1.6, fontWeight: 500 } }, text)); };
+var SecLabel = function(_ref5) { var children = _ref5.children; return React.createElement("div", { style: { fontSize: 9, fontWeight: 800, letterSpacing: 2, textTransform: "uppercase", color: C.dim, margin: "14px 0 8px 2px" } }, children); };
+var Toast = function(_ref9) { var msg = _ref9.msg, color = _ref9.color; return msg ? React.createElement("div", { style: { position: "fixed", bottom: 90, left: "50%", transform: "translateX(-50%)", background: C.bg2, border: "1.5px solid " + (color || C.green), borderRadius: 14, padding: "12px 22px", fontSize: 14, fontWeight: 700, color: C.text, zIndex: 999, whiteSpace: "nowrap", pointerEvents: "none" } }, msg) : null; };
+var DelConfirm = function(_ref0) { var text = _ref0.text, onConfirm = _ref0.onConfirm, onCancel = _ref0.onCancel; return React.createElement("div", { style: { position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,.75)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 } }, React.createElement("div", { style: { background: C.bg2, border: "1px solid #f04f5a50", borderRadius: 20, padding: 24, width: "100%", maxWidth: 380 } }, React.createElement("div", { style: { fontSize: 18, fontWeight: 800, marginBottom: 8 } }, "Удалить?"), React.createElement("div", { style: { fontSize: 13, color: C.dim, marginBottom: 20 } }, text), React.createElement("div", { style: { display: "flex", gap: 10 } }, React.createElement(Btn, { outline: true, onClick: onCancel, style: { flex: 1, padding: "12px 0" } }, "Отмена"), React.createElement(Btn, { bg: C.red, onClick: onConfirm, style: { flex: 1, padding: "12px 0" } }, "Удалить")))); };
+
+var Hdr = function(_ref8) { var title = _ref8.title, sub = _ref8.sub, onBack = _ref8.onBack, onAdd = _ref8.onAdd, children = _ref8.children; return React.createElement("div", { style: { padding: "14px 16px 12px", background: "rgba(9,9,15,.97)", borderBottom: "1px solid " + C.border, position: "sticky", top: 0, zIndex: 50, display: "flex", alignItems: "center", gap: 10 } }, onBack && React.createElement("button", { onClick: onBack, style: { width: 38, height: 38, borderRadius: 11, background: C.bg2, border: "1px solid " + C.border, color: C.muted, fontSize: 22, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 } }, "←"), React.createElement("div", { style: { flex: 1 } }, React.createElement("div", { style: { fontSize: 9, fontWeight: 800, letterSpacing: 2.5, textTransform: "uppercase", color: C.dim } }, sub || "KASSACONTROL"), React.createElement("div", { style: { fontSize: 20, fontWeight: 900, letterSpacing: -0.5 } }, title)), onAdd && React.createElement("button", { onClick: onAdd, style: { width: 40, height: 40, borderRadius: 12, background: C.blue, border: "none", color: "#fff", fontSize: 28, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 } }, "+"), children); };
+
+function Home(_ref) {
+  var tick = _ref.tick;
+  var _useState = React.useState("day"), period = _useState[0], setPeriod = _useState[1];
+  var t = tod(), ws = weekStart(), ms = monStr();
+  var fD = function(d) { return period === "day" ? d === t : period === "week" ? d >= ws : period === "month" ? d.startsWith(ms) : true; };
+  var rev = dbGet("revenue"), exp = dbGet("expenses"), cash = dbGet("cash_movements");
+  var diItems = dbGet("delivery_items"), products = dbGet("products");
+  var totalRev = rev.filter(function(r) { return fD(r.date); }).reduce(function(s, r) { return s + (+r.amount || 0); }, 0);
+  var totalGbs = rev.filter(function(r) { return fD(r.date); }).reduce(function(s, r) { return s + (+r.profit || 0); }, 0);
+  var totalExp = exp.filter(function(e) { return fD(e.date); }).reduce(function(s, e) { return s + (+e.amount || 0); }, 0);
   var cleanP = totalGbs - totalExp;
   var cashBal = 0;
-  cash.forEach(function (m) {
-    if (m.type === "add" || m.type === "revenue") cashBal += +m.amount || 0;else cashBal -= +m.amount || 0;
-  });
-  var allExp = diItems.filter(function (i) {
-    return i.expiry_date && (+i.quantity || 0) > 0;
-  });
-  var fifo = calcFifo(allExp, products).filter(function (i) {
-    return i.remaining > 0;
-  });
-  var expired = fifo.filter(function (i) {
-    return dLeft(i.expiry_date) < 0;
-  }).length;
-  var critical = fifo.filter(function (i) {
-    var d = dLeft(i.expiry_date);
-    return d >= 0 && d <= 3;
-  }).length;
-  var dateLabel = new Date(Date.now() + OFF).toLocaleDateString("ru-RU", {
-    weekday: "long",
-    day: "numeric",
-    month: "long"
-  });
-  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: "16px 16px 12px",
-      background: "rgba(9,9,15,.97)",
-      borderBottom: "1px solid " + C.border,
-      position: "sticky",
-      top: 0,
-      zIndex: 50
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      marginBottom: 12
-    }
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 9,
-      fontWeight: 800,
-      letterSpacing: 2,
-      color: C.dim,
-      textTransform: "uppercase",
-      marginBottom: 3
-    }
-  }, dateLabel), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 22,
-      fontWeight: 900
-    }
-  }, "\uD83C\uDFEA KassaControl")), expired + critical > 0 && /*#__PURE__*/React.createElement("div", {
-    style: {
-      background: "#f04f5a18",
-      border: "1px solid #f04f5a50",
-      borderRadius: 14,
-      padding: "6px 14px",
-      textAlign: "center"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 9,
-      color: C.red,
-      fontWeight: 800
-    }
-  }, "\u0412\u041D\u0418\u041C\u0410\u041D\u0418\u0415"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 18,
-      fontWeight: 900,
-      color: C.red
-    }
-  }, "\u2620 ", expired + critical))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 6
-    }
-  }, [["day", "День"], ["week", "Неделя"], ["month", "Месяц"], ["all", "Всё"]].map(function (_ref12) {
-    var _ref13 = _slicedToArray(_ref12, 2),
-      id = _ref13[0],
-      l = _ref13[1];
-    return /*#__PURE__*/React.createElement("button", {
-      key: id,
-      onClick: function onClick() {
-        return setPeriod(id);
-      },
-      style: {
-        flex: 1,
-        padding: "8px 4px",
-        borderRadius: 10,
-        cursor: "pointer",
-        fontFamily: "inherit",
-        fontSize: 12,
-        fontWeight: 800,
-        border: "1.5px solid " + (period === id ? C.blue + "60" : C.border),
-        background: period === id ? C.blue + "18" : C.bg2,
-        color: period === id ? C.blue : C.dim
-      }
-    }, l);
-  }))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: 14,
-      paddingBottom: 30
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      background: "linear-gradient(135deg," + (cleanP >= 0 ? "#0d2d1a" : "#2d0d12") + "," + C.bg2 + ")",
-      border: "1.5px solid " + (cleanP >= 0 ? C.green + "50" : C.red + "50"),
-      borderRadius: 20,
-      padding: 20,
-      marginBottom: 12,
-      textAlign: "center"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 9,
-      fontWeight: 800,
-      letterSpacing: 2.5,
-      color: C.dim,
-      marginBottom: 8
-    }
-  }, "\u0427\u0418\u0421\u0422\u0410\u042F \u041F\u0420\u0418\u0411\u042B\u041B\u042C"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 44,
-      fontWeight: 900,
-      color: cleanP >= 0 ? C.green : C.red,
-      letterSpacing: -2
-    }
-  }, cleanP >= 0 ? "+" : "", fmt(cleanP), " SM"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      color: C.dim,
-      marginTop: 6
-    }
-  }, "GBS ", fmt(totalGbs), " SM \u2212 \u0420\u0430\u0441\u0445\u043E\u0434\u044B ", fmt(totalExp), " SM")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 8,
-      marginBottom: 12
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1,
-      background: C.bg2,
-      border: "1px solid " + C.green + "30",
-      borderRadius: 16,
-      padding: "14px 12px"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 9,
-      fontWeight: 800,
-      color: C.dim,
-      marginBottom: 6
-    }
-  }, "\u0412\u042B\u0420\u0423\u0427\u041A\u0410"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 20,
-      fontWeight: 900,
-      color: C.green
-    }
-  }, fmt(totalRev), " SM")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1,
-      background: C.bg2,
-      border: "1px solid " + C.red + "30",
-      borderRadius: 16,
-      padding: "14px 12px"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 9,
-      fontWeight: 800,
-      color: C.dim,
-      marginBottom: 6
-    }
-  }, "\u0420\u0410\u0421\u0425\u041E\u0414\u042B"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 20,
-      fontWeight: 900,
-      color: C.red
-    }
-  }, "\u2212", fmt(totalExp), " SM"))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      background: C.bg2,
-      border: "1.5px solid " + (cashBal >= 0 ? C.blue + "40" : C.red + "40"),
-      borderRadius: 16,
-      padding: "14px 16px",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between"
-    }
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 9,
-      fontWeight: 800,
-      color: C.dim,
-      marginBottom: 4
-    }
-  }, "\uD83C\uDFE7 \u041D\u0410\u041B\u0418\u0427\u041D\u042B\u0415 \u0412 \u041A\u0410\u0421\u0421\u0415"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 28,
-      fontWeight: 900,
-      color: cashBal >= 0 ? C.blue : C.red
-    }
-  }, fmt(Math.abs(cashBal)), " SM")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 40,
-      opacity: 0.35
-    }
-  }, "\uD83C\uDFE7"))));
+  cash.forEach(function(m) { if (m.type === "add" || m.type === "revenue") cashBal += +m.amount || 0; else cashBal -= +m.amount || 0; });
+  var allExp = diItems.filter(function(i) { return i.expiry_date && (+i.quantity || 0) > 0; });
+  var fifo = calcFifo(allExp, products).filter(function(i) { return i.remaining > 0; });
+  var expired = fifo.filter(function(i) { return dLeft(i.expiry_date) < 0; }).length;
+  var critical = fifo.filter(function(i) { var d = dLeft(i.expiry_date); return d >= 0 && d <= 3; }).length;
+  var dateLabel = new Date(Date.now() + OFF).toLocaleDateString("ru-RU", { weekday: "long", day: "numeric", month: "long" });
+  return React.createElement("div", null, React.createElement("div", { style: { padding: "16px 16px 12px", background: "rgba(9,9,15,.97)", borderBottom: "1px solid " + C.border, position: "sticky", top: 0, zIndex: 50 } }, React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 } }, React.createElement("div", null, React.createElement("div", { style: { fontSize: 9, fontWeight: 800, letterSpacing: 2, color: C.dim, textTransform: "uppercase", marginBottom: 3 } }, dateLabel), React.createElement("div", { style: { fontSize: 22, fontWeight: 900 } }, "🏪 KassaControl")), (expired + critical) > 0 && React.createElement("div", { style: { background: "#f04f5a18", border: "1px solid #f04f5a50", borderRadius: 14, padding: "6px 14px", textAlign: "center" } }, React.createElement("div", { style: { fontSize: 9, color: C.red, fontWeight: 800 } }, "ВНИМАНИЕ"), React.createElement("div", { style: { fontSize: 18, fontWeight: 900, color: C.red } }, "☠ ", expired + critical))), React.createElement("div", { style: { display: "flex", gap: 6 } }, [["day", "День"], ["week", "Неделя"], ["month", "Месяц"], ["all", "Всё"]].map(function(item) { var id = item[0], l = item[1]; return React.createElement("button", { key: id, onClick: function() { return setPeriod(id); }, style: { flex: 1, padding: "8px 4px", borderRadius: 10, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 800, border: "1.5px solid " + (period === id ? C.blue + "60" : C.border), background: period === id ? C.blue + "18" : C.bg2, color: period === id ? C.blue : C.dim } }, l); }))), React.createElement("div", { style: { padding: 14, paddingBottom: 30 } }, React.createElement("div", { style: { background: "linear-gradient(135deg," + (cleanP >= 0 ? "#0d2d1a" : "#2d0d12") + "," + C.bg2 + ")", border: "1.5px solid " + (cleanP >= 0 ? C.green + "50" : C.red + "50"), borderRadius: 20, padding: 20, marginBottom: 12, textAlign: "center" } }, React.createElement("div", { style: { fontSize: 9, fontWeight: 800, letterSpacing: 2.5, color: C.dim, marginBottom: 8 } }, "ЧИСТАЯ ПРИБЫЛЬ"), React.createElement("div", { style: { fontSize: 44, fontWeight: 900, color: cleanP >= 0 ? C.green : C.red, letterSpacing: -2 } }, cleanP >= 0 ? "+" : "", fmt(cleanP), " SM"), React.createElement("div", { style: { fontSize: 12, color: C.dim, marginTop: 6 } }, "GBS ", fmt(totalGbs), " SM − Расходы ", fmt(totalExp), " SM")), React.createElement("div", { style: { display: "flex", gap: 8, marginBottom: 12 } }, React.createElement("div", { style: { flex: 1, background: C.bg2, border: "1px solid " + C.green + "30", borderRadius: 16, padding: "14px 12px" } }, React.createElement("div", { style: { fontSize: 9, fontWeight: 800, color: C.dim, marginBottom: 6 } }, "ВЫРУЧКА"), React.createElement("div", { style: { fontSize: 20, fontWeight: 900, color: C.green } }, fmt(totalRev), " SM")), React.createElement("div", { style: { flex: 1, background: C.bg2, border: "1px solid " + C.red + "30", borderRadius: 16, padding: "14px 12px" } }, React.createElement("div", { style: { fontSize: 9, fontWeight: 800, color: C.dim, marginBottom: 6 } }, "РАСХОДЫ"), React.createElement("div", { style: { fontSize: 20, fontWeight: 900, color: C.red } }, "−", fmt(totalExp), " SM"))), React.createElement("div", { style: { background: C.bg2, border: "1.5px solid " + (cashBal >= 0 ? C.blue + "40" : C.red + "40"), borderRadius: 16, padding: "14px 16px", display: "flex", alignItems: "center", justifyContent: "space-between" } }, React.createElement("div", null, React.createElement("div", { style: { fontSize: 9, fontWeight: 800, color: C.dim, marginBottom: 4 } }, "🏧 НАЛИЧНЫЕ В КАССЕ"), React.createElement("div", { style: { fontSize: 28, fontWeight: 900, color: cashBal >= 0 ? C.blue : C.red } }, fmt(Math.abs(cashBal)), " SM")), React.createElement("div", { style: { fontSize: 40, opacity: 0.35 } }, "🏧"))));
 }
-function Suppliers(_ref14) {
-  var tick = _ref14.tick,
-    toast = _ref14.toast;
-  var _useState3 = useState("list"),
-    _useState4 = _slicedToArray(_useState3, 2),
-    sc = _useState4[0],
-    setSc = _useState4[1];
-  var _useState5 = useState(null),
-    _useState6 = _slicedToArray(_useState5, 2),
-    curS = _useState6[0],
-    setCurS = _useState6[1];
-  var _useState7 = useState(null),
-    _useState8 = _slicedToArray(_useState7, 2),
-    curDel = _useState8[0],
-    setCurDel = _useState8[1];
-  var _useState9 = useState(null),
-    _useState0 = _slicedToArray(_useState9, 2),
-    curDelNum = _useState0[0],
-    setCurDelNum = _useState0[1];
-  if (sc === "add") return /*#__PURE__*/React.createElement(AddSupplier, {
-    onBack: function onBack() {
-      return setSc("list");
-    },
-    onSaved: function onSaved(n) {
-      toast("✓ " + n + " добавлен");
-      setSc("list");
-    }
-  });
-  if (sc === "supplier" && curS) return /*#__PURE__*/React.createElement(SupplierPage, {
-    supplier: curS,
-    onBack: function onBack() {
-      return setSc("list");
-    },
-    onPosting: function onPosting() {
-      return setSc("posting");
-    },
-    onDeleted: function onDeleted() {
-      toast("Удалён");
-      setSc("list");
-    },
-    onViewDel: function onViewDel(d, n) {
-      setCurDel(d);
-      setCurDelNum(n);
-      setSc("delivery");
-    }
-  });
-  if (sc === "posting" && curS) return /*#__PURE__*/React.createElement(Posting, {
-    supplier: curS,
-    onBack: function onBack() {
-      return setSc("supplier");
-    },
-    onSaved: function onSaved(n) {
-      toast("✓ Поставка сохранена");
-      setSc("supplier");
-    }
-  });
-  if (sc === "delivery" && curDel) return /*#__PURE__*/React.createElement(DeliveryDetail, {
-    delivery: curDel,
-    num: curDelNum,
-    onBack: function onBack() {
-      return setSc("supplier");
-    },
-    onDeleted: function onDeleted() {
-      toast("Партия удалена");
-      setSc("supplier");
-    }
-  });
+
+function Suppliers(_ref) {
+  var tick = _ref.tick, toast = _ref.toast;
+  var _useState = React.useState("list"), sc = _useState[0], setSc = _useState[1];
+  var _useState2 = React.useState(null), curS = _useState2[0], setCurS = _useState2[1];
+  var _useState3 = React.useState(null), curDel = _useState3[0], setCurDel = _useState3[1];
+  var _useState4 = React.useState(null), curDelNum = _useState4[0], setCurDelNum = _useState4[1];
+  
+  if (sc === "add") return React.createElement(AddSupplier, { onBack: function() { return setSc("list"); }, onSaved: function(n) { toast("✓ " + n + " добавлен"); setSc("list"); } });
+  if (sc === "supplier" && curS) return React.createElement(SupplierPage, { supplier: curS, onBack: function() { return setSc("list"); }, onPosting: function() { return setSc("posting"); }, onDeleted: function() { toast("Удалён"); setSc("list"); }, onViewDel: function(d, n) { setCurDel(d); setCurDelNum(n); setSc("delivery"); } });
+  if (sc === "posting" && curS) return React.createElement(Posting, { supplier: curS, onBack: function() { return setSc("supplier"); }, onSaved: function(n) { toast("✓ Поставка сохранена"); setSc("supplier"); } });
+  if (sc === "delivery" && curDel) return React.createElement(DeliveryDetail, { delivery: curDel, num: curDelNum, onBack: function() { return setSc("supplier"); }, onDeleted: function() { toast("Партия удалена"); setSc("supplier"); } });
+  
   var suppliers = dbGet("suppliers");
   var deliveries = dbGet("deliveries");
   var cntMap = {};
-  deliveries.forEach(function (d) {
-    cntMap[d.supplier_id] = (cntMap[d.supplier_id] || 0) + 1;
-  });
-  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(Hdr, {
-    title: "\u041F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A\u0438",
-    onAdd: function onAdd() {
-      return setSc("add");
-    }
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: 14,
-      paddingBottom: 30
-    }
-  }, !suppliers.length ? /*#__PURE__*/React.createElement(Empty, {
-    icon: "\uD83D\uDE9A",
-    text: "\u041D\u0430\u0436\u043C\u0438 + \u0447\u0442\u043E\u0431\u044B \u0434\u043E\u0431\u0430\u0432\u0438\u0442\u044C \u043F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A\u0430"
-  }) : suppliers.map(function (s) {
-    return /*#__PURE__*/React.createElement("div", {
-      key: s.id,
-      onClick: function onClick() {
-        setCurS(s);
-        setSc("supplier");
-      },
-      style: {
-        display: "flex",
-        alignItems: "center",
-        gap: 12,
-        padding: "14px 16px",
-        background: C.bg2,
-        border: "1px solid " + C.border,
-        borderRadius: 16,
-        marginBottom: 8,
-        cursor: "pointer"
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        width: 46,
-        height: 46,
-        borderRadius: 13,
-        background: "linear-gradient(135deg,#4466ff,#8844ff)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        fontSize: 17,
-        fontWeight: 900,
-        color: "#fff",
-        flexShrink: 0
-      }
-    }, inits(s.name)), /*#__PURE__*/React.createElement("div", {
-      style: {
-        flex: 1
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 15,
-        fontWeight: 700,
-        marginBottom: 2
-      }
-    }, s.name), /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 12,
-        color: C.dim
-      }
-    }, s.phone || "Нет номера")), cntMap[s.id] > 0 && /*#__PURE__*/React.createElement(Badge, {
-      color: C.blue
-    }, cntMap[s.id], " \u043F\u043E\u0441\u0442."), /*#__PURE__*/React.createElement("div", {
-      style: {
-        color: C.dim,
-        fontSize: 20
-      }
-    }, "\u203A"));
-  })));
+  deliveries.forEach(function(d) { cntMap[d.supplier_id] = (cntMap[d.supplier_id] || 0) + 1; });
+  return React.createElement("div", null, React.createElement(Hdr, { title: "Поставщики", onAdd: function() { return setSc("add"); } }), React.createElement("div", { style: { padding: 14, paddingBottom: 30 } }, !suppliers.length ? React.createElement(Empty, { icon: "🚚", text: "Нажми + чтобы добавить поставщика" }) : suppliers.map(function(s) { return React.createElement("div", { key: s.id, onClick: function() { setCurS(s); setSc("supplier"); }, style: { display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", background: C.bg2, border: "1px solid " + C.border, borderRadius: 16, marginBottom: 8, cursor: "pointer" } }, React.createElement("div", { style: { width: 46, height: 46, borderRadius: 13, background: "linear-gradient(135deg,#4466ff,#8844ff)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17, fontWeight: 900, color: "#fff", flexShrink: 0 } }, inits(s.name)), React.createElement("div", { style: { flex: 1 } }, React.createElement("div", { style: { fontSize: 15, fontWeight: 700, marginBottom: 2 } }, s.name), React.createElement("div", { style: { fontSize: 12, color: C.dim } }, s.phone || "Нет номера")), cntMap[s.id] > 0 && React.createElement(Badge, { color: C.blue }, cntMap[s.id], " пост."), React.createElement("div", { style: { color: C.dim, fontSize: 20 } }, "›")); })));
 }
-function AddSupplier(_ref15) {
-  var onBack = _ref15.onBack,
-    onSaved = _ref15.onSaved;
-  var _useState1 = useState(""),
-    _useState10 = _slicedToArray(_useState1, 2),
-    name = _useState10[0],
-    setName = _useState10[1];
-  var _useState11 = useState(""),
-    _useState12 = _slicedToArray(_useState11, 2),
-    phone = _useState12[0],
-    setPhone = _useState12[1];
-  var save = /*#__PURE__*/function () {
-    var _ref16 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee() {
-      return _regenerator().w(function (_context) {
-        while (1) switch (_context.n) {
-          case 0:
-            if (name.trim()) {
-              _context.n = 1;
-              break;
-            }
-            return _context.a(2);
-          case 1:
-            _context.n = 2;
-            return dbInsert("suppliers", {
-              name: name.trim(),
-              phone: phone.trim()
-            });
-          case 2:
-            onSaved(name.trim());
-          case 3:
-            return _context.a(2);
-        }
-      }, _callee);
-    }));
-    return function save() {
-      return _ref16.apply(this, arguments);
-    };
-  }();
-  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(Hdr, {
-    title: "\u041D\u043E\u0432\u044B\u0439 \u043F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A",
-    sub: "\u041F\u041E\u0421\u0422\u0410\u0412\u041A\u0418",
-    onBack: onBack
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: 14
-    }
-  }, /*#__PURE__*/React.createElement(Card, null, /*#__PURE__*/React.createElement(TI, {
-    label: "\u0418\u041C\u042F",
-    placeholder: "\u0418\u043C\u044F \u043F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A\u0430",
-    value: name,
-    onChange: setName,
-    autoFocus: true
-  }), /*#__PURE__*/React.createElement(TI, {
-    label: "\u0422\u0415\u041B\u0415\u0424\u041E\u041D",
-    type: "tel",
-    placeholder: "+992 XX XXX XXXX",
-    value: phone,
-    onChange: setPhone
-  }), /*#__PURE__*/React.createElement(Btn, {
-    bg: C.green,
-    color: "#051a0e",
-    onClick: save,
-    disabled: !name.trim()
-  }, "\u0421\u043E\u0445\u0440\u0430\u043D\u0438\u0442\u044C"))));
+
+function AddSupplier(_ref) {
+  var onBack = _ref.onBack, onSaved = _ref.onSaved;
+  var _useState = React.useState(""), name = _useState[0], setName = _useState[1];
+  var _useState2 = React.useState(""), phone = _useState2[0], setPhone = _useState2[1];
+  var save = async function() { if (!name.trim()) return; await dbInsert("suppliers", { name: name.trim(), phone: phone.trim() }); onSaved(name.trim()); };
+  return React.createElement("div", null, React.createElement(Hdr, { title: "Новый поставщик", sub: "ПОСТАВКИ", onBack: onBack }), React.createElement("div", { style: { padding: 14 } }, React.createElement(Card, null, React.createElement(TI, { label: "ИМЯ", placeholder: "Имя поставщика", value: name, onChange: setName, autoFocus: true }), React.createElement(TI, { label: "ТЕЛЕФОН", type: "tel", placeholder: "+992 XX XXX XXXX", value: phone, onChange: setPhone }), React.createElement(Btn, { bg: C.green, color: "#051a0e", onClick: save, disabled: !name.trim() }, "Сохранить"))));
 }
-function SupplierPage(_ref17) {
-  var supplier = _ref17.supplier,
-    onBack = _ref17.onBack,
-    onPosting = _ref17.onPosting,
-    onDeleted = _ref17.onDeleted,
-    onViewDel = _ref17.onViewDel;
-  var _useState13 = useState(false),
-    _useState14 = _slicedToArray(_useState13, 2),
-    confirmDel = _useState14[0],
-    setConfirmDel = _useState14[1];
-  var deliveries = dbGet("deliveries").filter(function (d) {
-    return d.supplier_id === supplier.id;
-  }).sort(function (a, b) {
-    return b.created_at.localeCompare(a.created_at);
-  });
+
+function SupplierPage(_ref) {
+  var supplier = _ref.supplier, onBack = _ref.onBack, onPosting = _ref.onPosting, onDeleted = _ref.onDeleted, onViewDel = _ref.onViewDel;
+  var _useState = React.useState(false), confirmDel = _useState[0], setConfirmDel = _useState[1];
+  var deliveries = dbGet("deliveries").filter(function(d) { return d.supplier_id === supplier.id; }).sort(function(a, b) { return b.created_at.localeCompare(a.created_at); });
   var diItems = dbGet("delivery_items");
-  var doDelete = /*#__PURE__*/function () {
-    var _ref18 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee2() {
-      return _regenerator().w(function (_context2) {
-        while (1) switch (_context2.n) {
-          case 0:
-            _context2.n = 1;
-            return sbDel("suppliers", supplier.id);
-          case 1:
-            DB.suppliers = DB.suppliers.filter(function (s) {
-              return s.id !== supplier.id;
-            });
-            pub();
-            onDeleted();
-          case 2:
-            return _context2.a(2);
-        }
-      }, _callee2);
-    }));
-    return function doDelete() {
-      return _ref18.apply(this, arguments);
-    };
-  }();
-  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(Hdr, {
-    title: supplier.name,
-    sub: "\u041F\u041E\u0421\u0422\u0410\u0412\u0429\u0418\u041A",
-    onBack: onBack,
-    onAdd: onPosting
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: 14,
-      paddingBottom: 30
-    }
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: onPosting,
-    style: {
-      width: "100%",
-      padding: 15,
-      borderRadius: 14,
-      background: "linear-gradient(135deg,#4466ff,#6644ff)",
-      border: "none",
-      color: "#fff",
-      fontSize: 16,
-      fontWeight: 900,
-      cursor: "pointer",
-      marginBottom: 14,
-      fontFamily: "inherit"
-    }
-  }, "\uD83D\uDCE6 \u041F\u043E\u0441\u0442\u0443\u043F\u043B\u0435\u043D\u0438\u0435 \u0442\u043E\u0432\u0430\u0440\u0430"), confirmDel && /*#__PURE__*/React.createElement(DelConfirm, {
-    text: "Удалить «" + supplier.name + "»?",
-    onConfirm: doDelete,
-    onCancel: function onCancel() {
-      return setConfirmDel(false);
-    }
-  }), /*#__PURE__*/React.createElement(Btn, {
-    outline: true,
-    onClick: function onClick() {
-      return setConfirmDel(true);
-    },
-    style: {
-      color: C.red,
-      borderColor: C.red + "40",
-      marginBottom: 14
-    }
-  }, "\uD83D\uDDD1 \u0423\u0434\u0430\u043B\u0438\u0442\u044C \u043F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A\u0430"), !deliveries.length ? /*#__PURE__*/React.createElement(Empty, {
-    icon: "\uD83D\uDCCB",
-    text: "\u041F\u043E\u0441\u0442\u0430\u0432\u043E\u043A \u043F\u043E\u043A\u0430 \u043D\u0435\u0442"
-  }) : deliveries.map(function (d, idx) {
-    var items = diItems.filter(function (i) {
-      return i.delivery_id === d.id;
-    });
-    var expI = items.filter(function (i) {
-      return i.expiry_date && dLeft(i.expiry_date) < 0;
-    }).length;
-    var num = deliveries.length - idx;
-    return /*#__PURE__*/React.createElement("div", {
-      key: d.id,
-      onClick: function onClick() {
-        return onViewDel(d, num);
-      },
-      style: {
-        display: "flex",
-        alignItems: "center",
-        gap: 12,
-        padding: "14px 16px",
-        background: C.bg2,
-        border: "1px solid " + (expI > 0 ? C.red + "40" : C.border),
-        borderRadius: 16,
-        marginBottom: 8,
-        cursor: "pointer"
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        background: C.bg3,
-        borderRadius: 12,
-        padding: "8px 12px",
-        textAlign: "center",
-        flexShrink: 0
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 9,
-        fontWeight: 800,
-        color: C.dim
-      }
-    }, "\u041F\u0410\u0420\u0422\u0418\u042F"), /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 20,
-        fontWeight: 900
-      }
-    }, "№" + num)), /*#__PURE__*/React.createElement("div", {
-      style: {
-        flex: 1
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 15,
-        fontWeight: 700,
-        marginBottom: 4
-      }
-    }, fmtD(d.date)), /*#__PURE__*/React.createElement(Badge, {
-      color: C.blue
-    }, items.length, " \u0442\u043E\u0432\u0430\u0440\u043E\u0432"), expI > 0 && /*#__PURE__*/React.createElement(Badge, {
-      color: C.red,
-      style: {
-        marginLeft: 6
-      }
-    }, "\u2620 ", expI)), /*#__PURE__*/React.createElement("div", {
-      style: {
-        color: C.dim,
-        fontSize: 22
-      }
-    }, "\u203A"));
-  })));
+  var doDelete = async function() { await sbDel("suppliers", supplier.id); DB.suppliers = DB.suppliers.filter(function(s) { return s.id !== supplier.id; }); pub(); onDeleted(); };
+  return React.createElement("div", null, React.createElement(Hdr, { title: supplier.name, sub: "ПОСТАВЩИК", onBack: onBack, onAdd: onPosting }), React.createElement("div", { style: { padding: 14, paddingBottom: 30 } }, React.createElement("button", { onClick: onPosting, style: { width: "100%", padding: 15, borderRadius: 14, background: "linear-gradient(135deg,#4466ff,#6644ff)", border: "none", color: "#fff", fontSize: 16, fontWeight: 900, cursor: "pointer", marginBottom: 14, fontFamily: "inherit" } }, "📦 Поступление товара"), confirmDel && React.createElement(DelConfirm, { text: "Удалить «" + supplier.name + "»?", onConfirm: doDelete, onCancel: function() { return setConfirmDel(false); } }), React.createElement(Btn, { outline: true, onClick: function() { return setConfirmDel(true); }, style: { color: C.red, borderColor: C.red + "40", marginBottom: 14 } }, "🗑 Удалить поставщика"), !deliveries.length ? React.createElement(Empty, { icon: "📋", text: "Поставок пока нет" }) : deliveries.map(function(d, idx) { var items = diItems.filter(function(i) { return i.delivery_id === d.id; }); var expI = items.filter(function(i) { return i.expiry_date && dLeft(i.expiry_date) < 0; }).length; var num = deliveries.length - idx; return React.createElement("div", { key: d.id, onClick: function() { return onViewDel(d, num); }, style: { display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", background: C.bg2, border: "1px solid " + (expI > 0 ? C.red + "40" : C.border), borderRadius: 16, marginBottom: 8, cursor: "pointer" } }, React.createElement("div", { style: { background: C.bg3, borderRadius: 12, padding: "8px 12px", textAlign: "center", flexShrink: 0 } }, React.createElement("div", { style: { fontSize: 9, fontWeight: 800, color: C.dim } }, "ПАРТИЯ"), React.createElement("div", { style: { fontSize: 20, fontWeight: 900 } }, "№" + num)), React.createElement("div", { style: { flex: 1 } }, React.createElement("div", { style: { fontSize: 15, fontWeight: 700, marginBottom: 4 } }, fmtD(d.date)), React.createElement(Badge, { color: C.blue }, items.length, " товаров"), expI > 0 && React.createElement(Badge, { color: C.red, style: { marginLeft: 6 } }, "☠ ", expI)), React.createElement("div", { style: { color: C.dim, fontSize: 22 } }, "›")); })));
 }
-function DeliveryDetail(_ref19) {
-  var delivery = _ref19.delivery,
-    num = _ref19.num,
-    onBack = _ref19.onBack,
-    onDeleted = _ref19.onDeleted;
-  var _useState15 = useState(false),
-    _useState16 = _slicedToArray(_useState15, 2),
-    confirmDel = _useState16[0],
-    setConfirmDel = _useState16[1];
-  var items = dbGet("delivery_items").filter(function (i) {
-    return i.delivery_id === delivery.id;
-  });
-  var doDelete = /*#__PURE__*/function () {
-    var _ref20 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee3() {
-      var _iterator, _step, i, _t;
-      return _regenerator().w(function (_context3) {
-        while (1) switch (_context3.p = _context3.n) {
-          case 0:
-            _iterator = _createForOfIteratorHelper(items);
-            _context3.p = 1;
-            _iterator.s();
-          case 2:
-            if ((_step = _iterator.n()).done) {
-              _context3.n = 4;
-              break;
-            }
-            i = _step.value;
-            _context3.n = 3;
-            return sbDel("delivery_items", i.id);
-          case 3:
-            _context3.n = 2;
-            break;
-          case 4:
-            _context3.n = 6;
-            break;
-          case 5:
-            _context3.p = 5;
-            _t = _context3.v;
-            _iterator.e(_t);
-          case 6:
-            _context3.p = 6;
-            _iterator.f();
-            return _context3.f(6);
-          case 7:
-            _context3.n = 8;
-            return sbDel("deliveries", delivery.id);
-          case 8:
-            DB.delivery_items = DB.delivery_items.filter(function (i) {
-              return i.delivery_id !== delivery.id;
-            });
-            DB.deliveries = DB.deliveries.filter(function (d) {
-              return d.id !== delivery.id;
-            });
-            pub();
-            onDeleted();
-          case 9:
-            return _context3.a(2);
-        }
-      }, _callee3, null, [[1, 5, 6, 7]]);
-    }));
-    return function doDelete() {
-      return _ref20.apply(this, arguments);
-    };
-  }();
-  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(Hdr, {
-    title: "Партия №" + num,
-    sub: fmtD(delivery.date).toUpperCase(),
-    onBack: onBack
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: function onClick() {
-      return setConfirmDel(true);
-    },
-    style: {
-      width: 38,
-      height: 38,
-      borderRadius: 11,
-      background: "#f04f5a18",
-      border: "1px solid #f04f5a40",
-      color: C.red,
-      fontSize: 16,
-      cursor: "pointer",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center"
-    }
-  }, "\uD83D\uDDD1")), confirmDel && /*#__PURE__*/React.createElement(DelConfirm, {
-    text: "Партия · " + items.length + " товаров",
-    onConfirm: doDelete,
-    onCancel: function onCancel() {
-      return setConfirmDel(false);
-    }
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: 14,
-      paddingBottom: 30
-    }
-  }, /*#__PURE__*/React.createElement(Card, null, items.map(function (item, i) {
-    var dl = item.expiry_date ? dLeft(item.expiry_date) : null;
-    var ec = dl !== null ? eColor(dl) : C.dim;
-    return /*#__PURE__*/React.createElement("div", {
-      key: item.id,
-      style: {
-        padding: "12px 0",
-        borderBottom: i < items.length - 1 ? "1px solid " + C.border : "none"
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 15,
-        fontWeight: 800,
-        marginBottom: 6
-      }
-    }, item.product_name), /*#__PURE__*/React.createElement("div", {
-      style: {
-        display: "flex",
-        gap: 6,
-        flexWrap: "wrap"
-      }
-    }, /*#__PURE__*/React.createElement(Badge, {
-      color: C.blue
-    }, item.quantity, " ", item.unit), item.expiry_date && /*#__PURE__*/React.createElement(Badge, {
-      color: ec
-    }, "\u0434\u043E ", fmtD(item.expiry_date))));
-  }))));
+
+function DeliveryDetail(_ref) {
+  var delivery = _ref.delivery, num = _ref.num, onBack = _ref.onBack, onDeleted = _ref.onDeleted;
+  var _useState = React.useState(false), confirmDel = _useState[0], setConfirmDel = _useState[1];
+  var items = dbGet("delivery_items").filter(function(i) { return i.delivery_id === delivery.id; });
+  var doDelete = async function() { for (var i = 0; i < items.length; i++) { await sbDel("delivery_items", items[i].id); } await sbDel("deliveries", delivery.id); DB.delivery_items = DB.delivery_items.filter(function(i) { return i.delivery_id !== delivery.id; }); DB.deliveries = DB.deliveries.filter(function(d) { return d.id !== delivery.id; }); pub(); onDeleted(); };
+  return React.createElement("div", null, React.createElement(Hdr, { title: "Партия №" + num, sub: fmtD(delivery.date).toUpperCase(), onBack: onBack }, React.createElement("button", { onClick: function() { return setConfirmDel(true); }, style: { width: 38, height: 38, borderRadius: 11, background: "#f04f5a18", border: "1px solid #f04f5a40", color: C.red, fontSize: 16, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" } }, "🗑")), confirmDel && React.createElement(DelConfirm, { text: "Партия · " + items.length + " товаров", onConfirm: doDelete, onCancel: function() { return setConfirmDel(false); } }), React.createElement("div", { style: { padding: 14, paddingBottom: 30 } }, React.createElement(Card, null, items.map(function(item, i) { var dl = item.expiry_date ? dLeft(item.expiry_date) : null; var ec = dl !== null ? eColor(dl) : C.dim; return React.createElement("div", { key: item.id, style: { padding: "12px 0", borderBottom: i < items.length - 1 ? "1px solid " + C.border : "none" } }, React.createElement("div", { style: { fontSize: 15, fontWeight: 800, marginBottom: 6 } }, item.product_name), React.createElement("div", { style: { display: "flex", gap: 6, flexWrap: "wrap" } }, React.createElement(Badge, { color: C.blue }, item.quantity, " ", item.unit), item.expiry_date && React.createElement(Badge, { color: ec }, "до ", fmtD(item.expiry_date))); }))));
 }
-function Posting(_ref21) {
-  var supplier = _ref21.supplier,
-    onBack = _ref21.onBack,
-    onSaved = _ref21.onSaved;
-  var _useState17 = useState(tod()),
-    _useState18 = _slicedToArray(_useState17, 2),
-    date = _useState18[0],
-    setDate = _useState18[1];
-  var _useState19 = useState(""),
-    _useState20 = _slicedToArray(_useState19, 2),
-    search = _useState20[0],
-    setSearch = _useState20[1];
-  var _useState21 = useState(null),
-    _useState22 = _slicedToArray(_useState21, 2),
-    selected = _useState22[0],
-    setSelected = _useState22[1];
-  var _useState23 = useState(""),
-    _useState24 = _slicedToArray(_useState23, 2),
-    qty = _useState24[0],
-    setQty = _useState24[1];
-  var _useState25 = useState(""),
-    _useState26 = _slicedToArray(_useState25, 2),
-    expiry = _useState26[0],
-    setExpiry = _useState26[1];
-  var _useState27 = useState([]),
-    _useState28 = _slicedToArray(_useState27, 2),
-    addedItems = _useState28[0],
-    setAddedItems = _useState28[1];
-  var _useState29 = useState(""),
-    _useState30 = _slicedToArray(_useState29, 2),
-    err = _useState30[0],
-    setErr = _useState30[1];
+
+function Posting(_ref) {
+  var supplier = _ref.supplier, onBack = _ref.onBack, onSaved = _ref.onSaved;
+  var _useState = React.useState(tod()), date = _useState[0], setDate = _useState[1];
+  var _useState2 = React.useState(""), search = _useState2[0], setSearch = _useState2[1];
+  var _useState3 = React.useState(null), selected = _useState3[0], setSelected = _useState3[1];
+  var _useState4 = React.useState(""), qty = _useState4[0], setQty = _useState4[1];
+  var _useState5 = React.useState(""), expiry = _useState5[0], setExpiry = _useState5[1];
+  var _useState6 = React.useState([]), addedItems = _useState6[0], setAddedItems = _useState6[1];
+  var _useState7 = React.useState(""), err = _useState7[0], setErr = _useState7[1];
   var catalog = dbGet("products");
-  var results = search.trim().length >= 1 ? catalog.filter(function (p) {
-    return p.name.toLowerCase().includes(search.toLowerCase()) || p.barcode && p.barcode.includes(search);
-  }).slice(0, 8) : [];
-  var addToList = function addToList() {
-    if (!qty || +qty <= 0) {
-      setErr("Введите количество");
-      return;
-    }
-    setAddedItems(function (p) {
-      return [].concat(_toConsumableArray(p), [{
-        id: uid(),
-        product_id: selected.id,
-        name: selected.name,
-        barcode: selected.barcode,
-        qty: +qty,
-        unit: selected.unit,
-        category: selected.category,
-        expiry: expiry || null
-      }]);
-    });
-    setSelected(null);
-    setQty("");
-    setExpiry("");
-    setErr("");
-  };
-  var saveAll = /*#__PURE__*/function () {
-    var _ref22 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee4() {
-      var del;
-      return _regenerator().w(function (_context4) {
-        while (1) switch (_context4.n) {
-          case 0:
-            if (addedItems.length) {
-              _context4.n = 1;
-              break;
-            }
-            return _context4.a(2);
-          case 1:
-            _context4.n = 2;
-            return dbInsert("deliveries", {
-              supplier_id: supplier.id,
-              supplier_name: supplier.name,
-              date: date
-            });
-          case 2:
-            del = _context4.v;
-            _context4.n = 3;
-            return dbInsertMany("delivery_items", addedItems.map(function (item) {
-              return {
-                delivery_id: del.id,
-                product_name: item.name,
-                barcode: item.barcode,
-                quantity: item.qty,
-                unit: item.unit,
-                category: item.category,
-                expiry_date: item.expiry || null
-              };
-            }));
-          case 3:
-            onSaved(addedItems.length);
-          case 4:
-            return _context4.a(2);
-        }
-      }, _callee4);
-    }));
-    return function saveAll() {
-      return _ref22.apply(this, arguments);
-    };
-  }();
-  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(Hdr, {
-    title: "\u041F\u043E\u0441\u0442\u0443\u043F\u043B\u0435\u043D\u0438\u0435",
-    sub: supplier.name.toUpperCase(),
-    onBack: onBack
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: 14,
-      paddingBottom: 30
-    }
-  }, /*#__PURE__*/React.createElement(Card, null, /*#__PURE__*/React.createElement(TI, {
-    label: "\u0414\u0410\u0422\u0410",
-    type: "date",
-    value: date,
-    onChange: setDate
-  })), !selected ? /*#__PURE__*/React.createElement(Card, {
-    style: {
-      background: C.bg3,
-      border: "1px solid #4466ff30"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      fontWeight: 800,
-      letterSpacing: 2,
-      color: C.blue,
-      marginBottom: 10
-    }
-  }, "\uD83D\uDD0D \u041F\u041E\u0418\u0421\u041A \u0422\u041E\u0412\u0410\u0420\u0410"), /*#__PURE__*/React.createElement("input", {
-    value: search,
-    onChange: function onChange(e) {
-      return setSearch(e.target.value);
-    },
-    placeholder: "\u041D\u0430\u0437\u0432\u0430\u043D\u0438\u0435 \u0438\u043B\u0438 \u0448\u0442\u0440\u0438\u0445\u043A\u043E\u0434...",
-    autoFocus: true,
-    style: {
-      width: "100%",
-      background: C.bg,
-      border: "1.5px solid #4466ff40",
-      borderRadius: 12,
-      padding: "14px 16px",
-      color: C.text,
-      fontSize: 15,
-      outline: "none"
-    }
-  }), search.trim().length >= 1 && (results.length ? results.map(function (p) {
-    return /*#__PURE__*/React.createElement("div", {
-      key: p.id,
-      onClick: function onClick() {
-        setSelected(p);
-        setSearch("");
-      },
-      style: {
-        display: "flex",
-        alignItems: "center",
-        gap: 10,
-        padding: "11px 12px",
-        background: C.bg2,
-        borderRadius: 11,
-        marginTop: 6,
-        cursor: "pointer",
-        border: "1px solid " + C.border
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        flex: 1
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 14,
-        fontWeight: 700
-      }
-    }, p.name), /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 11,
-        color: C.dim
-      }
-    }, p.category, p.barcode ? " · " + p.barcode : "")), /*#__PURE__*/React.createElement("div", {
-      style: {
-        color: C.blue,
-        fontSize: 20
-      }
-    }, "+"));
-  }) : /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      color: C.dim,
-      textAlign: "center",
-      padding: "10px 0"
-    }
-  }, "\u041D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D"))) : /*#__PURE__*/React.createElement(Card, {
-    style: {
-      border: "1.5px solid #4466ff50",
-      background: C.bg3
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 10,
-      paddingBottom: 14,
-      borderBottom: "1px solid " + C.border,
-      marginBottom: 14
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 15,
-      fontWeight: 800
-    }
-  }, selected.name)), /*#__PURE__*/React.createElement("button", {
-    onClick: function onClick() {
-      return setSelected(null);
-    },
-    style: {
-      background: "none",
-      border: "none",
-      color: C.dim,
-      fontSize: 22,
-      cursor: "pointer"
-    }
-  }, "\u2715")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 8
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1
-    }
-  }, /*#__PURE__*/React.createElement(FL, null, "\u041A\u041E\u041B-\u0412\u041E"), /*#__PURE__*/React.createElement("input", {
-    type: "number",
-    autoFocus: true,
-    placeholder: "0",
-    value: qty,
-    onChange: function onChange(e) {
-      setQty(e.target.value);
-      setErr("");
-    },
-    style: {
-      width: "100%",
-      background: C.bg,
-      border: "1px solid " + C.border,
-      borderRadius: 12,
-      padding: "13px 16px",
-      color: C.text,
-      fontSize: 20,
-      fontWeight: 800,
-      outline: "none"
-    }
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1
-    }
-  }, /*#__PURE__*/React.createElement(FL, null, "\u0421\u0420\u041E\u041A \u0413\u041E\u0414\u041D\u041E\u0421\u0422\u0418"), /*#__PURE__*/React.createElement("input", {
-    type: "date",
-    value: expiry,
-    onChange: function onChange(e) {
-      return setExpiry(e.target.value);
-    },
-    style: {
-      width: "100%",
-      background: C.bg,
-      border: "1px solid " + C.border,
-      borderRadius: 12,
-      padding: "13px 14px",
-      color: C.text,
-      fontSize: 14,
-      outline: "none"
-    }
-  }))), err && /*#__PURE__*/React.createElement("div", {
-    style: {
-      color: C.red,
-      fontSize: 12,
-      marginTop: 8
-    }
-  }, err), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 8,
-      marginTop: 12
-    }
-  }, /*#__PURE__*/React.createElement(Btn, {
-    outline: true,
-    onClick: function onClick() {
-      return setSelected(null);
-    },
-    style: {
-      width: 52,
-      flex: "none",
-      padding: "14px 0"
-    }
-  }, "\u2190"), /*#__PURE__*/React.createElement(Btn, {
-    bg: C.blue,
-    onClick: addToList,
-    style: {
-      flex: 1
-    }
-  }, "+ \u0414\u043E\u0431\u0430\u0432\u0438\u0442\u044C"))), addedItems.length > 0 && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(SecLabel, null, "\u0414\u043E\u0431\u0430\u0432\u043B\u0435\u043D\u043E \xB7 ", addedItems.length), addedItems.map(function (item, i) {
-    return /*#__PURE__*/React.createElement("div", {
-      key: item.id,
-      style: {
-        display: "flex",
-        alignItems: "center",
-        gap: 10,
-        padding: "12px 14px",
-        background: C.bg2,
-        border: "1px solid " + C.border,
-        borderRadius: 14,
-        marginBottom: 8
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        flex: 1
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 14,
-        fontWeight: 700
-      }
-    }, item.name), /*#__PURE__*/React.createElement(Badge, {
-      color: C.blue
-    }, item.qty, " ", item.unit)), /*#__PURE__*/React.createElement("button", {
-      onClick: function onClick() {
-        return setAddedItems(function (p) {
-          return p.filter(function (_, j) {
-            return j !== i;
-          });
-        });
-      },
-      style: {
-        background: "none",
-        border: "none",
-        color: C.dim,
-        fontSize: 20,
-        cursor: "pointer"
-      }
-    }, "\u2715"));
-  }), /*#__PURE__*/React.createElement(Btn, {
-    bg: C.green,
-    color: "#051a0e",
-    onClick: saveAll,
-    style: {
-      marginTop: 8
-    }
-  }, "\u2713 \u0421\u043E\u0445\u0440\u0430\u043D\u0438\u0442\u044C \u043F\u043E\u0441\u0442\u0430\u0432\u043A\u0443 \xB7 ", addedItems.length, " \u0442\u043E\u0432\u0430\u0440\u043E\u0432"))));
+  var results = search.trim().length >= 1 ? catalog.filter(function(p) { return p.name.toLowerCase().includes(search.toLowerCase()) || (p.barcode && p.barcode.includes(search)); }).slice(0, 8) : [];
+  var addToList = function() { if (!qty || +qty <= 0) { setErr("Введите количество"); return; } setAddedItems(function(p) { return p.concat([{ id: uid(), product_id: selected.id, name: selected.name, barcode: selected.barcode, qty: +qty, unit: selected.unit, category: selected.category, expiry: expiry || null }]); }); setSelected(null); setQty(""); setExpiry(""); setErr(""); };
+  var saveAll = async function() { if (!addedItems.length) return; var del = await dbInsert("deliveries", { supplier_id: supplier.id, supplier_name: supplier.name, date: date }); await dbInsertMany("delivery_items", addedItems.map(function(item) { return { delivery_id: del.id, product_name: item.name, barcode: item.barcode, quantity: item.qty, unit: item.unit, category: item.category, expiry_date: item.expiry || null }; })); onSaved(addedItems.length); };
+  return React.createElement("div", null, React.createElement(Hdr, { title: "Поступление", sub: supplier.name.toUpperCase(), onBack: onBack }), React.createElement("div", { style: { padding: 14, paddingBottom: 30 } }, React.createElement(Card, null, React.createElement(TI, { label: "ДАТА", type: "date", value: date, onChange: setDate })), !selected ? React.createElement(Card, { style: { background: C.bg3, border: "1px solid #4466ff30" } }, React.createElement("div", { style: { fontSize: 11, fontWeight: 800, letterSpacing: 2, color: C.blue, marginBottom: 10 } }, "🔍 ПОИСК ТОВАРА"), React.createElement("input", { value: search, onChange: function(e) { return setSearch(e.target.value); }, placeholder: "Название или штрихкод...", autoFocus: true, style: { width: "100%", background: C.bg, border: "1.5px solid #4466ff40", borderRadius: 12, padding: "14px 16px", color: C.text, fontSize: 15, outline: "none" } }), search.trim().length >= 1 && (results.length ? results.map(function(p) { return React.createElement("div", { key: p.id, onClick: function() { setSelected(p); setSearch(""); }, style: { display: "flex", alignItems: "center", gap: 10, padding: "11px 12px", background: C.bg2, borderRadius: 11, marginTop: 6, cursor: "pointer", border: "1px solid " + C.border } }, React.createElement("div", { style: { flex: 1 } }, React.createElement("div", { style: { fontSize: 14, fontWeight: 700 } }, p.name), React.createElement("div", { style: { fontSize: 11, color: C.dim } }, p.category, p.barcode ? " · " + p.barcode : "")), React.createElement("div", { style: { color: C.blue, fontSize: 20 } }, "+")); }) : React.createElement("div", { style: { fontSize: 12, color: C.dim, textAlign: "center", padding: "10px 0" } }, "Не найден"))) : React.createElement(Card, { style: { border: "1.5px solid #4466ff50", background: C.bg3 } }, React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 10, paddingBottom: 14, borderBottom: "1px solid " + C.border, marginBottom: 14 } }, React.createElement("div", { style: { flex: 1 } }, React.createElement("div", { style: { fontSize: 15, fontWeight: 800 } }, selected.name)), React.createElement("button", { onClick: function() { return setSelected(null); }, style: { background: "none", border: "none", color: C.dim, fontSize: 22, cursor: "pointer" } }, "✕")), React.createElement("div", { style: { display: "flex", gap: 8 } }, React.createElement("div", { style: { flex: 1 } }, React.createElement(FL, null, "КОЛ-ВО"), React.createElement("input", { type: "number", autoFocus: true, placeholder: "0", value: qty, onChange: function(e) { setQty(e.target.value); setErr(""); }, style: { width: "100%", background: C.bg, border: "1px solid " + C.border, borderRadius: 12, padding: "13px 16px", color: C.text, fontSize: 20, fontWeight: 800, outline: "none" } })), React.createElement("div", { style: { flex: 1 } }, React.createElement(FL, null, "СРОК ГОДНОСТИ"), React.createElement("input", { type: "date", value: expiry, onChange: function(e) { return setExpiry(e.target.value); }, style: { width: "100%", background: C.bg, border: "1px solid " + C.border, borderRadius: 12, padding: "13px 14px", color: C.text, fontSize: 14, outline: "none" } }))), err && React.createElement("div", { style: { color: C.red, fontSize: 12, marginTop: 8 } }, err), React.createElement("div", { style: { display: "flex", gap: 8, marginTop: 12 } }, React.createElement(Btn, { outline: true, onClick: function() { return setSelected(null); }, style: { width: 52, flex: "none", padding: "14px 0" } }, "←"), React.createElement(Btn, { bg: C.blue, onClick: addToList, style: { flex: 1 } }, "+ Добавить"))), addedItems.length > 0 && React.createElement("div", null, React.createElement(SecLabel, null, "Добавлено · ", addedItems.length), addedItems.map(function(item, i) { return React.createElement("div", { key: item.id, style: { display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", background: C.bg2, border: "1px solid " + C.border, borderRadius: 14, marginBottom: 8 } }, React.createElement("div", { style: { flex: 1 } }, React.createElement("div", { style: { fontSize: 14, fontWeight: 700 } }, item.name), React.createElement(Badge, { color: C.blue }, item.qty, " ", item.unit)), React.createElement("button", { onClick: function() { return setAddedItems(function(p) { return p.filter(function(_, j) { return j !== i; }); }); }, style: { background: "none", border: "none", color: C.dim, fontSize: 20, cursor: "pointer" } }, "✕")); }), React.createElement(Btn, { bg: C.green, color: "#051a0e", onClick: saveAll, style: { marginTop: 8 } }, "✓ Сохранить поставку · ", addedItems.length, " товаров"))));
 }
-function Expiry(_ref23) {
-  var tick = _ref23.tick;
-  var _useState31 = useState("all"),
-    _useState32 = _slicedToArray(_useState31, 2),
-    filter = _useState32[0],
-    setFilter = _useState32[1];
-  var _useState33 = useState({}),
-    _useState34 = _slicedToArray(_useState33, 2),
-    writeOff = _useState34[0],
-    setWriteOff = _useState34[1];
-  var doWriteOff = /*#__PURE__*/function () {
-    var _ref24 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee5(item, qty) {
-      var nq, idx;
-      return _regenerator().w(function (_context5) {
-        while (1) switch (_context5.n) {
-          case 0:
-            nq = Math.max(0, (+item.quantity || 0) - (+qty || 0));
-            _context5.n = 1;
-            return sbPatch("delivery_items", item.id, {
-              quantity: nq
-            });
-          case 1:
-            idx = DB.delivery_items.findIndex(function (i) {
-              return i.id === item.id;
-            });
-            if (idx >= 0) DB.delivery_items[idx] = _objectSpread(_objectSpread({}, DB.delivery_items[idx]), {}, {
-              quantity: nq
-            });
-            setWriteOff(function (p) {
-              return _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, item.id, ""));
-            });
-            pub();
-          case 2:
-            return _context5.a(2);
-        }
-      }, _callee5);
-    }));
-    return function doWriteOff(_x7, _x8) {
-      return _ref24.apply(this, arguments);
-    };
-  }();
-  var allItems = dbGet("delivery_items").filter(function (i) {
-    return i.expiry_date && (+i.quantity || 0) > 0;
-  });
+
+function Expiry(_ref) {
+  var tick = _ref.tick;
+  var _useState = React.useState("all"), filter = _useState[0], setFilter = _useState[1];
+  var _useState2 = React.useState({}), writeOff = _useState2[0], setWriteOff = _useState2[1];
+  var doWriteOff = async function(item, qty) { var nq = Math.max(0, (+item.quantity || 0) - (+qty || 0)); await sbPatch("delivery_items", item.id, { quantity: nq }); var idx = DB.delivery_items.findIndex(function(i) { return i.id === item.id; }); if (idx >= 0) DB.delivery_items[idx] = Object.assign({}, DB.delivery_items[idx], { quantity: nq }); setWriteOff(function(p) { return Object.assign({}, p, { [item.id]: "" }); }); pub(); };
+  var allItems = dbGet("delivery_items").filter(function(i) { return i.expiry_date && (+i.quantity || 0) > 0; });
   var products = dbGet("products");
-  var enriched = calcFifo(allItems, products).filter(function (i) {
-    return i.remaining > 0;
-  }).map(function (i) {
-    return _objectSpread(_objectSpread({}, i), {}, {
-      days: dLeft(i.expiry_date)
-    });
-  });
-  var counts = {
-    all: enriched.length,
-    expired: enriched.filter(function (i) {
-      return i.days < 0;
-    }).length,
-    critical: enriched.filter(function (i) {
-      return i.days >= 0 && i.days <= 3;
-    }).length
-  };
-  var filtered = enriched.filter(function (i) {
-    return filter === "all" ? true : filter === "expired" ? i.days < 0 : filter === "critical" ? i.days >= 0 && i.days <= 3 : filter === "week" ? i.days >= 0 && i.days <= 7 : true;
-  }).sort(function (a, b) {
-    return a.days - b.days;
-  });
-  var FILTERS = [{
-    id: "all",
-    l: "Все (" + counts.all + ")"
-  }, {
-    id: "expired",
-    l: "☠ Просрочено" + (counts.expired ? " (" + counts.expired + ")" : "")
-  }, {
-    id: "critical",
-    l: "⚠ До 3 дней" + (counts.critical ? " (" + counts.critical + ")" : " ")
-  }, {
-    id: "week",
-    l: "До 7 дней"
-  }];
-  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(Hdr, {
-    title: "\u0421\u0440\u043E\u043A\u0438 \u0433\u043E\u0434\u043D\u043E\u0441\u0442\u0438"
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: 14,
-      paddingBottom: 30
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 7,
-      overflowX: "auto",
-      paddingBottom: 4,
-      marginBottom: 14
-    }
-  }, FILTERS.map(function (f) {
-    return /*#__PURE__*/React.createElement("button", {
-      key: f.id,
-      onClick: function onClick() {
-        return setFilter(f.id);
-      },
-      style: {
-        padding: "8px 14px",
-        borderRadius: 22,
-        cursor: "pointer",
-        fontFamily: "inherit",
-        fontSize: 12,
-        fontWeight: 800,
-        whiteSpace: "nowrap",
-        flexShrink: 0,
-        border: "1.5px solid " + (filter === f.id ? C.blue + "80" : C.border),
-        background: filter === f.id ? C.blue + "18" : C.bg2,
-        color: filter === f.id ? C.blue : C.dim
-      }
-    }, f.l);
-  })), !filtered.length ? /*#__PURE__*/React.createElement(Empty, {
-    icon: "\u2705",
-    text: "\u0412\u0441\u0451 \u0432 \u043D\u043E\u0440\u043C\u0435"
-  }) : filtered.map(function (item) {
-    var st = {
-      color: eColor(item.days),
-      label: eText(item.days)
-    };
-    return /*#__PURE__*/React.createElement("div", {
-      key: item.id,
-      style: {
-        background: C.bg2,
-        border: "1px solid " + (item.days < 0 ? C.red + "35" : item.days <= 3 ? C.orange + "35" : C.border),
-        borderRadius: 18,
-        marginBottom: 10,
-        overflow: "hidden",
-        display: "flex"
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        width: 4,
-        background: st.color + "cc",
-        flexShrink: 0
-      }
-    }), /*#__PURE__*/React.createElement("div", {
-      style: {
-        flex: 1,
-        padding: "14px 16px"
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        display: "flex",
-        alignItems: "flex-start",
-        justifyContent: "space-between",
-        gap: 10,
-        marginBottom: 8
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        flex: 1
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 16,
-        fontWeight: 800,
-        marginBottom: 3
-      }
-    }, item.product_name), item.barcode && /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 11,
-        color: C.dim
-      }
-    }, item.barcode)), /*#__PURE__*/React.createElement("div", {
-      style: {
-        flexShrink: 0,
-        textAlign: "right"
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 13,
-        fontWeight: 900,
-        color: st.color
-      }
-    }, Math.abs(item.days), " \u0434\u043D."))), /*#__PURE__*/React.createElement("div", {
-      style: {
-        display: "flex",
-        gap: 6,
-        marginBottom: 10
-      }
-    }, /*#__PURE__*/React.createElement(Badge, {
-      color: C.blue
-    }, item.remaining || item.quantity, " ", item.unit)), /*#__PURE__*/React.createElement("div", {
-      style: {
-        background: C.bg3,
-        borderRadius: 12,
-        padding: "10px 14px",
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center"
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 13,
-        fontWeight: 700,
-        color: C.muted
-      }
-    }, "\u0434\u043E ", fmtD(item.expiry_date)), /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 12,
-        fontWeight: 900,
-        padding: "4px 12px",
-        borderRadius: 10,
-        background: st.color + "20",
-        color: st.color,
-        border: "1px solid " + st.color + "40"
-      }
-    }, st.label)), item.days < 0 && /*#__PURE__*/React.createElement("div", {
-      style: {
-        marginTop: 10,
-        display: "flex",
-        gap: 8,
-        alignItems: "center"
-      }
-    }, /*#__PURE__*/React.createElement("input", {
-      type: "number",
-      placeholder: "макс. " + (item.remaining || item.quantity),
-      value: writeOff[item.id] || "",
-      onChange: function onChange(e) {
-        return setWriteOff(function (p) {
-          return _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, item.id, e.target.value));
-        });
-      },
-      style: {
-        flex: 1,
-        background: C.bg,
-        border: "1.5px solid " + C.red + "40",
-        borderRadius: 10,
-        padding: "9px 12px",
-        color: C.text,
-        fontSize: 15,
-        fontWeight: 800,
-        outline: "none",
-        fontFamily: "inherit"
-      }
-    }), /*#__PURE__*/React.createElement("button", {
-      onClick: function onClick() {
-        var q = +(writeOff[item.id] || 0);
-        if (q > 0) doWriteOff(item, q);
-      },
-      style: {
-        flexShrink: 0,
-        padding: "10px 16px",
-        borderRadius: 10,
-        background: C.red + "20",
-        border: "1px solid " + C.red + "40",
-        color: C.red,
-        fontSize: 13,
-        fontWeight: 800,
-        cursor: "pointer",
-        fontFamily: "inherit"
-      }
-    }, "\u0421\u043F\u0438\u0441\u0430\u0442\u044C"), /*#__PURE__*/React.createElement("button", {
-      onClick: function onClick() {
-        return doWriteOff(item, item.remaining || item.quantity);
-      },
-      style: {
-        flexShrink: 0,
-        padding: "10px 14px",
-        borderRadius: 10,
-        background: "#f04f5a30",
-        border: "1px solid " + C.red + "60",
-        color: C.red,
-        fontSize: 12,
-        fontWeight: 800,
-        cursor: "pointer",
-        fontFamily: "inherit"
-      }
-    }, "\u0412\u0441\u0451"))));
-  })));
+  var enriched = calcFifo(allItems, products).filter(function(i) { return i.remaining > 0; }).map(function(i) { return Object.assign({}, i, { days: dLeft(i.expiry_date) }); });
+  var counts = { all: enriched.length, expired: enriched.filter(function(i) { return i.days < 0; }).length, critical: enriched.filter(function(i) { return i.days >= 0 && i.days <= 3; }).length };
+  var filtered = enriched.filter(function(i) { return filter === "all" ? true : filter === "expired" ? i.days < 0 : filter === "critical" ? i.days >= 0 && i.days <= 3 : filter === "week" ? i.days >= 0 && i.days <= 7 : true; }).sort(function(a, b) { return a.days - b.days; });
+  var FILTERS = [{ id: "all", l: "Все (" + counts.all + ")" }, { id: "expired", l: "☠ Просрочено" + (counts.expired ? " (" + counts.expired + ")" : "") }, { id: "critical", l: "⚠ До 3 дней" + (counts.critical ? " (" + counts.critical + ")" : " ") }, { id: "week", l: "До 7 дней" }];
+  return React.createElement("div", null, React.createElement(Hdr, { title: "Сроки годности" }), React.createElement("div", { style: { padding: 14, paddingBottom: 30 } }, React.createElement("div", { style: { display: "flex", gap: 7, overflowX: "auto", paddingBottom: 4, marginBottom: 14 } }, FILTERS.map(function(f) { return React.createElement("button", { key: f.id, onClick: function() { return setFilter(f.id); }, style: { padding: "8px 14px", borderRadius: 22, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 800, whiteSpace: "nowrap", flexShrink: 0, border: "1.5px solid " + (filter === f.id ? C.blue + "80" : C.border), background: filter === f.id ? C.blue + "18" : C.bg2, color: filter === f.id ? C.blue : C.dim } }, f.l); })), !filtered.length ? React.createElement(Empty, { icon: "✅", text: "Всё в норме" }) : filtered.map(function(item) { var st = { color: eColor(item.days), label: eText(item.days) }; return React.createElement("div", { key: item.id, style: { background: C.bg2, border: "1px solid " + (item.days < 0 ? C.red + "35" : item.days <= 3 ? C.orange + "35" : C.border), borderRadius: 18, marginBottom: 10, overflow: "hidden", display: "flex" } }, React.createElement("div", { style: { width: 4, background: st.color + "cc", flexShrink: 0 } }), React.createElement("div", { style: { flex: 1, padding: "14px 16px" } }, React.createElement("div", { style: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10, marginBottom: 8 } }, React.createElement("div", { style: { flex: 1 } }, React.createElement("div", { style: { fontSize: 16, fontWeight: 800, marginBottom: 3 } }, item.product_name), item.barcode && React.createElement("div", { style: { fontSize: 11, color: C.dim } }, item.barcode)), React.createElement("div", { style: { flexShrink: 0, textAlign: "right" } }, React.createElement("div", { style: { fontSize: 13, fontWeight: 900, color: st.color } }, Math.abs(item.days), " дн."))), React.createElement("div", { style: { display: "flex", gap: 6, marginBottom: 10 } }, React.createElement(Badge, { color: C.blue }, item.remaining || item.quantity, " ", item.unit)), React.createElement("div", { style: { background: C.bg3, borderRadius: 12, padding: "10px 14px", display: "flex", justifyContent: "space-between", alignItems: "center" } }, React.createElement("div", { style: { fontSize: 13, fontWeight: 700, color: C.muted } }, "до ", fmtD(item.expiry_date)), React.createElement("div", { style: { fontSize: 12, fontWeight: 900, padding: "4px 12px", borderRadius: 10, background: st.color + "20", color: st.color, border: "1px solid " + st.color + "40" } }, st.label)), item.days < 0 && React.createElement("div", { style: { marginTop: 10, display: "flex", gap: 8, alignItems: "center" } }, React.createElement("input", { type: "number", placeholder: "макс. " + (item.remaining || item.quantity), value: writeOff[item.id] || "", onChange: function(e) { return setWriteOff(function(p) { return Object.assign({}, p, { [item.id]: e.target.value }); }); }, style: { flex: 1, background: C.bg, border: "1.5px solid " + C.red + "40", borderRadius: 10, padding: "9px 12px", color: C.text, fontSize: 15, fontWeight: 800, outline: "none", fontFamily: "inherit" } }), React.createElement("button", { onClick: function() { var q = +(writeOff[item.id] || 0); if (q > 0) doWriteOff(item, q); }, style: { flexShrink: 0, padding: "10px 16px", borderRadius: 10, background: C.red + "20", border: "1px solid " + C.red + "40", color: C.red, fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" } }, "Списать"), React.createElement("button", { onClick: function() { return doWriteOff(item, item.remaining || item.quantity); }, style: { flexShrink: 0, padding: "10px 14px", borderRadius: 10, background: "#f04f5a30", border: "1px solid " + C.red + "60", color: C.red, fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" } }, "Всё")))); })));
 }
-function Revision(_ref25) {
-  var tick = _ref25.tick,
-    toast = _ref25.toast;
-  var _useState35 = useState("list"),
-    _useState36 = _slicedToArray(_useState35, 2),
-    sc = _useState36[0],
-    setSc = _useState36[1];
-  var _useState37 = useState(null),
-    _useState38 = _slicedToArray(_useState37, 2),
-    curRev = _useState38[0],
-    setCurRev = _useState38[1];
-  if (sc === "new") return /*#__PURE__*/React.createElement(NewRevision, {
-    onBack: function onBack() {
-      return setSc("list");
-    },
-    onSaved: function onSaved() {
-      toast("✓ Ревизия сохранена");
-      setSc("list");
-    }
-  });
-  if (sc === "view" && curRev) return /*#__PURE__*/React.createElement(RevisionView, {
-    revision: curRev,
-    onBack: function onBack() {
-      return setSc("list");
-    },
-    onDeleted: function onDeleted() {
-      toast("Ревизия удалена");
-      setSc("list");
-    }
-  });
-  var revisions = _toConsumableArray(dbGet("revisions")).sort(function (a, b) {
-    return b.created_at.localeCompare(a.created_at);
-  });
-  var riAll = dbGet("revision_items");
-  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(Hdr, {
-    title: "\u0420\u0435\u0432\u0438\u0437\u0438\u044F",
-    onAdd: function onAdd() {
-      return setSc("new");
-    }
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: 14,
-      paddingBottom: 30
-    }
-  }, !revisions.length ? /*#__PURE__*/React.createElement(Empty, {
-    icon: "\uD83D\uDCE6",
-    text: "\u041D\u0430\u0436\u043C\u0438 + \u0447\u0442\u043E\u0431\u044B \u043D\u0430\u0447\u0430\u0442\u044C \u0440\u0435\u0432\u0438\u0437\u0438\u044E"
-  }) : revisions.map(function (rev) {
-    var items = riAll.filter(function (i) {
-      return i.revision_id === rev.id;
-    });
-    var short = items.filter(function (i) {
-      return i.actual !== null && i.actual < i.expected;
-    }).length;
-    return /*#__PURE__*/React.createElement("div", {
-      key: rev.id,
-      onClick: function onClick() {
-        setCurRev(rev);
-        setSc("view");
-      },
-      style: {
-        display: "flex",
-        alignItems: "center",
-        gap: 12,
-        padding: "14px 16px",
-        background: C.bg2,
-        border: "1px solid " + (short > 0 ? C.red + "35" : C.border),
-        borderRadius: 16,
-        marginBottom: 8,
-        cursor: "pointer"
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        width: 46,
-        height: 46,
-        borderRadius: 13,
-        background: "linear-gradient(135deg,#4466ff,#3ecf8e)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        fontSize: 17,
-        fontWeight: 900,
-        color: "#fff",
-        flexShrink: 0
-      }
-    }, new Date(rev.date + "T00:00:00").getDate()), /*#__PURE__*/React.createElement("div", {
-      style: {
-        flex: 1
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 15,
-        fontWeight: 700,
-        marginBottom: 2
-      }
-    }, fmtD(rev.date)), /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 12,
-        color: C.dim
-      }
-    }, (rev.category || "Все") + " · " + items.length + " поз.")), /*#__PURE__*/React.createElement("div", {
-      style: {
-        display: "flex",
-        gap: 6
-      }
-    }, short > 0 ? /*#__PURE__*/React.createElement(Badge, {
-      color: C.red
-    }, "\u2193 ", short) : /*#__PURE__*/React.createElement(Badge, {
-      color: C.green
-    }, "\u2713 OK")), /*#__PURE__*/React.createElement("div", {
-      style: {
-        color: C.dim,
-        fontSize: 20
-      }
-    }, "\u203A"));
-  })));
+
+function App() {
+  var _useState = React.useState("home"), tab = _useState[0], setTab = _useState[1];
+  var _useState2 = React.useState(0), tick = _useState2[0], setTick = _useState2[1];
+  var _useState3 = React.useState(null), toastMsg = _useState3[0], setToastMsg = _useState3[1];
+  var _useState4 = React.useState(true), loading = _useState4[0], setLoading = _useState4[1];
+  
+  React.useEffect(function() { var unsub = sub(function() { return setTick(function(t) { return t + 1; }); }); initDB().then(function() { return setLoading(false); }); return unsub; }, []);
+  
+  var showToast = function(msg, color) { setToastMsg({ msg: msg, color: color }); setTimeout(function() { return setToastMsg(null); }, 2500); };
+  
+  var diItems = dbGet("delivery_items");
+  var products2 = dbGet("products");
+  var allExp2 = diItems.filter(function(i) { return i.expiry_date && (+i.quantity || 0) > 0; });
+  var fifo2 = calcFifo(allExp2, products2);
+  var alertCount = fifo2.filter(function(i) { return i.remaining > 0 && dLeft(i.expiry_date) < 0; }).length + fifo2.filter(function(i) { return i.remaining > 0 && dLeft(i.expiry_date) >= 0 && dLeft(i.expiry_date) <= 3; }).length;
+  
+  var debtTxs = dbGet("debt_transactions");
+  var debtPpl = dbGet("debt_people");
+  var debtAlert = debtPpl.filter(function(p) { var b = debtTxs.filter(function(t) { return t.person_id === p.id; }).reduce(function(s, t) { return s + (+t.amount || 0); }, 0); return b !== 0; }).length;
+  
+  var NAV = [{ id: "home", icon: "🏠", label: "Главная" }, { id: "supply", icon: "🚚", label: "Поставки" }, { id: "expiry", icon: "☠️", label: "Сроки" }, { id: "revision", icon: "📦", label: "Ревизия" }, { id: "finance", icon: "💰", label: "Финансы" }, { id: "debts", icon: "🤝", label: "Долги" }];
+  
+  if (loading) return React.createElement("div", { style: { height: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: C.bg, color: C.text } }, React.createElement("div", { style: { fontSize: 48, marginBottom: 20 } }, "🏪"), React.createElement("div", { style: { fontSize: 18, fontWeight: 800, marginBottom: 8 } }, "KassaControl"), React.createElement("div", { style: { fontSize: 13, color: C.dim } }, "Загрузка..."));
+  
+  return React.createElement("div", { style: { background: C.bg, color: C.text, minHeight: "100vh", fontFamily: "system-ui,-apple-system,sans-serif", maxWidth: 430, margin: "0 auto", paddingBottom: 80 } }, React.createElement(Toast, { msg: toastMsg ? toastMsg.msg : null, color: toastMsg ? toastMsg.color : null }), tab === "home" && React.createElement(Home, { tick: tick }), tab === "supply" && React.createElement(Suppliers, { tick: tick, toast: showToast }), tab === "expiry" && React.createElement(Expiry, { tick: tick }), React.createElement("div", { style: { position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 430, background: "rgba(9,9,15,.97)", borderTop: "1px solid " + C.border, display: "flex", zIndex: 100 } }, NAV.map(function(n) { return React.createElement("button", { key: n.id, onClick: function() { return setTab(n.id); }, style: { flex: 1, padding: "10px 0 11px", background: "none", border: "none", borderTop: "2px solid " + (tab === n.id ? C.blue : "transparent"), cursor: "pointer", color: tab === n.id ? C.blue : C.dim, display: "flex", flexDirection: "column", alignItems: "center", gap: 2, fontFamily: "inherit", position: "relative" } }, React.createElement("span", { style: { fontSize: 19 } }, n.icon), React.createElement("span", { style: { fontSize: 8, fontWeight: 800, textTransform: "uppercase" } }, n.label), n.id === "expiry" && alertCount > 0 && React.createElement("span", { style: { position: "absolute", top: 4, right: "50%", transform: "translateX(8px)", background: C.red, borderRadius: 10, minWidth: 16, height: 16, fontSize: 10, fontWeight: 900, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", padding: "0 4px" } }, alertCount), n.id === "debts" && debtAlert > 0 && React.createElement("span", { style: { position: "absolute", top: 4, right: "50%", transform: "translateX(8px)", background: C.orange, borderRadius: 10, minWidth: 16, height: 16, fontSize: 10, fontWeight: 900, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", padding: "0 4px" } }, debtAlert)); })));
 }
-function NewRevision(_ref26) {
-  var onBack = _ref26.onBack,
-    onSaved = _ref26.onSaved;
-  var _useState39 = useState("setup"),
-    _useState40 = _slicedToArray(_useState39, 2),
-    step = _useState40[0],
-    setStep = _useState40[1];
-  var _useState41 = useState([]),
-    _useState42 = _slicedToArray(_useState41, 2),
-    selCats = _useState42[0],
-    setSelCats = _useState42[1];
-  var _useState43 = useState(tod()),
-    _useState44 = _slicedToArray(_useState43, 2),
-    date = _useState44[0],
-    setDate = _useState44[1];
-  var _useState45 = useState([]),
-    _useState46 = _slicedToArray(_useState45, 2),
-    items = _useState46[0],
-    setItems = _useState46[1];
-  var _useState47 = useState(false),
-    _useState48 = _slicedToArray(_useState47, 2),
-    saved = _useState48[0],
-    setSaved = _useState48[1];
-  var products = dbGet("products");
-  var cats = _toConsumableArray(new Set(products.map(function (p) {
-    return p.category;
-  }).filter(Boolean))).sort();
-  var getProd = function getProd(cList) {
-    return (cList.length === 0 ? products : products.filter(function (p) {
-      return cList.includes(p.category);
-    })).map(function (p) {
-      return {
-        id: p.id,
-        product_name: p.name,
-        barcode: p.barcode || "",
-        unit: p.unit || "шт",
-        price: p.price || 0,
-        totalQty: p.stock || 0
-      };
-    }).sort(function (a, b) {
-      return a.product_name.localeCompare(b.product_name);
-    });
-  };
-  var catLabel = selCats.length === 0 ? "Все" : selCats.length === 1 ? selCats[0] : selCats.length + " катег.";
-  var startRev = function startRev() {
-    setItems(getProd(selCats).map(function (p) {
-      return {
-        id: uid(),
-        product: p,
-        actual: null
-      };
-    }));
-    setStep("revision");
-  };
-  var updActual = function updActual(id, val) {
-    return setItems(function (p) {
-      return p.map(function (i) {
-        return i.id === id ? _objectSpread(_objectSpread({}, i), {}, {
-          actual: val === "" ? null : +val
-        }) : i;
-      });
-    });
-  };
-  var checked = items.filter(function (i) {
-    return i.actual !== null;
-  }).length;
-  var saveRev = /*#__PURE__*/function () {
-    var _ref27 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee6() {
-      var rev;
-      return _regenerator().w(function (_context6) {
-        while (1) switch (_context6.n) {
-          case 0:
-            _context6.n = 1;
-            return dbInsert("revisions", {
-              category: catLabel,
-              date: date
-            });
-          case 1:
-            rev = _context6.v;
-            _context6.n = 2;
-            return dbInsertMany("revision_items", items.map(function (it) {
-              return {
-                id: uid(),
-                revision_id: rev.id,
-                product_name: it.product.product_name,
-                barcode: it.product.barcode,
-                unit: it.product.unit,
-                expected: it.product.totalQty,
-                actual: it.actual,
-                price: it.product.price || 0
-              };
-            }));
-          case 2:
-            setSaved(true);
-            setTimeout(function () {
-              return onSaved();
-            }, 1000);
-          case 3:
-            return _context6.a(2);
-        }
-      }, _callee6);
-    }));
-    return function saveRev() {
-      return _ref27.apply(this, arguments);
-    };
-  }();
-  if (step === "setup") return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(Hdr, {
-    title: "\u041D\u043E\u0432\u0430\u044F \u0440\u0435\u0432\u0438\u0437\u0438\u044F",
-    onBack: onBack
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: 14,
-      paddingBottom: 30
-    }
-  }, /*#__PURE__*/React.createElement(Card, null, /*#__PURE__*/React.createElement(TI, {
-    label: "\u0414\u0410\u0422\u0410",
-    type: "date",
-    value: date,
-    onChange: setDate
-  })), /*#__PURE__*/React.createElement(Card, null, /*#__PURE__*/React.createElement(FL, null, "\u041A\u0410\u0422\u0415\u0413\u041E\u0420\u0418\u0418"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      flexWrap: "wrap",
-      gap: 7,
-      marginBottom: 8
-    }
-  }, cats.map(function (cat) {
-    return /*#__PURE__*/React.createElement("button", {
-      key: cat,
-      onClick: function onClick() {
-        return setSelCats(function (p) {
-          return p.includes(cat) ? p.filter(function (c) {
-            return c !== cat;
-          }) : [].concat(_toConsumableArray(p), [cat]);
-        });
-      },
-      style: {
-        padding: "8px 14px",
-        borderRadius: 22,
-        cursor: "pointer",
-        fontFamily: "inherit",
-        fontSize: 12,
-        fontWeight: 700,
-        border: "1.5px solid " + (selCats.includes(cat) ? C.blue + "80" : C.border),
-        background: selCats.includes(cat) ? C.blue + "18" : C.bg3,
-        color: selCats.includes(cat) ? C.blue : C.muted
-      }
-    }, cat);
-  }))), /*#__PURE__*/React.createElement(Btn, {
-    bg: C.blue,
-    onClick: startRev,
-    disabled: selCats.length === 0
-  }, selCats.length > 0 ? "📦 Начать · " + getProd(selCats).length + " товаров" : "Выбери категорию")));
-  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(Hdr, {
-    title: catLabel,
-    sub: "\u0420\u0415\u0412\u0418\u0417\u0418\u042F",
-    onBack: function onBack() {
-      return setStep("setup");
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      background: C.bg3,
-      borderRadius: 10,
-      padding: "5px 12px",
-      textAlign: "center"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 9,
-      color: C.dim,
-      fontWeight: 700
-    }
-  }, "\u041F\u0440\u043E\u0432\u0435\u0440\u0435\u043D\u043E"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 15,
-      fontWeight: 900,
-      color: checked === items.length && checked > 0 ? C.green : C.blue
-    }
-  }, checked + "/" + items.length))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: 14,
-      paddingBottom: 160
-    }
-  }, items.map(function (ri) {
-    var diff = ri.actual !== null ? ri.actual - ri.product.totalQty : null;
-    var dc = diff === null ? C.dim : diff < 0 ? C.red : diff > 0 ? C.orange : C.green;
-    return /*#__PURE__*/React.createElement("div", {
-      key: ri.id,
-      style: {
-        background: C.bg2,
-        border: "1px solid " + (diff === null ? C.border : diff < 0 ? C.red + "40" : C.green + "30"),
-        borderRadius: 16,
-        marginBottom: 8,
-        overflow: "hidden",
-        display: "flex"
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        width: 4,
-        background: diff === null ? C.border : dc + "cc",
-        flexShrink: 0
-      }
-    }), /*#__PURE__*/React.createElement("div", {
-      style: {
-        flex: 1,
-        padding: "12px 14px 12px 10px"
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        display: "flex",
-        alignItems: "flex-start",
-        gap: 10
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        flex: 1
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 14,
-        fontWeight: 800,
-        marginBottom: 3
-      }
-    }, ri.product.product_name), /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 12,
-        color: C.dim
-      }
-    }, "\u041E\u0436\u0438\u0434\u0430\u0435\u0442\u0441\u044F: ", ri.product.totalQty, " ", ri.product.unit)), /*#__PURE__*/React.createElement("div", {
-      style: {
-        flexShrink: 0,
-        textAlign: "right"
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 9,
-        fontWeight: 800,
-        color: C.dim,
-        marginBottom: 4
-      }
-    }, "\u0424\u0410\u041A\u0422"), /*#__PURE__*/React.createElement("input", {
-      type: "number",
-      placeholder: String(ri.product.totalQty),
-      value: ri.actual === null ? "" : ri.actual,
-      onChange: function onChange(e) {
-        return updActual(ri.id, e.target.value);
-      },
-      style: {
-        width: 72,
-        padding: "9px 6px",
-        borderRadius: 11,
-        textAlign: "center",
-        background: C.bg,
-        border: "1.5px solid " + (diff === null ? C.border : dc),
-        color: diff === null ? C.text : dc,
-        fontSize: 18,
-        fontWeight: 900,
-        fontFamily: "inherit",
-        outline: "none"
-      }
-    }), diff !== null && /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 13,
-        fontWeight: 900,
-        color: dc,
-        marginTop: 4
-      }
-    }, diff > 0 ? "+" : "", diff)))));
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: "fixed",
-      bottom: 64,
-      left: "50%",
-      transform: "translateX(-50%)",
-      width: "100%",
-      maxWidth: 430,
-      padding: "10px 14px",
-      background: "rgba(9,9,15,.97)",
-      borderTop: "1px solid " + C.border,
-      zIndex: 150
-    }
-  }, saved ? /*#__PURE__*/React.createElement("div", {
-    style: {
-      textAlign: "center",
-      padding: 14,
-      fontSize: 16,
-      fontWeight: 800,
-      color: C.green
-    }
-  }, "\u2713 \u0420\u0435\u0432\u0438\u0437\u0438\u044F \u0441\u043E\u0445\u0440\u0430\u043D\u0435\u043D\u0430!") : /*#__PURE__*/React.createElement(Btn, {
-    bg: checked > 0 ? C.green : C.bg3,
-    color: checked > 0 ? "#051a0e" : C.dim,
-    onClick: saveRev,
-    disabled: checked === 0
-  }, checked === 0 ? "Введи данные" : "✓ Сохранить · " + checked + "/" + items.length)));
-}
-function RevisionView(_ref28) {
-  var revision = _ref28.revision,
-    onBack = _ref28.onBack,
-    onDeleted = _ref28.onDeleted;
-  var _useState49 = useState(false),
-    _useState50 = _slicedToArray(_useState49, 2),
-    confirmDel = _useState50[0],
-    setConfirmDel = _useState50[1];
-  var items = dbGet("revision_items").filter(function (i) {
-    return i.revision_id === revision.id;
-  });
-  var loss = items.filter(function (i) {
-    return i.actual !== null;
-  }).reduce(function (s, i) {
-    return s + i.expected * (i.price || 0);
-  }, 0) - items.filter(function (i) {
-    return i.actual !== null;
-  }).reduce(function (s, i) {
-    return s + i.actual * (i.price || 0);
-  }, 0);
-  var doDelete = /*#__PURE__*/function () {
-    var _ref29 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee7() {
-      var _iterator2, _step2, item, _t2;
-      return _regenerator().w(function (_context7) {
-        while (1) switch (_context7.p = _context7.n) {
-          case 0:
-            _iterator2 = _createForOfIteratorHelper(items);
-            _context7.p = 1;
-            _iterator2.s();
-          case 2:
-            if ((_step2 = _iterator2.n()).done) {
-              _context7.n = 4;
-              break;
-            }
-            item = _step2.value;
-            _context7.n = 3;
-            return sbDel("revision_items", item.id);
-          case 3:
-            _context7.n = 2;
-            break;
-          case 4:
-            _context7.n = 6;
-            break;
-          case 5:
-            _context7.p = 5;
-            _t2 = _context7.v;
-            _iterator2.e(_t2);
-          case 6:
-            _context7.p = 6;
-            _iterator2.f();
-            return _context7.f(6);
-          case 7:
-            _context7.n = 8;
-            return sbDel("revisions", revision.id);
-          case 8:
-            DB.revision_items = DB.revision_items.filter(function (i) {
-              return i.revision_id !== revision.id;
-            });
-            DB.revisions = DB.revisions.filter(function (r) {
-              return r.id !== revision.id;
-            });
-            pub();
-            onDeleted();
-          case 9:
-            return _context7.a(2);
-        }
-      }, _callee7, null, [[1, 5, 6, 7]]);
-    }));
-    return function doDelete() {
-      return _ref29.apply(this, arguments);
-    };
-  }();
-  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(Hdr, {
-    title: fmtD(revision.date),
-    sub: (revision.category || "РЕВИЗИЯ").toUpperCase(),
-    onBack: onBack
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: function onClick() {
-      return setConfirmDel(true);
-    },
-    style: {
-      width: 38,
-      height: 38,
-      borderRadius: 11,
-      background: "#f04f5a18",
-      border: "1px solid #f04f5a40",
-      color: C.red,
-      fontSize: 16,
-      cursor: "pointer",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center"
-    }
-  }, "\uD83D\uDDD1")), confirmDel && /*#__PURE__*/React.createElement(DelConfirm, {
-    text: "Ревизия от " + fmtD(revision.date),
-    onConfirm: doDelete,
-    onCancel: function onCancel() {
-      return setConfirmDel(false);
-    }
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: 14,
-      paddingBottom: 30
-    }
-  }, loss > 0 && /*#__PURE__*/React.createElement("div", {
-    style: {
-      background: "#f04f5a10",
-      border: "1px solid " + C.red + "30",
-      borderRadius: 16,
-      padding: "14px 16px",
-      marginBottom: 12,
-      display: "flex",
-      justifyContent: "space-between"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 10,
-      fontWeight: 800,
-      color: C.dim
-    }
-  }, "\u041F\u041E\u0422\u0415\u0420\u0418"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 22,
-      fontWeight: 900,
-      color: C.red
-    }
-  }, "\u2212", fmt(loss), " SM")), /*#__PURE__*/React.createElement(Card, null, items.map(function (item, i) {
-    var diff = item.actual !== null ? item.actual - item.expected : null;
-    var dc = diff === null ? C.dim : diff < 0 ? C.red : diff > 0 ? C.orange : C.green;
-    return /*#__PURE__*/React.createElement("div", {
-      key: item.id,
-      style: {
-        padding: "12px 0",
-        borderBottom: i < items.length - 1 ? "1px solid " + C.border : "none"
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        display: "flex",
-        alignItems: "center",
-        gap: 10
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        flex: 1
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 14,
-        fontWeight: 800
-      }
-    }, item.product_name)), /*#__PURE__*/React.createElement("div", {
-      style: {
-        textAlign: "right"
-      }
-    }, /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontSize: 11,
-        color: C.dim
-      }
-    }, "\u041E\u0436\u0438\u0434: ", item.expected), item.actual !== null && /*#__PURE__*/React.createElement("span", {
-      style: {
-        marginLeft: 8,
-        fontSize: 13,
-        fontWeight: 900,
-        padding: "2px 8px",
-        borderRadius: 8,
-        background: dc + "18",
-        color: dc
-      }
-    }, diff > 0 ? "+" : "", diff, " ", item.unit))));
-  }))));
-}
-function Finance(_ref30) {
-  var tick = _ref30.tick,
-    toast = _ref30.toast;
-  var _useState51 = useState("expenses"),
-    _useState52 = _slicedToArray(_useState51, 2),
-    tab = _useState52[0],
-    setTab = _useState52[1];
-  var exp = dbGet("expenses"),
-    rev = dbGet("revenue"),
-    cash = dbGet("cash_movements");
-  var cashBal = 0;
-  cash.forEach(function (m) {
-    if (m.type === "add" || m.type === "revenue") cashBal += +m.amount || 0;else cashBal -= +m.amount || 0;
-  });
-  var t = tod();
-  var todayRev = rev.filter(function (r) {
-    return r.date === t;
-  }).reduce(function (s, r) {
-    return s + (+r.amount || 0);
-  }, 0);
-  var todayExp = exp.filter(function (e) {
-    return e.date === t;
-  }).reduce(function (s, e) {
-    return s + (+e.amount || 0);
-  }, 0);
-  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: "14px 16px 12px",
-      background: "rgba(9,9,15,.97)",
-      borderBottom: "1px solid " + C.border,
-      position: "sticky",
-      top: 0,
-      zIndex: 50
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 20,
-      fontWeight: 900,
-      marginBottom: 12
-    }
-  }, "\uD83D\uDCB0 \u0424\u0438\u043D\u0430\u043D\u0441\u044B"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 8,
-      marginBottom: 12
-    }
-  }, [["Выручка", "+" + fmt(todayRev), C.green], ["Расходы", "−" + fmt(todayExp), C.red], ["Касса", fmt(Math.abs(cashBal)), cashBal >= 0 ? C.blue : C.red]].map(function (_ref31) {
-    var _ref32 = _slicedToArray(_ref31, 3),
-      l = _ref32[0],
-      v = _ref32[1],
-      c = _ref32[2];
-    return /*#__PURE__*/React.createElement("div", {
-      key: l,
-      style: {
-        flex: 1,
-        background: C.bg3,
-        borderRadius: 10,
-        padding: "8px 10px"
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 8,
-        fontWeight: 800,
-        color: C.dim,
-        marginBottom: 3
-      }
-    }, l.toUpperCase()), /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 13,
-        fontWeight: 900,
-        color: c
-      }
-    }, v));
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 6
-    }
-  }, [["expenses", "💸 Расходы"], ["revenue", "💰 Выручка"], ["cash", "🏧 Касса"]].map(function (_ref33) {
-    var _ref34 = _slicedToArray(_ref33, 2),
-      id = _ref34[0],
-      l = _ref34[1];
-    return /*#__PURE__*/React.createElement("button", {
-      key: id,
-      onClick: function onClick() {
-        return setTab(id);
-      },
-      style: {
-        flex: 1,
-        padding: "9px 4px",
-        borderRadius: 11,
-        cursor: "pointer",
-        fontFamily: "inherit",
-        fontSize: 11,
-        fontWeight: 800,
-        border: "1.5px solid " + (tab === id ? C.blue + "60" : C.border),
-        background: tab === id ? C.blue + "18" : C.bg2,
-        color: tab === id ? C.blue : C.dim
-      }
-    }, l);
-  }))), tab === "expenses" && /*#__PURE__*/React.createElement(ExpensesTab, {
-    toast: toast
-  }), tab === "revenue" && /*#__PURE__*/React.createElement(RevenueTab, {
-    toast: toast
-  }), tab === "cash" && /*#__PURE__*/React.createElement(CashTab, {
-    toast: toast
-  }));
-}
-function ExpensesTab(_ref35) {
-  var toast = _ref35.toast;
-  var _useState53 = useState(monStr()),
-    _useState54 = _slicedToArray(_useState53, 2),
-    curMonth = _useState54[0],
-    setCurMonth = _useState54[1];
-  var _useState55 = useState(""),
-    _useState56 = _slicedToArray(_useState55, 2),
-    amount = _useState56[0],
-    setAmount = _useState56[1];
-  var _useState57 = useState(""),
-    _useState58 = _slicedToArray(_useState57, 2),
-    reason = _useState58[0],
-    setReason = _useState58[1];
-  var _useState59 = useState(null),
-    _useState60 = _slicedToArray(_useState59, 2),
-    del = _useState60[0],
-    setDel = _useState60[1];
-  var months = getMonths(4);
-  var monthExp = dbGet("expenses").filter(function (e) {
-    return e.month_year === curMonth;
-  }).sort(function (a, b) {
-    return b.created_at.localeCompare(a.created_at);
-  });
-  var total = monthExp.reduce(function (s, e) {
-    return s + (+e.amount || 0);
-  }, 0);
-  var save = /*#__PURE__*/function () {
-    var _ref36 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee8() {
-      return _regenerator().w(function (_context8) {
-        while (1) switch (_context8.n) {
-          case 0:
-            if (!(!amount || !reason.trim())) {
-              _context8.n = 1;
-              break;
-            }
-            return _context8.a(2);
-          case 1:
-            _context8.n = 2;
-            return dbInsert("expenses", {
-              amount: +amount,
-              reason: reason.trim(),
-              month_year: monStr(),
-              date: tod()
-            });
-          case 2:
-            _context8.n = 3;
-            return dbInsert("cash_movements", {
-              type: "expense",
-              amount: +amount,
-              description: reason.trim(),
-              date: tod()
-            });
-          case 3:
-            setAmount("");
-            setReason("");
-            toast && toast("Расход записан");
-          case 4:
-            return _context8.a(2);
-        }
-      }, _callee8);
-    }));
-    return function save() {
-      return _ref36.apply(this, arguments);
-    };
-  }();
-  var curObj = months.find(function (m) {
-    return m.val === curMonth;
-  });
-  return /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: 14,
-      paddingBottom: 30
-    }
-  }, del && /*#__PURE__*/React.createElement(DelConfirm, {
-    text: "Расход «" + del.reason + "»",
-    onConfirm: /*#__PURE__*/_asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee9() {
-      return _regenerator().w(function (_context9) {
-        while (1) switch (_context9.n) {
-          case 0:
-            _context9.n = 1;
-            return dbDelete("expenses", del.id);
-          case 1:
-            _context9.n = 2;
-            return dbInsert("cash_movements", {
-              type: "add",
-              amount: +del.amount,
-              description: "Возврат: " + del.reason,
-              date: tod()
-            });
-          case 2:
-            setDel(null);
-          case 3:
-            return _context9.a(2);
-        }
-      }, _callee9);
-    })),
-    onCancel: function onCancel() {
-      return setDel(null);
-    }
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 6,
-      overflowX: "auto",
-      paddingBottom: 4,
-      marginBottom: 12
-    }
-  }, months.map(function (m) {
-    return /*#__PURE__*/React.createElement("button", {
-      key: m.val,
-      onClick: function onClick() {
-        return setCurMonth(m.val);
-      },
-      style: {
-        padding: "7px 14px",
-        borderRadius: 20,
-        cursor: "pointer",
-        fontFamily: "inherit",
-        fontSize: 11,
-        fontWeight: 700,
-        whiteSpace: "nowrap",
-        flexShrink: 0,
-        border: "1.5px solid " + (curMonth === m.val ? C.red + "70" : C.border),
-        background: curMonth === m.val ? C.red + "18" : C.bg2,
-        color: curMonth === m.val ? C.red : C.dim
-      }
-    }, m.label);
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      background: C.bg2,
-      border: "1px solid " + C.border,
-      borderRadius: 16,
-      padding: "16px 20px",
-      marginBottom: 14,
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center"
-    }
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 36,
-      fontWeight: 900,
-      color: C.red
-    }
-  }, fmt(total), " SM"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      color: C.dim,
-      marginTop: 4
-    }
-  }, monthExp.length, " \u0437\u0430\u043F\u0438\u0441\u0435\u0439")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 44,
-      opacity: 0.35
-    }
-  }, "\uD83D\uDCB8")), /*#__PURE__*/React.createElement(Card, null, /*#__PURE__*/React.createElement(TI, {
-    label: "\u0421\u0423\u041C\u041C\u0410 (SM)",
-    type: "number",
-    placeholder: "0.00",
-    value: amount,
-    onChange: setAmount,
-    autoFocus: true
-  }), /*#__PURE__*/React.createElement(TI, {
-    label: "\u041F\u0420\u0418\u0427\u0418\u041D\u0410",
-    placeholder: "\u0410\u0440\u0435\u043D\u0434\u0430, \u0437\u0430\u0440\u043F\u043B\u0430\u0442\u0430...",
-    value: reason,
-    onChange: setReason
-  }), /*#__PURE__*/React.createElement(Btn, {
-    bg: C.red,
-    onClick: save,
-    disabled: !amount || !reason.trim()
-  }, "\u2212 \u0417\u0430\u043F\u0438\u0441\u0430\u0442\u044C \u0440\u0430\u0441\u0445\u043E\u0434")), /*#__PURE__*/React.createElement(SecLabel, null, "\u0418\u0441\u0442\u043E\u0440\u0438\u044F \xB7 ", curObj ? curObj.label : ""), !monthExp.length ? /*#__PURE__*/React.createElement(Empty, {
-    icon: "\uD83D\uDCB8",
-    text: "\u0420\u0430\u0441\u0445\u043E\u0434\u043E\u0432 \u043D\u0435\u0442"
-  }) : monthExp.map(function (e) {
-    return /*#__PURE__*/React.createElement("div", {
-      key: e.id,
-      style: {
-        display: "flex",
-        alignItems: "center",
-        gap: 12,
-        padding: "13px 16px",
-        background: C.bg2,
-        border: "1px solid " + C.border,
-        borderRadius: 14,
-        marginBottom: 8
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        flex: 1
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 16,
-        fontWeight: 800,
-        color: C.red
-      }
-    }, "\u2212", fmt(e.amount), " SM"), /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 13,
-        color: C.muted
-      }
-    }, e.reason), /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 11,
-        color: C.dim
-      }
-    }, fmtD(e.date))), /*#__PURE__*/React.createElement("button", {
-      onClick: function onClick() {
-        return setDel(e);
-      },
-      style: {
-        background: "none",
-        border: "none",
-        color: C.dim,
-        fontSize: 20,
-        cursor: "pointer"
-      }
-    }, "\uD83D\uDDD1"));
-  }));
-}
-function RevenueTab(_ref38) {
-  var toast = _ref38.toast;
-  var _useState61 = useState(""),
-    _useState62 = _slicedToArray(_useState61, 2),
-    amount = _useState62[0],
-    setAmount = _useState62[1];
-  var _useState63 = useState(""),
-    _useState64 = _slicedToArray(_useState63, 2),
-    gbs = _useState64[0],
-    setGbs = _useState64[1];
-  var _useState65 = useState(tod()),
-    _useState66 = _slicedToArray(_useState65, 2),
-    date = _useState66[0],
-    setDate = _useState66[1];
-  var _useState67 = useState(null),
-    _useState68 = _slicedToArray(_useState67, 2),
-    del = _useState68[0],
-    setDel = _useState68[1];
-  var all = dbGet("revenue").sort(function (a, b) {
-    return b.created_at.localeCompare(a.created_at);
-  });
-  var todayRev = all.filter(function (r) {
-    return r.date === tod();
-  }).reduce(function (s, r) {
-    return s + (+r.amount || 0);
-  }, 0);
-  var save = /*#__PURE__*/function () {
-    var _ref39 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee0() {
-      return _regenerator().w(function (_context0) {
-        while (1) switch (_context0.n) {
-          case 0:
-            if (amount) {
-              _context0.n = 1;
-              break;
-            }
-            return _context0.a(2);
-          case 1:
-            _context0.n = 2;
-            return
+
+ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App, null));
+</script>
+</body>
+</html>

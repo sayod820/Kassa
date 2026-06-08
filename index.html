@@ -11,15 +11,14 @@
 <style>*{box-sizing:border-box;margin:0;padding:0}body{background:#09090f}#root{max-width:430px;margin:0 auto}</style>
 </head>
 <body>
-<script>
+  <script>
 const ALLOWED = [1095510997];
 const tg = window.Telegram?.WebApp?.initDataUnsafe?.user;
 if (tg && !ALLOWED.includes(tg.id)) {
   document.body.innerHTML = '<div style="background:#09090f;color:#fff;height:100vh;display:flex;align-items:center;justify-content:center;font-family:system-ui;flex-direction:column;text-align:center;padding:20px;position:fixed;top:0;left:0;width:100%;z-index:99999"><div style="font-size:80px">⛔</div><div style="font-size:24px;font-weight:900;color:#f04f5a;margin:15px 0">Доступ запрещён</div><div style="font-size:14px;color:#6868a0">Приложение только для владельца</div><div style="background:#111120;border:1px solid #1e1e38;border-radius:14px;padding:12px 20px;margin-top:25px"><div style="font-size:10px;color:#32324a;margin-bottom:5px">ВАШ ID</div><div style="font-size:18px;font-weight:800;color:#4466ff">'+tg.id+'</div></div></div>';
   window.stop();
 }
-</script>
-
+  </script>
 <div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect, useRef } = React;
@@ -186,6 +185,11 @@ function Home({tick}){
   const cleanPct=totalRev>0?Math.round((cleanP/totalRev)*100):0;
   let cashBal=0; cash.forEach(m=>{ if(m.type==='add'||m.type==='revenue') cashBal+= +m.amount; else cashBal-= +m.amount; });
   const products=dbGet('products');
+  const diAll=dbGet('delivery_items');
+  const totalStockCost=diAll.reduce((s,i)=>s+(+(i.cost_price||0))*(+(i.quantity||0)),0);
+  const totalStockSell=products.reduce((s,p)=>s+(+(p.price||0))*(+(p.stock||0)),0);
+  const totalStockProfit=totalStockSell-totalStockCost;
+  const totalStockItems=products.reduce((s,p)=>s+(+(p.stock||0)),0);
   const allExpItems=diItems.filter(i=>i.expiry_date&&(+i.quantity||0)>0);
   const fifoItems=calcFifoRemaining(allExpItems,products);
   const withExp=fifoItems.filter(i=>i.remaining>0);
@@ -230,6 +234,24 @@ function Home({tick}){
         <div style={{background:C.bg2,border:`1.5px solid ${cashBal>=0?C.blue+'40':C.red+'40'}`,borderRadius:16,padding:'14px 16px',marginBottom:12,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
           <div><div style={{fontSize:9,fontWeight:800,letterSpacing:2,color:C.dim,marginBottom:4}}>🏧 НАЛИЧНЫЕ В КАССЕ</div><div style={{fontSize:28,fontWeight:900,color:cashBal>=0?C.blue:C.red}}>{fmt(Math.abs(cashBal))} SM</div></div>
           <div style={{fontSize:40,opacity:.35}}>🏧</div>
+        </div>
+        <div style={{background:C.bg2,border:`1px solid ${C.border}`,borderRadius:16,overflow:'hidden',marginBottom:12}}>
+          <div style={{padding:'10px 16px',background:C.bg3,borderBottom:`1px solid ${C.border}`,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+            <div style={{fontSize:10,fontWeight:800,letterSpacing:2,color:C.dim}}>📦 ТОВАРЫ НА СКЛАДЕ</div>
+            <div style={{fontSize:11,fontWeight:800,color:C.dim}}>{totalStockItems.toLocaleString('ru')} ед.</div>
+          </div>
+          <div style={{display:'flex'}}>
+            <div style={{flex:1,padding:'14px 16px',borderRight:`1px solid ${C.border}`}}>
+              <div style={{fontSize:8,fontWeight:800,letterSpacing:1.5,color:C.dim,marginBottom:6}}>💰 НА СУММУ (ЗАКУПКА)</div>
+              <div style={{fontSize:20,fontWeight:900,color:C.orange,letterSpacing:-.5}}>{fmt(totalStockCost)}</div>
+              <div style={{fontSize:9,color:C.dim,marginTop:3}}>сомони</div>
+            </div>
+            <div style={{flex:1,padding:'14px 16px'}}>
+              <div style={{fontSize:8,fontWeight:800,letterSpacing:1.5,color:C.dim,marginBottom:6}}>🏷 НА СУММУ (РОЗНИЦА)</div>
+              <div style={{fontSize:20,fontWeight:900,color:C.green,letterSpacing:-.5}}>{fmt(totalStockSell)}</div>
+              <div style={{fontSize:9,color:C.dim,marginTop:3}}>сомони</div>
+            </div>
+          </div>
         </div>
         <div style={{background:C.bg2,border:`1px solid ${(expired.length+critical.length)>0?C.red+'40':C.border}`,borderRadius:16,overflow:'hidden',marginBottom:12}}>
           <div style={{padding:'10px 16px',background:C.bg3,borderBottom:`1px solid ${C.border}`,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
@@ -522,6 +544,7 @@ function Posting({supplier,onBack,onSaved}){
   const [editId,setEditId]=useState(null);
   const [editQty,setEditQty]=useState('');
   const [editExp,setEditExp]=useState('');
+  const [costPrice,setCostPrice]=useState('');
   const [err,setErr]=useState('');
   const catalog=dbGet('products');
   const results=search.trim().length>=1?(()=>{
@@ -536,11 +559,11 @@ function Posting({supplier,onBack,onSaved}){
     });
     return all.slice(0,10);
   })():[];
-  const addToList=()=>{ if(!qty||+qty<=0){setErr('Введите количество');return;} setAddedItems(prev=>[...prev,{id:uid(),product_id:selected.id,name:selected.name,barcode:selected.barcode,qty:+qty,unit:selected.unit,category:selected.category,expiry:expiry||null}]); setSelected(null);setQty('');setExpiry('');setErr(''); };
+  const addToList=()=>{ if(!qty||+qty<=0){setErr('Введите количество');return;} setAddedItems(prev=>[...prev,{id:uid(),product_id:selected.id,name:selected.name,barcode:selected.barcode,qty:+qty,cost_price:+costPrice||0,unit:selected.unit,category:selected.category,expiry:expiry||null}]); setSelected(null);setQty('');setCostPrice('');setExpiry('');setErr(''); };
   const saveAll=async()=>{
     if(!addedItems.length)return;
     const del=await dbInsert('deliveries',{id:uid(),supplier_id:supplier.id,supplier_name:supplier.name,date});
-    await dbInsertMany('delivery_items',addedItems.map(item=>({delivery_id:del.id,product_name:item.name,barcode:item.barcode,quantity:item.qty,unit:item.unit,category:item.category,expiry_date:item.expiry||null})));
+    await dbInsertMany('delivery_items',addedItems.map(item=>({delivery_id:del.id,product_name:item.name,barcode:item.barcode,quantity:item.qty,cost_price:item.cost_price||0,unit:item.unit,category:item.category,expiry_date:item.expiry||null})));
     onSaved(addedItems.length);
   };
   return(
@@ -566,10 +589,11 @@ function Posting({supplier,onBack,onSaved}){
             <div style={{flex:1}}><div style={{fontSize:15,fontWeight:800}}>{selected.name}</div><div style={{fontSize:11,color:C.dim,marginTop:2}}>{selected.category} · 🏷 {selected.barcode}</div></div>
             <button onClick={()=>setSelected(null)} style={{background:'none',border:'none',color:C.dim,fontSize:22,cursor:'pointer',padding:4}}>✕</button>
           </div>
-          <div style={{display:'flex',gap:8}}>
+          <div style={{display:'flex',gap:8,marginBottom:8}}>
             <div style={{flex:1}}><FL>КОЛ-ВО ({selected.unit})</FL><input type="number" autoFocus placeholder="0" value={qty} onChange={e=>{setQty(e.target.value);setErr('');}} style={{width:'100%',background:C.bg,border:`1px solid ${C.border}`,borderRadius:12,padding:'13px 16px',color:C.text,fontSize:20,fontWeight:800,outline:'none',WebkitAppearance:'none'}}/></div>
             <div style={{flex:1}}><FL>СРОК ГОДНОСТИ</FL><input type="date" value={expiry} onChange={e=>setExpiry(e.target.value)} style={{width:'100%',background:C.bg,border:`1px solid ${C.border}`,borderRadius:12,padding:'13px 14px',color:C.text,fontSize:14,outline:'none',WebkitAppearance:'none'}}/></div>
           </div>
+          <div><FL>💰 ЗАКУПОЧНАЯ ЦЕНА (SM)</FL><input type="number" placeholder="0.00" value={costPrice} onChange={e=>setCostPrice(e.target.value)} style={{width:'100%',background:C.bg,border:`1.5px solid ${C.orange}40`,borderRadius:12,padding:'13px 16px',color:C.text,fontSize:18,fontWeight:800,outline:'none',WebkitAppearance:'none',boxSizing:'border-box'}}/></div>
           {expiry&&<div style={{fontSize:12,color:eColor(dLeft(expiry)),fontWeight:600,marginTop:6}}>{dLeft(expiry)<0?'⚠ Уже просрочен!':dLeft(expiry)===0?'⚠ Истекает сегодня':'✓ До истечения: '+dLeft(expiry)+' дней'}</div>}
           {err&&<div style={{color:C.red,fontSize:12,marginTop:8}}>{err}</div>}
           <div style={{display:'flex',gap:8,marginTop:12}}><Btn outline onClick={()=>setSelected(null)} style={{width:52,flex:'none',padding:'14px 0'}}>←</Btn><Btn bg={C.blue} onClick={addToList} style={{flex:1}}>+ Добавить</Btn></div>
@@ -610,18 +634,50 @@ function Posting({supplier,onBack,onSaved}){
 }
 
 function calcFifoRemaining(deliveryItems,products){
+  // Группируем партии по штрихкоду, сортируем по дате поставки (старые первые)
   const byBarcode={};
-  deliveryItems.filter(i=>i.expiry_date&&i.barcode&&(+i.quantity||0)>0).forEach(i=>{ if(!byBarcode[i.barcode])byBarcode[i.barcode]=[]; byBarcode[i.barcode].push({...i}); });
+  deliveryItems.filter(i=>i.expiry_date&&i.barcode&&(+i.quantity||0)>0).forEach(i=>{
+    if(!byBarcode[i.barcode])byBarcode[i.barcode]=[];
+    byBarcode[i.barcode].push({...i});
+  });
   const result=[];
   Object.entries(byBarcode).forEach(([barcode,batches])=>{
     const prod=products.find(p=>p.barcode===barcode);
-    const currentStock=prod?(prod.stock||0):null;
-    const sorted=[...batches].sort((a,b)=>{ const da=dbGet('deliveries').find(d=>d.id===a.delivery_id); const db2=dbGet('deliveries').find(d=>d.id===b.delivery_id); return(da?.date||'').localeCompare(db2?.date||''); });
-    if(currentStock===null){ sorted.forEach(b=>result.push({...b,remaining:b.quantity})); return; }
-    let leftToSell=Math.max(0,sorted.reduce((s,b)=>s+b.quantity,0)-currentStock);
-    sorted.forEach(batch=>{ let remaining=batch.quantity; if(leftToSell>0){const deduct=Math.min(leftToSell,batch.quantity);remaining=batch.quantity-deduct;leftToSell-=deduct;} result.push({...batch,remaining,originalQty:batch.quantity}); });
+    const currentStock=prod?(+(prod.stock)||0):null;
+    // Сортируем: старые партии первые (FIFO)
+    const dels=dbGet('deliveries');
+    const sorted=[...batches].sort((a,b)=>{
+      const da=dels.find(d=>d.id===a.delivery_id);
+      const db2=dels.find(d=>d.id===b.delivery_id);
+      return(da?.date||'').localeCompare(db2?.date||'');
+    });
+    if(currentStock===null){
+      sorted.forEach(b=>result.push({...b,remaining:+b.quantity}));
+      return;
+    }
+    if(currentStock<=0){
+      // Всё продано — ни одна партия не показывается
+      sorted.forEach(b=>result.push({...b,remaining:0}));
+      return;
+    }
+    // Распределяем остаток stock на партии начиная с НОВЫХ (новые ещё не проданы)
+    // Старые партии списываются первыми
+    let stockLeft=currentStock;
+    // Идём с конца (новые партии) — они остались, старые проданы
+    const withRemaining=sorted.map(b=>({...b,remaining:0}));
+    for(let i=withRemaining.length-1;i>=0&&stockLeft>0;i--){
+      const take=Math.min(stockLeft,+withRemaining[i].quantity);
+      withRemaining[i].remaining=take;
+      stockLeft-=take;
+    }
+    withRemaining.forEach(b=>result.push(b));
   });
-  deliveryItems.filter(i=>i.expiry_date&&!i.barcode&&(+i.quantity||0)>0).forEach(i=>{ result.push({...i,remaining:i.quantity}); });
+  // Товары без штрихкода — по названию
+  deliveryItems.filter(i=>i.expiry_date&&!i.barcode&&(+i.quantity||0)>0).forEach(i=>{
+    const prod=products.find(p=>p.name===i.product_name);
+    const rem=prod?(Math.min(+i.quantity,+(prod.stock)||0)):(+i.quantity);
+    if(rem>0) result.push({...i,remaining:rem});
+  });
   return result;
 }
 
